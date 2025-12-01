@@ -1,0 +1,244 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+// Use Alphabetic order when create joining table
+
+Table users {
+  id integer [primary key]
+  name varchar
+  role varchar
+}
+
+Table school {
+  id integer [primary key]
+  name varchar
+}
+
+Table hagwon {
+  id integer [primary key]
+  name varchar
+}
+
+Table class {
+    id integer [primary key]
+    name varchar
+    description varchar
+    teached_by integer [not null]
+    created_by integer [not null]
+    created_at timestamp
+    updated_by integer
+    updated_at timestamp
+}
+Ref class_users: class.teached_by > users.id
+Ref class_created_by: class.created_by > users.id
+Ref class_updated_by: class.updated_by > users.id
+
+Table class_student {
+    id integer [primary key]
+    class_id integer [not null]
+    student_id integer [not null]
+}
+Ref class_student_class: class_student.class_id > class.id
+Ref class_student_student: class_student.student_id > student.id
+
+Table student {
+  id integer [primary key]
+  user_id integer [not null]
+  school_id integer [not null]
+  hagwon_id integer // can be null
+  grade number
+  is_approved bool
+}
+Ref student_users: student.user_id - users.id
+Ref student_school: student.school_id > school.id
+Ref student_hagwon: student.hagwon_id > hagwon.id
+
+Table parent {
+  id integer [primary key]
+  user_id integer [not null]
+  is_approved bool
+}
+Ref parent_users: parent.user_id - users.id
+
+Table parent_student {
+  id integer [primary key]
+  student_id integer [not null]
+  parent_id integer [not null]
+}
+Ref parent_student_student: parent_student.student_id > student.id
+Ref parent_student_parent: parent_student.parent_id > parent.id
+
+Table principal {
+  id integer [primary key]
+  hagwon_id integer [not null]
+  user_id integer
+  is_approved bool
+}
+Ref principal_users: principal.user_id - users.id
+Ref principal_hagwon: principal.hagwon_id - hagwon.id
+
+Table helper {
+  id integer [primary key]
+  user_id integer [not null]
+  principal_id integer [not null]
+  is_approved bool
+}
+Ref helper_user: helper.user_id - users.id
+Ref helper_principal: helper.principal_id > principal.id
+
+Table book {
+  id integer [primary key]
+  title varchar
+  created_by integer [not null]
+  created_at timestamp
+  updated_by integer
+  updated_at timestamp
+}
+Ref book_created_by: book.created_by > users.id
+Ref book_updated_by: book.updated_by > users.id
+
+Table topic {
+  id integer [primary key]
+  book_id integer [not null]
+  title varchar
+  created_by integer [not null]
+  created_at timestamp
+  updated_by integer
+  updated_at timestamp
+}
+Ref topic_book: topic.book_id > book.id
+Ref topic_created_by: topic.created_by > users.id
+Ref topic_updated_by: topic.updated_by > users.id
+
+Table step {
+  id integer [primary key]
+  topic_id integer [not null]
+  title varchar
+  created_by integer [not null]
+  created_at timestamp
+  updated_by integer
+  updated_at timestamp
+}
+Ref step_topic: step.topic_id > topic.id
+Ref step_created_by: step.created_by > users.id
+Ref step_updated_by: step.updated_by > users.id
+
+Table question {
+  id integer [primary key]
+  step_id integer [not null]
+  order_index integer
+  created_by integer [not null]
+  created_at timestamp
+  updated_by integer
+  updated_at timestamp
+}
+Ref question_step: question.step_id > step.id
+Ref question_created_by: question.created_by > users.id
+Ref question_updated_by: question.updated_by > users.id
+
+Table syllabus {
+    id integer [primary key]
+    book_id integer [not null]
+    created_by integer [not null]
+    created_at timestamp
+    updated_by integer
+    updated_at timestamp
+}
+Ref syllabus_book: syllabus.book_id > book.id
+Ref syllabus_created_by: syllabus.created_by > users.id
+Ref syllabus_updated_by: syllabus.updated_by > users.id
+
+Table session {
+  id integer [primary key]
+  syllabus_id integer [not null]
+  created_by integer [not null]
+  created_at timestamp
+  updated_by integer
+  updated_at timestamp
+}
+Ref session_syllabus: session.syllabus_id > syllabus.id
+Ref session_created_by: session.created_by > users.id
+Ref session_updated_by: session.updated_by > users.id
+
+Table session_question {
+    id integer [primary key]
+    session_id integer [not null]
+    question_id integer [not null]
+}
+Ref session_question_session: session_question.session_id > session.id
+Ref session_question_question: session_question.question_id > question.id
+
+Table session_student {
+    id integer [primary key]
+    session_id integer [not null]
+    student_id integer [not null]
+    is_resolved bool
+}
+Ref session_student_session: session_student.session_id > session.id
+Ref session_student_student: session_student.student_id > student.id
+
+Table handout {
+    id integer [primary key]
+    subtitle varchar
+    student_id integer [not null]
+    created_by integer [not null] // refer user id
+    created_at timestamp
+    updated_by integer
+    updated_at timestamp
+    is_resolved bool
+}
+Ref handout_student: handout.student_id > student.id
+Ref handout_created_by: handout.created_by > users.id
+Ref handout_updated_by: handout.updated_by > users.id
+
+Table criteria {
+    id integer [primary key]
+    name varchar
+    description varchar
+    min_wrong_count integer
+    scope varchar // personal or class
+    created_by integer [not null]
+    created_at timestamp
+    updated_by integer
+    updated_at timestamp
+}
+Ref criteria_created_by: criteria.created_by > users.id
+Ref criteria_updated_by: criteria.updated_by > users.id
+
+Table handout_question {
+    id integer [primary key]
+    handout_id integer [not null]
+    question_id integer [not null]
+    order_index integer
+}
+Ref handout_question_handout: handout_question.handout_id > handout.id
+Ref handout_question_question: handout_question.question_id > question.id
+
+Table student_question {
+    id integer [primary key]
+    student_id integer [not null]
+    question_id integer [not null]
+    wronged_count integer [default: 0]
+    current_status varchar [default: 'not_started'] // not_started, in_progress, completed, wrong, not_for_you
+    created_by integer [not null]
+    created_at timestamp
+    updated_at timestamp
+    updated_by integer [not null] // users.id
+}
+Ref student_question_student: student_question.student_id > student.id
+Ref student_question_question: student_question.question_id > question.id
+Ref student_question_created_by: student_question.created_by > users.id
+Ref student_question_updated_by: student_question.updated_by > users.id
+
+Table student_question_history {
+    id integer [primary key]
+    student_question_id integer [not null]
+    criteria_id integer [not null]
+    created_by integer [not null]
+    created_at timestamp
+    updated_at timestamp
+    updated_by integer [not null] // users.id
+}
+Ref student_question_history_student_question: student_question_history.student_question_id > student_question.id
+Ref student_question_history_criteria: student_question_history.criteria_id > criteria.id
+Ref student_question_history_created_by: student_question_history.created_by > users.id
+Ref student_question_history_updated_by: student_question_history.updated_by > users.id
