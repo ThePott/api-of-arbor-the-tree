@@ -8,7 +8,8 @@
         "dev": "tsx watch ./src/server.ts",
         "build": "tsc",
         "format": "prettier --write --cache .",
-        "prepare": "husky"
+        "prepare": "husky",
+        "postinstall": "npx prisma generate"
     },
     "keywords": [],
     "author": "",
