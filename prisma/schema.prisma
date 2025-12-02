@@ -7,41 +7,43 @@ datasource db {
     provider = "postgresql"
 }
 
-model users {
+model User {
     id           BigInt      @id
     name         String      @db.VarChar(255)
     role         String      @db.VarChar(255)
     phone_number String      @db.VarChar(16)
-    principal    principal[]
-    helper       helper[]
-    student      student[]
-    parent       parent[]
+    principal    Principal[]
+    helper       Helper[]
+    student      Student[]
+    parent       Parent[]
+
+    @@map("users")
 }
 
-model principal {
+model Principal {
     id          BigInt   @id
     hagwon_id   BigInt
     user_id     BigInt?
     is_approved Boolean?
-    helper      helper[]
-    hagwon      hagwon   @relation(fields: [hagwon_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-    users       users?   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    helper      Helper[]
+    hagwon      Hagwon   @relation(fields: [hagwon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    users       User?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-model hagwon {
+model Hagwon {
     id        BigInt      @id
     name      String?     @db.VarChar(255)
-    principal principal[]
-    student   student[]
+    principal Principal[]
+    student   Student[]
 }
 
-model school {
+model School {
     id      BigInt    @id
     name    String    @db.VarChar(255)
-    student student[]
+    student Student[]
 }
 
-model student {
+model Student {
     id             BigInt           @id
     user_id        BigInt
     school_id      BigInt
@@ -49,20 +51,18 @@ model student {
     grade          Int?
     is_approved    Boolean?
     parent_student parent_student[]
-    users          users            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-    hagwon         hagwon?          @relation(fields: [hagwonId], references: [id])
-    hagwonId       BigInt?
-    school         school?          @relation(fields: [schoolId], references: [id])
-    schoolId       BigInt?
+    users          User             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    hagwon         Hagwon?          @relation(fields: [hagwon_id], references: [id])
+    school         School?          @relation(fields: [school_id], references: [id])
 
     @@index([user_id], map: "idx_student_user_id")
 }
 
-model parent {
+model Parent {
     id             BigInt           @id
     user_id        BigInt
     is_approved    Boolean?
-    users          users            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    users          User             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
     parent_student parent_student[]
 }
 
@@ -70,15 +70,15 @@ model parent_student {
     id         BigInt  @id
     student_id BigInt
     parent_id  BigInt
-    parent     parent  @relation(fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-    student    student @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    parent     Parent  @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    student    Student @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-model helper {
+model Helper {
     id           BigInt    @id
     user_id      BigInt
     principal_id BigInt
     is_approved  Boolean?
-    principal    principal @relation(fields: [principal_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-    users        users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    principal    Principal @relation(fields: [principal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    users        User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
