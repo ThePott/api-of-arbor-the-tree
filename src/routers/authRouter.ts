@@ -1,18 +1,18 @@
-import { Router } from "express"
-import { checkEnvVar } from "../utils/checkEnvVar.js"
-import axios from "axios"
+import { Router } from 'express'
+import { checkEnvVar } from '../utils/checkEnvVar.js'
+import axios from 'axios'
 
 const authRouter = Router()
 const headers = {
-    "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+    'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
 }
 
-authRouter.post("/kakao/code-to-token", async (req, res) => {
+authRouter.post('/kakao/code-to-token', async (req, res) => {
     const { code } = req.body
 
     const url = checkEnvVar(process.env.KAKAO_REQUEST_TOKEN_URL)
     const body = {
-        grant_type: "authorization_code",
+        grant_type: 'authorization_code',
         client_id: checkEnvVar(process.env.KAKAO_CLIENT_ID),
         redirect_uri: checkEnvVar(process.env.KAKAO_REDIRECT_URI),
         code,
@@ -24,7 +24,7 @@ authRouter.post("/kakao/code-to-token", async (req, res) => {
     res.status(200).json({ access_token })
 })
 
-authRouter.post("/kakao/me", async (req, res) => {
+authRouter.post('/kakao/me', async (req, res) => {
     const { access_token } = req.body
     const url = checkEnvVar(process.env.KAKAO_ME_URL)
     console.log({ access_token })
@@ -38,7 +38,7 @@ authRouter.post("/kakao/me", async (req, res) => {
     res.status(200).json(response.data)
 })
 
-authRouter.post("/kakao/logout", async (req, res) => {
+authRouter.post('/kakao/logout', async (req, res) => {
     const access_token = req.body
     const url = checkEnvVar(process.env.KAKAO_LOGOUT_URL)
     const response = await axios.post(url, undefined, {
