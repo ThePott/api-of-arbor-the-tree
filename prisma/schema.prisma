@@ -7,43 +7,44 @@ datasource db {
     provider = "postgresql"
 }
 
-model User {
+model app_user {
     id           BigInt      @id
     name         String      @db.VarChar(255)
-    role         String      @db.VarChar(255)
-    phone_number String      @db.VarChar(16)
-    principal    Principal[]
-    helper       Helper[]
-    student      Student[]
-    parent       Parent[]
-
-    @@map("users")
+    role         role?
+    phone_number String?     @db.VarChar(16)
+    kakao_id     BigInt      @unique
+    email        BigInt      @unique
+    password     String?     @db.VarChar(255)
+    principal    principal[]
+    helper       helper[]
+    student      student[]
+    parent       parent[]
 }
 
-model Principal {
-    id          BigInt   @id
+model principal {
+    id          BigInt    @id
     hagwon_id   BigInt
     user_id     BigInt?
     is_approved Boolean?
-    helper      Helper[]
-    hagwon      Hagwon   @relation(fields: [hagwon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    users       User?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    helper      helper[]
+    hagwon      hagwon    @relation(fields: [hagwon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    users       app_user? @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-model Hagwon {
+model hagwon {
     id        BigInt      @id
     name      String?     @db.VarChar(255)
-    principal Principal[]
-    student   Student[]
+    principal principal[]
+    student   student[]
 }
 
-model School {
+model school {
     id      BigInt    @id
     name    String    @db.VarChar(255)
-    student Student[]
+    student student[]
 }
 
-model Student {
+model student {
     id             BigInt           @id
     user_id        BigInt
     school_id      BigInt
@@ -51,18 +52,18 @@ model Student {
     grade          Int?
     is_approved    Boolean?
     parent_student parent_student[]
-    users          User             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    hagwon         Hagwon?          @relation(fields: [hagwon_id], references: [id])
-    school         School?          @relation(fields: [school_id], references: [id])
+    users          app_user         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    hagwon         hagwon?          @relation(fields: [hagwon_id], references: [id])
+    school         school?          @relation(fields: [school_id], references: [id])
 
     @@index([user_id], map: "idx_student_user_id")
 }
 
-model Parent {
+model parent {
     id             BigInt           @id
     user_id        BigInt
     is_approved    Boolean?
-    users          User             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    users          app_user         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
     parent_student parent_student[]
 }
 
@@ -70,15 +71,23 @@ model parent_student {
     id         BigInt  @id
     student_id BigInt
     parent_id  BigInt
-    parent     Parent  @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    student    Student @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    parent     parent  @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    student    student @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-model Helper {
+model helper {
     id           BigInt    @id
     user_id      BigInt
     principal_id BigInt
     is_approved  Boolean?
-    principal    Principal @relation(fields: [principal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    users        User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    principal    principal @relation(fields: [principal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    users        app_user  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+enum role {
+    STUDENT
+    PARENT
+    PRINCIPAL
+    HELPER
+    MAINTAINER
 }
