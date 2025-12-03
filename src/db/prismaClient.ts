@@ -4,6 +4,6 @@ import { checkEnvVar } from "../utils/checkEnvVar.js"
 
 const connectionString = checkEnvVar(process.env.DATABASE_URL)
 const adapter = new PrismaPg({ connectionString })
-const prismaClient = new PrismaClient({ adapter })
+const prismaClient = new PrismaClient({ adapter, omit: { app_user: { password: true } } })
 
 export default prismaClient

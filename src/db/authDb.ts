@@ -1,14 +1,17 @@
-import type { SignupPayload, LoginProvider } from "../interfaces/interfaces.js"
+import type { SignupPayload, LoginProvider, LoginPayload } from "../interfaces/interfaces.js"
 import prismaClient from "./prismaClient.js"
 
-export const dbFindUserWithLogin = async (loginProvider: LoginProvider, idInString: string, password?: string) => {
+export const dbFindMe = async (loginProvider: LoginProvider, loginPayload: LoginPayload) => {
     switch (loginProvider) {
         case "kakao": {
-            const id = Number(idInString)
-            return prismaClient.app_user.findUnique({ where: { id } })
+            const kakao_id = loginPayload.kakao_id
+            console.log({ kakao_id })
+            if (!kakao_id) {
+                throw new Error("---- MISSING KAKAO ID")
+            }
+            return prismaClient.app_user.findUnique({ where: { kakao_id } })
         }
         case "email":
-            console.log({ password })
             return undefined
     }
 }
@@ -22,6 +25,8 @@ export const dbCreateUser = async (signupPayload: SignupPayload) => {
     }
     return serializable
 }
+
+export const dbDeleteUser = async (id: number) => prismaClient.app_user.delete({ where: { id } })
 
 export const DEBUG_dbFindManyUser = async () => {
     const result = await prismaClient.app_user.findMany()

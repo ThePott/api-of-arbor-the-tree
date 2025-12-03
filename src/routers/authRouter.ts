@@ -1,8 +1,9 @@
 import { Router } from "express"
 import { checkEnvVar } from "../utils/checkEnvVar.js"
 import axios from "axios"
-import type { SignupPayload } from "../interfaces/interfaces.js"
-import { dbCreateUser } from "../db/authDb.js"
+import type { LoginPayload, SignupPayload } from "../interfaces/interfaces.js"
+import { dbCreateUser, dbDeleteUser, dbFindMe } from "../db/authDb.js"
+import { makeSerializable } from "../utils/makeSerializable.js"
 
 const authRouter = Router()
 const headers = {
@@ -37,17 +38,28 @@ authRouter.post("/kakao/me", async (req, res) => {
         },
     })
 
-    const signupPayload: SignupPayload = {
-        name: response.data.properties.nickname,
-        kakao_id: Number(response.data.id),
-    }
-    console.log({ signupPayload })
+    const kakaoMe = response.data
 
-    const result = await dbCreateUser(signupPayload)
-    console.log("---- created")
-    console.log({ result })
-    const smallIntResult = { ...result, id: result.id.toString(), kakao_id: result.id.toString() }
-    res.status(200).json(smallIntResult)
+    const loginPayload: LoginPayload = {
+        kakao_id: kakaoMe.id,
+    }
+    const meResult = await dbFindMe("kakao", loginPayload)
+    console.log({ loginPayload })
+    console.log({ meResult })
+
+    if (meResult) {
+        makeSerializable(meResult)
+        res.status(200).json(meResult)
+        return
+    }
+
+    const signupPayload: SignupPayload = {
+        name: kakaoMe.properties.nickname,
+        kakao_id: Number(kakaoMe.id),
+    }
+    const signupResult = await dbCreateUser(signupPayload)
+    makeSerializable(signupResult)
+    res.status(200).json(signupResult)
 })
 
 authRouter.post("/kakao/logout", async (req, res) => {
@@ -61,6 +73,34 @@ authRouter.post("/kakao/logout", async (req, res) => {
     })
     console.log({ response })
     res.status(200).json({ data: response.data })
+})
+
+authRouter.delete("/user/:userId", async (req, res) => {
+    const idInString = req.params.userId
+    const id = Number(idInString)
+    const authorization = req.headers.authorization
+    if (!authorization) {
+        res.status(401).json({ message: "---- Unauthroized Request" })
+        return
+    }
+    const access_token = authorization.split(" ")[1]
+
+    const result = await dbDeleteUser(id)
+    makeSerializable(result)
+
+    if (result.kakao_id) {
+        // NOTE: NO NEED TO AWAIT
+        const url = checkEnvVar(process.env.KAKAO_UNLINK_URL)
+        const body = {
+            target_id_type: "user_id",
+            target_id: result.kakao_id,
+        }
+        axios.post(url, body, {
+            headers: { ...headers, Authorization: `Bearer ${access_token}` },
+        })
+    }
+
+    res.status(200).json(result)
 })
 
 export default authRouter

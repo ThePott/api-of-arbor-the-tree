@@ -6,3 +6,5 @@ export interface SignupPayload {
     email?: string
     password?: string
 }
+
+export type LoginPayload = Omit<SignupPayload, "name">
