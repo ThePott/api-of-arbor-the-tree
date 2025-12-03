@@ -1,7 +1,8 @@
 export type LoginProvider = "kakao" | "email"
 
-export interface LoginInfo {
-    kakaoIdInString?: string
+export interface SignupPayload {
+    name: string
+    kakao_id?: number
     email?: string
     password?: string
 }

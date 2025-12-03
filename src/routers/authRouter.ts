@@ -1,6 +1,8 @@
 import { Router } from "express"
 import { checkEnvVar } from "../utils/checkEnvVar.js"
 import axios from "axios"
+import type { SignupPayload } from "../interfaces/interfaces.js"
+import { dbCreateUser } from "../db/authDb.js"
 
 const authRouter = Router()
 const headers = {
@@ -34,8 +36,18 @@ authRouter.post("/kakao/me", async (req, res) => {
             Authorization: `Bearer ${access_token}`,
         },
     })
-    console.log({ data: response.data })
-    res.status(200).json(response.data)
+
+    const signupPayload: SignupPayload = {
+        name: response.data.properties.nickname,
+        kakao_id: Number(response.data.id),
+    }
+    console.log({ signupPayload })
+
+    const result = await dbCreateUser(signupPayload)
+    console.log("---- created")
+    console.log({ result })
+    const smallIntResult = { ...result, id: result.id.toString(), kakao_id: result.id.toString() }
+    res.status(200).json(smallIntResult)
 })
 
 authRouter.post("/kakao/logout", async (req, res) => {

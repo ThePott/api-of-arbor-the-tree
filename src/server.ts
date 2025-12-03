@@ -1,9 +1,9 @@
+import "dotenv/config"
 import express from "express"
 import cors, { type CorsOptions } from "cors"
 import checkHealthRouter from "./routers/checkHealthRouter.js"
 import { checkEnvVar } from "./utils/checkEnvVar.js"
 import authRouter from "./routers/authRouter.js"
-import "dotenv/config"
 import debugRouter from "./routers/debugRouter.js"
 
 const app = express()

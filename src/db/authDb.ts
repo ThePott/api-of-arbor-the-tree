@@ -1,4 +1,4 @@
-import type { LoginProvider } from "../interfaces/interfaces.js"
+import type { SignupPayload, LoginProvider } from "../interfaces/interfaces.js"
 import prismaClient from "./prismaClient.js"
 
 export const dbFindUserWithLogin = async (loginProvider: LoginProvider, idInString: string, password?: string) => {
@@ -13,6 +13,22 @@ export const dbFindUserWithLogin = async (loginProvider: LoginProvider, idInStri
     }
 }
 
-// export const createUser = async (user: User) => prismaClient.User.create(user)
+export const dbCreateUser = async (signupPayload: SignupPayload) => {
+    const result = await prismaClient.app_user.create({ data: signupPayload })
+    const serializable = {
+        ...result,
+        id: result.id.toString(),
+        kakao_id: result.kakao_id?.toString(),
+    }
+    return serializable
+}
 
-export const DEBUG_dbFindManyUser = async () => prismaClient.app_user.findMany()
+export const DEBUG_dbFindManyUser = async () => {
+    const result = await prismaClient.app_user.findMany()
+    const serializable = result.map((user) => ({
+        ...user,
+        id: user.id.toString(),
+        kakao_id: user.kakao_id?.toString(),
+    }))
+    return serializable
+}
