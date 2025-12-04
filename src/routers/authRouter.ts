@@ -1,8 +1,8 @@
 import { Router } from "express"
 import { checkEnvVar } from "../utils/checkEnvVar.js"
 import axios from "axios"
-import type { LoginPayload, SignupPayload } from "../interfaces/interfaces.js"
-import { dbCreateUser, dbDeleteUser, dbFindMe } from "../db/authDb.js"
+import type { LoginPayload, MePatchPayload, SignupPayload } from "../interfaces/interfaces.js"
+import { dbCreateMe, dbDeleteMe, dbFindMe, dbPatchMe } from "../db/authDb.js"
 import { makeSerializable } from "../utils/makeSerializable.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
 
@@ -55,7 +55,7 @@ authRouter.post("/kakao/me", async (req, res) => {
         name: kakaoMe.properties.nickname,
         kakao_id: Number(kakaoMe.id),
     }
-    const signupResult = await dbCreateUser(signupPayload)
+    const signupResult = await dbCreateMe(signupPayload)
     makeSerializable(signupResult)
     res.status(200).json(signupResult)
 })
@@ -76,7 +76,18 @@ authRouter.post("/kakao/logout", async (req, res) => {
     res.status(204).send()
 })
 
-authRouter.delete("/user/:userId", async (req, res) => {
+// TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
+authRouter.patch("/me/:userId", async (req, res) => {
+    const access_token = extractAccessToken(req.headers)
+    const { id, ...mePatchPayload } = req.body
+
+    const result = await dbPatchMe(id, mePatchPayload)
+
+    res.status(200).json()
+})
+
+// TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
+authRouter.delete("/me/:userId", async (req, res) => {
     const idInString = req.params.userId
     const id = Number(idInString)
     const authorization = req.headers.authorization
@@ -86,7 +97,7 @@ authRouter.delete("/user/:userId", async (req, res) => {
     }
     const access_token = authorization.split(" ")[1]
 
-    const result = await dbDeleteUser(id)
+    const result = await dbDeleteMe(id)
     makeSerializable(result)
 
     if (result.kakao_id) {

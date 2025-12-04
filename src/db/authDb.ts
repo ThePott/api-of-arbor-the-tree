@@ -1,4 +1,4 @@
-import type { SignupPayload, LoginProvider, LoginPayload } from "../interfaces/interfaces.js"
+import type { SignupPayload, LoginProvider, LoginPayload, MePatchPayload } from "../interfaces/interfaces.js"
 import prismaClient from "./prismaClient.js"
 
 export const dbFindMe = async (loginProvider: LoginProvider, loginPayload: LoginPayload) => {
@@ -15,7 +15,7 @@ export const dbFindMe = async (loginProvider: LoginProvider, loginPayload: Login
     }
 }
 
-export const dbCreateUser = async (signupPayload: SignupPayload) => {
+export const dbCreateMe = async (signupPayload: SignupPayload) => {
     const result = await prismaClient.app_user.create({ data: signupPayload })
     const serializable = {
         ...result,
@@ -25,7 +25,88 @@ export const dbCreateUser = async (signupPayload: SignupPayload) => {
     return serializable
 }
 
-export const dbDeleteUser = async (id: number) => prismaClient.app_user.delete({ where: { id } })
+export const dbPatchMe = async (id: number, mePatchPayload: MePatchPayload) => {
+    const {
+        name,
+        role,
+        phone_number,
+        hagwon,
+        // children,
+        school,
+    } = mePatchPayload
+    const userUpdateData = Object.fromEntries(Object.entries({ name, role, phone_number }).filter(([, value]) => value))
+
+    prismaClient.app_user.update({
+        where: { id },
+        data: userUpdateData,
+    })
+
+    const hagwonResult = hagwon ? await prismaClient.hagwon.findUnique({ where: { name: hagwon } }) : null
+
+    if (role === "MAINTAINER") {
+        return
+    }
+    if (role === "PARENT") {
+        throw new Error("---- 학부모 기능은 구현되지 않았습니다")
+    }
+
+    if (role === "PRINCIPAL") {
+        // TODO: 개인 정보만 수정하는 건 위에서 처리했으니 여기에서는 없어야 한다
+        const existingPrincipal = await prismaClient.principal.findUnique({ where: { user_id: id } })
+
+        if (!existingPrincipal) {
+            if (hagwon && !hagwonResult) {
+                // NOTE: 원장 및 학원 신규 등록
+                const newHagwonResult = await prismaClient.hagwon.create({ data: { name: hagwon } })
+                await prismaClient.principal.create({
+                    data: { hagwon_id: newHagwonResult.id, user_id: id },
+                })
+                return
+            }
+
+            throw new Error("---- Bad Request")
+        }
+
+        if (hagwonResult && existingPrincipal.hagwon_id !== hagwonResult.id) {
+            throw new Error("---- Bad Request")
+        }
+
+        await prismaClient.hagwon.update({
+            where: { id: existingPrincipal.hagwon_id },
+            data: { name: hagwon ?? null },
+        })
+        return
+    }
+
+    if (!hagwonResult) {
+        return
+    }
+
+    if (role === "HELPER") {
+        await prismaClient.helper.upsert({
+            where: { user_id: id },
+            update: { hagwon_id: hagwonResult.id },
+            create: { hagwon_id: hagwonResult.id, user_id: id },
+        })
+        return
+    }
+
+    if (role === "STUDENT") {
+        await prismaClient.student.upsert({
+            where: { user_id: id },
+            update: { hagwon_id: hagwonResult.id },
+            create: { hagwon_id: hagwonResult.id, user_id: id, school: school ?? "이게 보이면 안 됩니다" },
+        })
+        if (school) {
+            await prismaClient.student.update({ where: { user_id: id }, data: { school } })
+        }
+        return
+    }
+
+    throw new Error("---- Unknown Error")
+}
+
+export const dbDeleteMe = async (id: number) => prismaClient.app_user.delete({ where: { id } })
 
 export const DEBUG_dbFindManyUser = async () => {
     const result = await prismaClient.app_user.findMany()
