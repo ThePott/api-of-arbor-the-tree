@@ -4,6 +4,7 @@ import axios from "axios"
 import type { LoginPayload, SignupPayload } from "../interfaces/interfaces.js"
 import { dbCreateUser, dbDeleteUser, dbFindMe } from "../db/authDb.js"
 import { makeSerializable } from "../utils/makeSerializable.js"
+import { extractAccessToken } from "../utils/extractAccessToken.js"
 
 const authRouter = Router()
 const headers = {
@@ -30,7 +31,6 @@ authRouter.post("/kakao/code-to-token", async (req, res) => {
 authRouter.post("/kakao/me", async (req, res) => {
     const { access_token } = req.body
     const url = checkEnvVar(process.env.KAKAO_ME_URL)
-    console.log({ access_token })
     const response = await axios.post(url, undefined, {
         headers: {
             ...headers,
@@ -44,8 +44,6 @@ authRouter.post("/kakao/me", async (req, res) => {
         kakao_id: kakaoMe.id,
     }
     const meResult = await dbFindMe("kakao", loginPayload)
-    console.log({ loginPayload })
-    console.log({ meResult })
 
     if (meResult) {
         makeSerializable(meResult)
@@ -63,16 +61,19 @@ authRouter.post("/kakao/me", async (req, res) => {
 })
 
 authRouter.post("/kakao/logout", async (req, res) => {
-    const access_token = req.body
+    const access_token = extractAccessToken(req.headers)
     const url = checkEnvVar(process.env.KAKAO_LOGOUT_URL)
-    const response = await axios.post(url, undefined, {
-        headers: {
-            ...headers,
-            Authorization: `Bearer ${access_token}`,
-        },
-    })
-    console.log({ response })
-    res.status(200).json({ data: response.data })
+    try {
+        axios.post(url, undefined, {
+            headers: {
+                ...headers,
+                Authorization: `Bearer ${access_token}`,
+            },
+        })
+    } catch {
+        console.error("---- kakao logout failed: please check why")
+    }
+    res.status(204).send()
 })
 
 authRouter.delete("/user/:userId", async (req, res) => {

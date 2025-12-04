@@ -5,7 +5,6 @@ export const dbFindMe = async (loginProvider: LoginProvider, loginPayload: Login
     switch (loginProvider) {
         case "kakao": {
             const kakao_id = loginPayload.kakao_id
-            console.log({ kakao_id })
             if (!kakao_id) {
                 throw new Error("---- MISSING KAKAO ID")
             }
