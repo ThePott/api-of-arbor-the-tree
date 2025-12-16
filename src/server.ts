@@ -5,6 +5,7 @@ import checkHealthRouter from "./routers/checkHealthRouter.js"
 import { checkEnvVar } from "./utils/checkEnvVar.js"
 import authRouter from "./routers/authRouter.js"
 import debugRouter from "./routers/debugRouter.js"
+import schoolRouter from "./routers/schoolRouter.js"
 
 const app = express()
 
@@ -17,6 +18,7 @@ app.use(express.text())
 app.use(cors(corsOptions))
 app.use("/auth", authRouter)
 app.use("/debug", debugRouter)
+app.use("/school", schoolRouter)
 app.use("/", checkHealthRouter)
 
 const port = process.env.PORT || 3000

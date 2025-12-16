@@ -77,13 +77,14 @@ authRouter.post("/kakao/logout", async (req, res) => {
 })
 
 // TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
-authRouter.patch("/me/:userId", async (req, res) => {
-    const access_token = extractAccessToken(req.headers)
+authRouter.patch("/me", async (req, res) => {
+    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+
     const { id, ...mePatchPayload } = req.body
 
-    const result = await dbPatchMe(id, mePatchPayload)
+    await dbPatchMe(id, mePatchPayload)
 
-    res.status(200).json()
+    res.status(204).send()
 })
 
 // TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...

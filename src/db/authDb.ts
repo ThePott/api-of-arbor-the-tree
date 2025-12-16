@@ -36,7 +36,7 @@ export const dbPatchMe = async (id: number, mePatchPayload: MePatchPayload) => {
     } = mePatchPayload
     const userUpdateData = Object.fromEntries(Object.entries({ name, role, phone_number }).filter(([, value]) => value))
 
-    prismaClient.app_user.update({
+    await prismaClient.app_user.update({
         where: { id },
         data: userUpdateData,
     })

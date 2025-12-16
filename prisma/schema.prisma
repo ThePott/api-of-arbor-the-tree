@@ -52,6 +52,11 @@ model student {
     @@index([user_id], map: "idx_student_user_id")
 }
 
+model school {
+    id   BigInt @id @default(autoincrement())
+    name String @db.VarChar(255)
+}
+
 model parent {
     id             BigInt           @id @default(autoincrement())
     user_id        BigInt           @unique
