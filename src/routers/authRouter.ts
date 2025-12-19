@@ -1,7 +1,7 @@
 import { Router } from "express"
 import { checkEnvVar } from "../utils/checkEnvVar.js"
 import axios from "axios"
-import type { LoginPayload, MePatchPayload, SignupPayload } from "../interfaces/interfaces.js"
+import type { LoginPayload, SignupPayload } from "../interfaces/interfaces.js"
 import { dbCreateMe, dbDeleteMe, dbFindMe, dbPatchMe } from "../db/authDb.js"
 import { makeSerializable } from "../utils/makeSerializable.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
