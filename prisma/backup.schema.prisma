@@ -1,0 +1,315 @@
+// generator client {
+//     provider = "prisma-client"
+//     output   = "../generated/prisma"
+// }
+//
+// datasource db {
+//     provider = "postgresql"
+// }
+//
+// model book {
+//     id         BigInt     @id
+//     title      String?    @db.VarChar(255)
+//     created_by Int
+//     created_at DateTime?  @db.Timestamp(6)
+//     updated_by Int?
+//     updated_at DateTime?  @db.Timestamp(6)
+//     createdBy  users      @relation("BookCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     updatedBy  users?     @relation("BookUpdatedBy", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     syllabus   syllabus[]
+//     topic      topic[]
+// }
+//
+// model criteria {
+//     id                       BigInt                     @id
+//     name                     String?                    @db.VarChar(255)
+//     description              String?                    @db.VarChar(255)
+//     min_wrong_count          Int?
+//     scope                    String?                    @db.VarChar(255)
+//     created_by               Int
+//     created_at               DateTime?                  @db.Timestamp(6)
+//     updated_by               Int?
+//     updated_at               DateTime?                  @db.Timestamp(6)
+//     createdBy                users                      @relation("CriteriaCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     updatedBy                users?                     @relation("CriteriaUpdatedBy", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     student_question_history student_question_history[]
+// }
+//
+// model hagwon {
+//     id        BigInt      @id
+//     name      String?     @db.VarChar(255)
+//     principal principal[]
+//     student   student[]
+// }
+//
+// model handout {
+//     id               BigInt             @id
+//     subtitle         String?            @db.VarChar(255)
+//     student_id       Int
+//     created_by       Int
+//     created_at       DateTime?          @db.Timestamp(6)
+//     updated_by       Int?
+//     updated_at       DateTime?          @db.Timestamp(6)
+//     is_resolved      Boolean?
+//     createdBy        users              @relation("HandoutCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     student          student            @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     updatedBy        users?             @relation("HandoutUpdatedBy", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     handout_question handout_question[]
+// }
+//
+// model handout_question {
+//     id          BigInt   @id
+//     handout_id  Int
+//     question_id Int
+//     order_index Int?
+//     handout     handout  @relation(fields: [handout_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     question    question @relation(fields: [question_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//
+//     @@index([handout_id], map: "idx_handout_question_handout_id")
+// }
+//
+// model helper {
+//     id           BigInt    @id
+//     user_id      Int
+//     principal_id Int
+//     is_approved  Boolean?
+//     principal    principal @relation(fields: [principal_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     users        users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+// }
+//
+// model parent {
+//     id             BigInt           @id
+//     user_id        Int
+//     is_approved    Boolean?
+//     users          users            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     parent_student parent_student[]
+// }
+//
+// model parent_student {
+//     id         BigInt  @id
+//     student_id Int
+//     parent_id  Int
+//     parent     parent  @relation(fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     student    student @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+// }
+//
+// model principal {
+//     id          BigInt   @id
+//     hagwon_id   Int
+//     user_id     Int?
+//     is_approved Boolean?
+//     helper      helper[]
+//     hagwon      hagwon   @relation(fields: [hagwon_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     users       users?   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+// }
+//
+// model question {
+//     id               BigInt             @id
+//     step_id          Int
+//     order_index      Int?
+//     created_by       Int
+//     created_at       DateTime?          @db.Timestamp(6)
+//     updated_by       Int?
+//     updated_at       DateTime?          @db.Timestamp(6)
+//     handout_question handout_question[]
+//     createdBy        users              @relation("QuestionCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     step             step               @relation(fields: [step_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     updatedBy        users?             @relation("QuestionUpdatedBy", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     session_question session_question[]
+//     student_question student_question[]
+// }
+//
+// model school {
+//     id      BigInt    @id
+//     name    String?   @db.VarChar(255)
+//     student student[]
+// }
+//
+// model session {
+//     id               BigInt             @id
+//     syllabus_id      Int
+//     created_by       Int
+//     created_at       DateTime?          @db.Timestamp(6)
+//     updated_by       Int?
+//     updated_at       DateTime?          @db.Timestamp(6)
+//     createdBy        users              @relation("SessionCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     syllabus         syllabus           @relation(fields: [syllabus_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     updatedBy        users?             @relation("SessionUpdatedBy", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     session_question session_question[]
+//     session_student  session_student[]
+// }
+//
+// model session_question {
+//     id          BigInt   @id
+//     session_id  Int
+//     question_id Int
+//     question    question @relation(fields: [question_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     session     session  @relation(fields: [session_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//
+//     @@index([session_id], map: "idx_session_question_session_id")
+// }
+//
+// model session_student {
+//     id          BigInt   @id
+//     session_id  Int
+//     student_id  Int
+//     is_resolved Boolean?
+//     session     session  @relation(fields: [session_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     student     student  @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//
+//     @@index([session_id], map: "idx_session_student_session_id")
+//     @@index([student_id], map: "idx_session_student_student_id")
+// }
+//
+// model step {
+//     id         BigInt     @id
+//     topic_id   Int
+//     title      String?    @db.VarChar(255)
+//     created_by Int
+//     created_at DateTime?  @db.Timestamp(6)
+//     updated_by Int?
+//     updated_at DateTime?  @db.Timestamp(6)
+//     question   question[]
+//     createdBy  users      @relation("StepCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     topic      topic      @relation(fields: [topic_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     updatedBy  users?     @relation("StepUpdatedBy", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+// }
+//
+// model student {
+//     id                BigInt              @id
+//     user_id           Int
+//     school_id         Int
+//     hagwon_id         Int?
+//     grade             Int?
+//     is_approved       Boolean?
+//     classroom_student classroom_student[]
+//     handout           handout[]
+//     parent_student    parent_student[]
+//     session_student   session_student[]
+//     hagwon            hagwon?             @relation(fields: [hagwon_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     school            school              @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     users             users               @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     student_question  student_question[]
+//
+//     @@index([user_id], map: "idx_student_user_id")
+// }
+//
+// model student_question {
+//     id                       BigInt                     @id
+//     student_id               Int
+//     question_id              Int
+//     wronged_count            Int?                       @default(0)
+//     current_status           String?                    @default("not_started") @db.VarChar(255)
+//     created_by               Int
+//     created_at               DateTime?                  @db.Timestamp(6)
+//     updated_at               DateTime?                  @db.Timestamp(6)
+//     updated_by               Int
+//     createdBy                users                      @relation("StudentQuestionCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     question                 question                   @relation(fields: [question_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     student                  student                    @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     updatedBy                users                      @relation("StudentQuestionUpdatedBy", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     student_question_history student_question_history[]
+//
+//     @@index([question_id], map: "idx_student_question_question_id")
+//     @@index([student_id], map: "idx_student_question_student_id")
+// }
+//
+// model student_question_history {
+//     id                  BigInt           @id
+//     student_question_id Int
+//     criteria_id         Int
+//     created_by          Int
+//     created_at          DateTime?        @db.Timestamp(6)
+//     updated_at          DateTime?        @db.Timestamp(6)
+//     updated_by          Int
+//     createdBy           users            @relation("StudentQuestionHistoryCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     criteria            criteria         @relation(fields: [criteria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     student_question    student_question @relation(fields: [student_question_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     updatedBy           users            @relation("StudentQuestionHistoryUpdatedBy", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+// }
+//
+// model syllabus {
+//     id         BigInt    @id
+//     book_id    Int
+//     created_by Int
+//     created_at DateTime? @db.Timestamp(6)
+//     updated_by Int?
+//     updated_at DateTime? @db.Timestamp(6)
+//     session    session[]
+//     book       book      @relation(fields: [book_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     createdBy  users     @relation("SyllabusCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     updatedBy  users?    @relation("SyllabusUpdatedBy", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+// }
+//
+// model topic {
+//     id         BigInt    @id
+//     book_id    Int
+//     title      String?   @db.VarChar(255)
+//     created_by Int
+//     created_at DateTime? @db.Timestamp(6)
+//     updated_by Int?
+//     updated_at DateTime? @db.Timestamp(6)
+//     step       step[]
+//     book       book      @relation(fields: [book_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     createdBy  users     @relation("TopicCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     updatedBy  users?    @relation("TopicUpdatedBy", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+// }
+//
+// model users {
+//     id                              BigInt                     @id
+//     name                            String                     @db.VarChar(255)
+//     role                            String                     @db.VarChar(255)
+//     phone_number                    String                     @db.VarChar(16)
+//     booksCreated                    book[]                     @relation("BookCreatedBy")
+//     booksUpdated                    book[]                     @relation("BookUpdatedBy")
+//     classroomsCreated               classroom[]                @relation("ClassroomCreatedBy")
+//     classroomsTaught                classroom[]                @relation("ClassroomTeachedBy")
+//     classroomsUpdated               classroom[]                @relation("ClassroomUpdatedBy")
+//     criteriaCreated                 criteria[]                 @relation("CriteriaCreatedBy")
+//     criteriaUpdated                 criteria[]                 @relation("CriteriaUpdatedBy")
+//     handoutsCreated                 handout[]                  @relation("HandoutCreatedBy")
+//     handoutsUpdated                 handout[]                  @relation("HandoutUpdatedBy")
+//     principal                       principal[]
+//     helper                          helper[]
+//     student                         student[]
+//     parent                          parent[]
+//     questionsCreated                question[]                 @relation("QuestionCreatedBy")
+//     questionsUpdated                question[]                 @relation("QuestionUpdatedBy")
+//     sessionsCreated                 session[]                  @relation("SessionCreatedBy")
+//     sessionsUpdated                 session[]                  @relation("SessionUpdatedBy")
+//     stepsCreated                    step[]                     @relation("StepCreatedBy")
+//     stepsUpdated                    step[]                     @relation("StepUpdatedBy")
+//     studentQuestionsCreated         student_question[]         @relation("StudentQuestionCreatedBy")
+//     studentQuestionsUpdated         student_question[]         @relation("StudentQuestionUpdatedBy")
+//     studentQuestionHistoriesCreated student_question_history[] @relation("StudentQuestionHistoryCreatedBy")
+//     studentQuestionHistoriesUpdated student_question_history[] @relation("StudentQuestionHistoryUpdatedBy")
+//     syllabusesCreated               syllabus[]                 @relation("SyllabusCreatedBy")
+//     syllabusesUpdated               syllabus[]                 @relation("SyllabusUpdatedBy")
+//     topicsCreated                   topic[]                    @relation("TopicCreatedBy")
+//     topicsUpdated                   topic[]                    @relation("TopicUpdatedBy")
+// }
+//
+// model classroom {
+//     id                BigInt              @id(map: "class_pkey")
+//     name              String              @db.VarChar(255)
+//     description       String?             @db.VarChar(255)
+//     teached_by        Int
+//     created_by        Int
+//     created_at        DateTime?           @db.Timestamp(6)
+//     updated_by        Int?
+//     updated_at        DateTime?           @db.Timestamp(6)
+//     createdBy         users               @relation("ClassroomCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "class_created_by_fkey")
+//     teachedBy         users               @relation("ClassroomTeachedBy", fields: [teached_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "class_teached_by_fkey")
+//     updatedBy         users?              @relation("ClassroomUpdatedBy", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "class_updated_by_fkey")
+//     classroom_student classroom_student[]
+// }
+//
+// model classroom_student {
+//     id           BigInt    @id(map: "class_student_pkey")
+//     classroom_id Int
+//     student_id   Int
+//     classroom    classroom @relation(fields: [classroom_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     student      student   @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//
+//     @@index([classroom_id], map: "idx_classroom_student_classroom_id")
+// }

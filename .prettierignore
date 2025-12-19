@@ -6,5 +6,5 @@ dist
 package.json
 package-lock.json
 .husky
-
+**/.prisma
 

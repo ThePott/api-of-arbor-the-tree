@@ -3,3 +3,5 @@ dist
 node_modules
 AGENTS.md
 .env
+
+/generated/prisma
