@@ -5,7 +5,6 @@ import type { LoginPayload, SignupPayload } from "../interfaces/interfaces.js"
 import { dbCreateMe, dbDeleteMe, dbFindMe, dbFindMeInLogin, dbPatchMe } from "../db/authDb.js"
 import { makeSerializable } from "../utils/makeSerializable.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
-import prismaClient from "../db/prismaClient.js"
 
 const authRouter = Router()
 const headers = {
@@ -79,6 +78,7 @@ authRouter.post("/kakao/logout", async (req, res) => {
 
 // TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
 authRouter.get("/me/:userId", async (req, res) => {
+    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
     const id = Number(req.params.userId)
     const { result, resume } = await dbFindMe(id)
     if (!result) {
@@ -130,6 +130,13 @@ authRouter.delete("/me/:userId", async (req, res) => {
     }
 
     res.status(200).json(result)
+})
+
+authRouter.post("/user/:userId/resume/accept", async (req, res) => {
+    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+    const id = Number(req.params.userId)
+
+    res.status(200).send("----good")
 })
 
 export default authRouter
