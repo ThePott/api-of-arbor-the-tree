@@ -1,6 +1,7 @@
 import type { role } from "@/generated/prisma/enums.js"
 import type { SignupPayload, LoginProvider, LoginPayload, MePatchPayload } from "../interfaces/interfaces.js"
 import prismaClient from "./prismaClient.js"
+import type { hagwon } from "@/generated/prisma/client.js"
 
 export const dbFindMeInLogin = async (loginProvider: LoginProvider, loginPayload: LoginPayload) => {
     switch (loginProvider) {
@@ -101,17 +102,20 @@ export const dbAcceptResume = async (id: number) => {
 
     switch (resume.role) {
         case "STUDENT":
-            await prismaClient.student.create({ data: {} })
+            await prismaClient.student.create({ data: { hagwon_id: hagwon!.id, user_id: id, school_id: school!.id } })
             break
         case "PARENT":
             break
         case "PRINCIPAL":
+            await prismaClient.principal.create({ data: { hagwon_id: hagwon!.id, user_id: id } })
             break
         case "HELPER":
             break
         case "MAINTAINER":
             throw new Error("---- 이걸 고르는 일은 없어야 해")
     }
+
+    await prismaClient.resume.delete({ where: { user_id: id } })
 }
 
 export const dbDeleteMe = async (id: number) => prismaClient.app_user.delete({ where: { id } })

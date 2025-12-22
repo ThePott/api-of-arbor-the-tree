@@ -2,7 +2,7 @@ import { Router } from "express"
 import { checkEnvVar } from "../utils/checkEnvVar.js"
 import axios from "axios"
 import type { LoginPayload, SignupPayload } from "../interfaces/interfaces.js"
-import { dbCreateMe, dbDeleteMe, dbFindMe, dbFindMeInLogin, dbPatchMe } from "../db/authDb.js"
+import { dbAcceptResume, dbCreateMe, dbDeleteMe, dbFindMe, dbFindMeInLogin, dbPatchMe } from "../db/authDb.js"
 import { makeSerializable } from "../utils/makeSerializable.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
 
@@ -133,8 +133,9 @@ authRouter.delete("/me/:userId", async (req, res) => {
 })
 
 authRouter.post("/user/:userId/resume/accept", async (req, res) => {
-    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+    // extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
     const id = Number(req.params.userId)
+    await dbAcceptResume(id)
 
     res.status(200).send("----good")
 })
