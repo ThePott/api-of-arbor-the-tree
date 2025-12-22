@@ -2,9 +2,10 @@ import { Router } from "express"
 import { checkEnvVar } from "../utils/checkEnvVar.js"
 import axios from "axios"
 import type { LoginPayload, SignupPayload } from "../interfaces/interfaces.js"
-import { dbCreateMe, dbDeleteMe, dbFindMe, dbPatchMe } from "../db/authDb.js"
+import { dbCreateMe, dbDeleteMe, dbFindMe, dbFindMeInLogin, dbPatchMe } from "../db/authDb.js"
 import { makeSerializable } from "../utils/makeSerializable.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
+import prismaClient from "../db/prismaClient.js"
 
 const authRouter = Router()
 const headers = {
@@ -43,7 +44,7 @@ authRouter.post("/kakao/me", async (req, res) => {
     const loginPayload: LoginPayload = {
         kakao_id: kakaoMe.id,
     }
-    const meResult = await dbFindMe("kakao", loginPayload)
+    const meResult = await dbFindMeInLogin("kakao", loginPayload)
 
     if (meResult) {
         makeSerializable(meResult)
@@ -74,6 +75,18 @@ authRouter.post("/kakao/logout", async (req, res) => {
         console.error("---- kakao logout failed: please check why")
     }
     res.status(204).send()
+})
+
+// TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
+authRouter.get("/me/:userId", async (req, res) => {
+    const id = Number(req.params.userId)
+    const { result, resume } = await dbFindMe(id)
+    if (!result) {
+        res.status(400).json({ message: "---- 와 이게 없네" })
+        return
+    }
+    makeSerializable(result)
+    res.status(200).json({ result, resume })
 })
 
 // TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...

@@ -1,7 +1,7 @@
 import type { SignupPayload, LoginProvider, LoginPayload, MePatchPayload } from "../interfaces/interfaces.js"
 import prismaClient from "./prismaClient.js"
 
-export const dbFindMe = async (loginProvider: LoginProvider, loginPayload: LoginPayload) => {
+export const dbFindMeInLogin = async (loginProvider: LoginProvider, loginPayload: LoginPayload) => {
     switch (loginProvider) {
         case "kakao": {
             const kakao_id = loginPayload.kakao_id
@@ -13,6 +13,12 @@ export const dbFindMe = async (loginProvider: LoginProvider, loginPayload: Login
         case "email":
             return undefined
     }
+}
+
+export const dbFindMe = async (id: number) => {
+    const result = await prismaClient.app_user.findUnique({ where: { id } })
+    const resume = await prismaClient.resume.findUnique({ where: { user_id: id } })
+    return { result, resume }
 }
 
 export const dbCreateMe = async (signupPayload: SignupPayload) => {
