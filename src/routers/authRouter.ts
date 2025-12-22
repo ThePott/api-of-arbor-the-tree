@@ -86,6 +86,9 @@ authRouter.get("/me/:userId", async (req, res) => {
         return
     }
     makeSerializable(result)
+    if (resume) {
+        makeSerializable(resume)
+    }
     res.status(200).json({ result, resume })
 })
 
