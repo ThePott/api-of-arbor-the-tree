@@ -7,6 +7,7 @@ import authRouter from "./routers/authRouter.js"
 import debugRouter from "./routers/debugRouter.js"
 import schoolRouter from "./routers/schoolRouter.js"
 import hagwonRouter from "./routers/hagwonRouter.js"
+import bookRouter from "./routers/bookRouter.js"
 
 const app = express()
 
@@ -21,6 +22,7 @@ app.use("/auth", authRouter)
 app.use("/debug", debugRouter)
 app.use("/school", schoolRouter)
 app.use("/hagwon", hagwonRouter)
+app.use("/book", bookRouter)
 app.use("/", checkHealthRouter)
 
 const port = process.env.PORT || 3000
