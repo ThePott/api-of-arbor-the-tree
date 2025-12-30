@@ -51,4 +51,12 @@ bookRouter.get("/detail", async (req, res) => {
     res.status(200).json(result)
 })
 
+bookRouter.post("/detail", async (req, res) => {
+    try {
+        res.status(200).send("---- good detail post")
+    } catch (error) {
+        res.status(500).json({ message: "---- detail posting failed", error })
+    }
+})
+
 export default bookRouter
