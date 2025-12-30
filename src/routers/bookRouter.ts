@@ -60,13 +60,6 @@ bookRouter.post("/write", async (req, res) => {
 
         const { title, published_year, data } = req.body
         validateBody({ title, published_year, data })
-
-        // const isBookExisting = await dbCheckIfBookExists(title)
-
-        // if (isBookExisting) {
-        //     res.status(409).json({ message: "---- book already exists", name: "ConflictError" })
-        //     return
-        // }
         console.timeLog("post write")
 
         await dbCreateBook({ title: String(title), published_year: Number(published_year), data })
@@ -75,8 +68,10 @@ bookRouter.post("/write", async (req, res) => {
         res.status(204).send()
     } catch (error) {
         console.error(error)
-        res.status(500).json({
-            message: "---- detail posting failed",
+        res.status(409).json({
+            // NOTE: 지금은 위에서 실패하면 무조건 이름 같은 책 있어서라고 임의 판단
+            // TODO: 어떤 에러인지 어떻게 판단하지?
+            message: "---- already existing",
         })
     }
 })
