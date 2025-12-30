@@ -58,8 +58,8 @@ bookRouter.post("/write", async (req, res) => {
     try {
         extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
 
-        const { title, published_year } = req.body
-        validateBody({ title, published_year })
+        const { title, published_year, data } = req.body
+        validateBody({ title, published_year, data })
 
         const isBookExisting = await dbCheckIfBookExists(title)
 
@@ -70,7 +70,8 @@ bookRouter.post("/write", async (req, res) => {
 
         // NOTE: 개발 중에는 else에 넣어 쓰지만
         // TODO: early return 으로 수정해야
-        const result = await dbCreateBook({ title: String(title), published_year: Number(published_year) })
+        const result = await dbCreateBook({ title: String(title), published_year: Number(published_year), data })
+
         makeSerializable(result)
         res.status(200).json({ result })
     } catch (error) {
