@@ -1,6 +1,9 @@
 import { Router } from "express"
 import { bookArrayDummy, type Book } from "../dummy/bookDummy.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
+import { dbCheckIfBookExists, dbCreateBook } from "../db/bookDb.js"
+import { validateBody } from "../utils/validateBody.js"
+import { makeSerializable } from "../utils/makeSerializable.js"
 
 const bookRouter = Router()
 
@@ -30,7 +33,7 @@ bookRouter.get("/", async (req, res) => {
 })
 
 bookRouter.get("/detail", async (req, res) => {
-    // extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
 
     // NOTE: 이걸로 실제로 검색을 해야 함
     const query = String(req.query.query)
@@ -53,8 +56,23 @@ bookRouter.get("/detail", async (req, res) => {
 
 bookRouter.post("/write", async (req, res) => {
     try {
-        const body = req.body
-        res.status(200).json(body)
+        extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+
+        const { title, published_year } = req.body
+        validateBody({ title, published_year })
+
+        const isBookExisting = await dbCheckIfBookExists(title)
+
+        if (isBookExisting) {
+            res.status(409).json({ message: "---- book already exists", name: "ConflictError" })
+            return
+        }
+
+        // NOTE: 개발 중에는 else에 넣어 쓰지만
+        // TODO: early return 으로 수정해야
+        const result = await dbCreateBook({ title: String(title), published_year: Number(published_year) })
+        makeSerializable(result)
+        res.status(200).json({ result })
     } catch (error) {
         res.status(500).json({ message: "---- detail posting failed", error })
     }
