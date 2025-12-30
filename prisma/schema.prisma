@@ -114,8 +114,22 @@ model topic {
 }
 
 model step {
-    id       BigInt @id @default(autoincrement())
-    title    String @unique @db.VarChar(255)
-    topic_id BigInt
-    topic    topic? @relation(fields: [topic_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    id        BigInt     @id @default(autoincrement())
+    title     String     @unique @db.VarChar(255)
+    topic_id  BigInt
+    topic     topic?     @relation(fields: [topic_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    questions question[]
+}
+
+model question {
+    id            BigInt @id @default(autoincrement())
+    name          String @db.VarChar(255)
+    page          Int
+    solution_page Int
+    step_id       BigInt
+    step          step?  @relation(fields: [step_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+    sub_question_id BigInt?
+    sub_question    question?  @relation("SubQuestion", fields: [sub_question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    super_question  question[] @relation("SubQuestion")
 }

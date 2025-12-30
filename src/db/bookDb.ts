@@ -13,7 +13,6 @@ export const dbCreateBook = async ({ title, published_year, data }: BookWritePay
     const bookResult = await prismaClient.book.create({ data: { title, published_year } })
     const book_id = bookResult.id
     const topicPromiseArray = topicArray.map(async (topic) => {
-        console.log({ topic })
         const topicResult = await prismaClient.topic.create({ data: { title: topic, book_id } })
         const topic_id = topicResult.id
         const rowArrayOfTopic = groupedByTopic[topic]
@@ -22,7 +21,6 @@ export const dbCreateBook = async ({ title, published_year, data }: BookWritePay
         const groupedByStep = Object.groupBy(rowArrayOfTopic, ({ step }) => step)
         const stepArray = Object.keys(groupedByStep)
         const stepPromiseArray = stepArray.map((step) => {
-            console.log({ topic, step })
             const stepPromise = prismaClient.step.create({ data: { title: step, topic_id } })
             return stepPromise
         })
@@ -31,7 +29,6 @@ export const dbCreateBook = async ({ title, published_year, data }: BookWritePay
     })
 
     await Promise.all(topicPromiseArray)
-    console.log("---- topics created")
 
     return bookResult // TODO: 나중에 어떻게 보낼지 생각하자
 }
