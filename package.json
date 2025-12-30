@@ -5,7 +5,7 @@
     "main": "./dist/src/server.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "dev": "tsx watch ./src/server.ts",
+        "dev": "tsx --inspect --watch ./src/server.ts",
         "build": "npx prisma generate && tsc",
         "format": "prettier --write --cache .",
         "prepare": "husky",
