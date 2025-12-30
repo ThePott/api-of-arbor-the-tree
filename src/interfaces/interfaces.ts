@@ -34,6 +34,6 @@ type BookDetailKey =
     | "session"
     | "sub_question_name"
 
-type BookDetail = Record<BookDetailKey, string>
+export type BookDetail = Record<BookDetailKey, string>
 
 export type BookWritePayload = { title: string; published_year: number; data: BookDetail[] }

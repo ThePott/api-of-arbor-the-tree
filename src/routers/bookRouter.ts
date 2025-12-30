@@ -3,7 +3,6 @@ import { bookArrayDummy, type Book } from "../dummy/bookDummy.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
 import { dbCheckIfBookExists, dbCreateBook } from "../db/bookDb.js"
 import { validateBody } from "../utils/validateBody.js"
-import { makeSerializable } from "../utils/makeSerializable.js"
 
 const bookRouter = Router()
 
@@ -56,26 +55,29 @@ bookRouter.get("/detail", async (req, res) => {
 
 bookRouter.post("/write", async (req, res) => {
     try {
+        console.time("post write")
         extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
 
         const { title, published_year, data } = req.body
         validateBody({ title, published_year, data })
 
-        const isBookExisting = await dbCheckIfBookExists(title)
+        // const isBookExisting = await dbCheckIfBookExists(title)
 
-        if (isBookExisting) {
-            res.status(409).json({ message: "---- book already exists", name: "ConflictError" })
-            return
-        }
+        // if (isBookExisting) {
+        //     res.status(409).json({ message: "---- book already exists", name: "ConflictError" })
+        //     return
+        // }
+        console.timeLog("post write")
 
-        // NOTE: 개발 중에는 else에 넣어 쓰지만
-        // TODO: early return 으로 수정해야
-        const result = await dbCreateBook({ title: String(title), published_year: Number(published_year), data })
+        await dbCreateBook({ title: String(title), published_year: Number(published_year), data })
+        console.timeEnd("post write")
 
-        makeSerializable(result)
-        res.status(200).json({ result })
+        res.status(204).send()
     } catch (error) {
-        res.status(500).json({ message: "---- detail posting failed", error })
+        console.error(error)
+        res.status(500).json({
+            message: "---- detail posting failed",
+        })
     }
 })
 
