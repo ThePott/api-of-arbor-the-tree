@@ -34,19 +34,43 @@ type BookDetailKey =
     | "session"
     | "sub_question_name"
 
-type BookDetailMeta = {
+export type BookDetail = Record<BookDetailKey, string>
+
+type QuestionPayload = {
     // NOTE: biging? string? number?
+    // TODO: MIGHT NEED TO FIX LASTER
     id?: number
-    topic_order: number
-    step_order: number
-    question_order: number
+    name: string
+    order: number
+    question_page: number
+    solution_page: number
+    session: number
+    sub_question_name?: string
 }
 
-export type BookDetail = Record<BookDetailKey, string> & BookDetailMeta
+type StepPayload = {
+    // NOTE: biging? string? number?
+    // TODO: MIGHT NEED TO FIX LASTER
+    id?: number
+    title: string
+    order: number
+    questions: QuestionPayload[]
+}
 
-type BookMeta = {
+type TopicPayload = {
+    // NOTE: biging? string? number?
+    // TODO: MIGHT NEED TO FIX LASTER
+    id?: number
+    title: string
+    order: number
+    steps: StepPayload[]
+}
+
+export type BookPayload = {
+    // NOTE: biging? string? number?
+    // TODO: MIGHT NEED TO FIX LASTER
+    id?: number
     title: string
     published_year: number
+    topics: TopicPayload[]
 }
-
-export type BookWritePayload = { data: BookDetail[] } & BookMeta
