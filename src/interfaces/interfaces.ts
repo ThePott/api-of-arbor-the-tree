@@ -34,6 +34,19 @@ type BookDetailKey =
     | "session"
     | "sub_question_name"
 
-export type BookDetail = Record<BookDetailKey, string>
+type BookDetailMeta = {
+    // NOTE: biging? string? number?
+    id?: number
+    topic_order: number
+    step_order: number
+    question_order: number
+}
 
-export type BookWritePayload = { title: string; published_year: number; data: BookDetail[] }
+export type BookDetail = Record<BookDetailKey, string> & BookDetailMeta
+
+type BookMeta = {
+    title: string
+    published_year: number
+}
+
+export type BookWritePayload = { data: BookDetail[] } & BookMeta
