@@ -28,6 +28,7 @@ model app_user {
     student      student?
     parent       parent?
     resume       resume?
+    syllabi      syllabus[]
 }
 
 model principal {
@@ -99,10 +100,11 @@ enum role {
 }
 
 model book {
-    id             BigInt  @id @default(autoincrement())
-    title          String  @unique @db.VarChar(255)
+    id             BigInt     @id @default(autoincrement())
+    title          String     @unique @db.VarChar(255)
     published_year Int
     topics         topic[]
+    syllabi        syllabus[]
 }
 
 model topic {
@@ -122,13 +124,41 @@ model step {
 }
 
 model question {
-    id              BigInt     @id @default(autoincrement())
-    name            String     @db.VarChar(255)
-    page            Int
-    solution_page   Int
-    step_id         BigInt
-    sub_question_id BigInt?
-    step            step?      @relation(fields: [step_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    sub_question    question?  @relation("SubQuestion", fields: [sub_question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    super_question  question[] @relation("SubQuestion")
+    id               BigInt             @id @default(autoincrement())
+    name             String             @db.VarChar(255)
+    page             Int
+    solution_page    Int
+    step_id          BigInt
+    sub_question_id  BigInt?
+    step             step?              @relation(fields: [step_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    sub_question     question?          @relation("SubQuestion", fields: [sub_question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    super_question   question[]         @relation("SubQuestion")
+    sessionQuestions session_question[]
+}
+
+model syllabus {
+    id       BigInt    @id @default(autoincrement())
+    user_id  BigInt
+    book_id  BigInt
+    app_user app_user  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    book     book      @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    sessions session[]
+}
+
+model session {
+    id               BigInt             @id @default(autoincrement())
+    order            Int
+    syllabus_id      BigInt
+    syllabus         syllabus           @relation(fields: [syllabus_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    sessionQuestions session_question[]
+}
+
+model session_question {
+    id          BigInt   @id @default(autoincrement())
+    session_id  BigInt
+    question_id BigInt
+    session     session  @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    question    question @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+    @@unique([session_id, question_id])
 }
