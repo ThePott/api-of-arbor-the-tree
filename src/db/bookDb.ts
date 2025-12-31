@@ -18,6 +18,7 @@ export const dbCreateBook = async ({
     data,
     user_id,
 }: BookWritePayload & { user_id: number }) => {
+    console.time("book write in db")
     const groupedByTopic = Object.groupBy(data, ({ topic }) => topic)
     const topicEntryArray = Object.entries(groupedByTopic)
     const sessionOrderArray = [...new Set(data.map((row) => row.session))]
@@ -54,7 +55,7 @@ export const dbCreateBook = async ({
     }, [] as TopicPayload[])
 
     const bookPayload: BookPayload = { title, published_year, topics }
-
+    console.timeLog("book write in db")
     const bookResult = await prismaClient.book.create({
         data: {
             title: bookPayload.title,
@@ -80,8 +81,20 @@ export const dbCreateBook = async ({
                 })),
             },
         },
+        include: {
+            topics: {
+                include: {
+                    steps: {
+                        include: {
+                            questions: true,
+                        },
+                    },
+                },
+            },
+        },
     })
 
+    console.timeLog("book write in db")
     const syllabusResult = await prismaClient.syllabus.create({
         data: {
             user_id,
@@ -92,7 +105,9 @@ export const dbCreateBook = async ({
                 })),
             },
         },
+        include: {
+            sessions: true,
+        },
     })
-
-    // NOTE: need to create map
+    console.timeEnd("book write in db")
 }
