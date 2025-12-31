@@ -58,11 +58,11 @@ bookRouter.post("/write", async (req, res) => {
         console.time("post write")
         extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
 
-        const { title, published_year, data } = req.body
-        validateBody({ title, published_year, data })
+        const { title, published_year, data, user_id } = req.body
+        validateBody({ title, published_year, data, user_id })
         console.timeLog("post write")
 
-        await dbCreateBook({ title: String(title), published_year: Number(published_year), data })
+        await dbCreateBook({ title: String(title), published_year: Number(published_year), data, user_id })
         console.timeEnd("post write")
 
         res.status(204).send()

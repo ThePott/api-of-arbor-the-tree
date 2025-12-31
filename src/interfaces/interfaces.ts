@@ -36,19 +36,21 @@ type BookDetailKey =
 
 export type BookDetail = Record<BookDetailKey, string>
 
-type QuestionPayload = {
+export type BookWritePayload = { title: string; published_year: number; data: BookDetail[] }
+
+export type QuestionPayload = {
     // NOTE: biging? string? number?
     // TODO: MIGHT NEED TO FIX LASTER
     id?: number
     name: string
     order: number
-    question_page: number
+    page: number
     solution_page: number
     session: number
     sub_question_name?: string
 }
 
-type StepPayload = {
+export type StepPayload = {
     // NOTE: biging? string? number?
     // TODO: MIGHT NEED TO FIX LASTER
     id?: number
@@ -57,7 +59,7 @@ type StepPayload = {
     questions: QuestionPayload[]
 }
 
-type TopicPayload = {
+export type TopicPayload = {
     // NOTE: biging? string? number?
     // TODO: MIGHT NEED TO FIX LASTER
     id?: number
