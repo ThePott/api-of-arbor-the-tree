@@ -6,6 +6,7 @@ import type {
     StepPayload,
     TopicPayload,
 } from "../interfaces/interfaces.js"
+import type { session_question } from "@/generated/prisma/browser.js"
 
 export const dbCheckIfBookExists = async (title: string): Promise<boolean> => {
     const result = await prismaClient.book.findFirst({ where: { title } })
@@ -18,7 +19,7 @@ export const dbCreateBook = async ({
     data,
     user_id,
 }: BookWritePayload & { user_id: number }) => {
-    console.time("book write in db")
+    console.time("book write ____ payload conversion")
     const groupedByTopic = Object.groupBy(data, ({ topic }) => topic)
     const topicEntryArray = Object.entries(groupedByTopic)
     const sessionOrderArray = [...new Set(data.map((row) => row.session))]
@@ -55,7 +56,9 @@ export const dbCreateBook = async ({
     }, [] as TopicPayload[])
 
     const bookPayload: BookPayload = { title, published_year, topics }
-    console.timeLog("book write in db")
+    console.timeEnd("book write ____ payload conversion")
+
+    console.time("book write ____ book create")
     const bookResult = await prismaClient.book.create({
         data: {
             title: bookPayload.title,
@@ -93,8 +96,9 @@ export const dbCreateBook = async ({
             },
         },
     })
+    console.timeEnd("book write ____ book create")
 
-    console.timeLog("book write in db")
+    console.time("book write ____ syllabus create")
     const syllabusResult = await prismaClient.syllabus.create({
         data: {
             user_id,
@@ -109,5 +113,40 @@ export const dbCreateBook = async ({
             sessions: true,
         },
     })
-    console.timeEnd("book write in db")
+    console.timeEnd("book write ____ syllabus create")
+
+    console.time("book write ____ result conversion")
+    const questionKeyToSessionOrder: Map<string, number> = new Map()
+    const questionKeyToId: Map<string, bigint> = new Map()
+    const sessionOrderToId: Map<number, bigint> = new Map()
+
+    data.forEach((row) => {
+        questionKeyToSessionOrder.set(`${row.topic}|${row.step}|${row.question_name}`, Number(row.session))
+    })
+    bookResult.topics.forEach((topic) => {
+        topic.steps.forEach((step) => {
+            step.questions.forEach((question) => {
+                const questionKey = `${topic.title}|${step.title}|${question.name}`
+                questionKeyToId.set(questionKey, question.id)
+            })
+        })
+    })
+    syllabusResult.sessions.forEach((session) => {
+        sessionOrderToId.set(session.order, session.id)
+    })
+
+    const sessionQuestionArray: Omit<session_question, "id">[] = []
+    for (const [questionKey, sessionOrder] of questionKeyToSessionOrder) {
+        const question_id = questionKeyToId.get(questionKey)
+        const session_id = sessionOrderToId.get(sessionOrder)
+
+        if (!question_id || !session_id) throw new Error("---- mapping question and session id failed")
+
+        sessionQuestionArray.push({ question_id, session_id })
+    }
+    console.timeEnd("book write ____ result conversion")
+
+    console.time("book write ____ session quesion join create")
+    await prismaClient.session_question.createMany({ data: sessionQuestionArray })
+    console.timeEnd("book write ____ session quesion join create")
 }
