@@ -27,40 +27,41 @@ model app_user {
     helper       helper?
     student      student?
     parent       parent?
+    resume       resume?
+    syllabi      syllabus[]
 }
 
 model principal {
-    id          BigInt    @id @default(autoincrement())
-    hagwon_id   BigInt    @unique
-    user_id     BigInt    @unique
-    is_approved Boolean?
-    hagwon      hagwon    @relation(fields: [hagwon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    users       app_user? @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    id        BigInt    @id @default(autoincrement())
+    hagwon_id BigInt    @unique
+    user_id   BigInt    @unique
+    hagwon    hagwon    @relation(fields: [hagwon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    users     app_user? @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model student {
     id             BigInt           @id @default(autoincrement())
     user_id        BigInt           @unique
-    school         String           @db.VarChar(20)
+    school_id      BigInt
     hagwon_id      BigInt
     grade          Int?
-    is_approved    Boolean?
     parent_student parent_student[]
     users          app_user         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
     hagwon         hagwon           @relation(fields: [hagwon_id], references: [id])
+    school         school           @relation(fields: [school_id], references: [id])
 
     @@index([user_id], map: "idx_student_user_id")
 }
 
 model school {
-    id   BigInt @id @default(autoincrement())
-    name String @db.VarChar(255)
+    id       BigInt    @id @default(autoincrement())
+    name     String    @db.VarChar(255)
+    students student[]
 }
 
 model parent {
     id             BigInt           @id @default(autoincrement())
     user_id        BigInt           @unique
-    is_approved    Boolean?
     users          app_user         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
     parent_student parent_student[]
 }
@@ -74,11 +75,19 @@ model parent_student {
 }
 
 model helper {
+    id        BigInt   @id @default(autoincrement())
+    user_id   BigInt   @unique
+    hagwon_id BigInt
+    hagwon    hagwon   @relation(fields: [hagwon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    users     app_user @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model resume {
     id          BigInt   @id @default(autoincrement())
     user_id     BigInt   @unique
-    hagwon_id   BigInt
-    is_approved Boolean?
-    hagwon      hagwon   @relation(fields: [hagwon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    role        role
+    school_name String?  @db.VarChar(255)
+    hagwon_name String   @db.VarChar(20)
     users       app_user @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
@@ -88,4 +97,82 @@ enum role {
     PRINCIPAL
     HELPER
     MAINTAINER
+}
+
+model book {
+    id             BigInt     @id @default(autoincrement())
+    title          String     @unique @db.VarChar(255)
+    published_year Int
+    topics         topic[]
+    syllabi        syllabus[]
+}
+
+model topic {
+    id      BigInt @id @default(autoincrement())
+    title   String @db.VarChar(255)
+    order   Int
+    book_id BigInt
+    book    book?  @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    steps   step[]
+
+    @@unique([title, book_id])
+    @@unique([order, book_id])
+}
+
+model step {
+    id        BigInt     @id @default(autoincrement())
+    title     String     @db.VarChar(255)
+    order     Int
+    topic_id  BigInt
+    topic     topic?     @relation(fields: [topic_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    questions question[]
+
+    @@unique([title, topic_id])
+    @@unique([order, topic_id])
+}
+
+model question {
+    id               BigInt             @id @default(autoincrement())
+    name             String             @db.VarChar(255)
+    page             Int
+    solution_page    Int
+    order            Int
+    step_id          BigInt
+    sub_question_id  BigInt?
+    step             step?              @relation(fields: [step_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    sub_question     question?          @relation("SubQuestion", fields: [sub_question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    super_question   question[]         @relation("SubQuestion")
+    sessionQuestions session_question[]
+
+    @@unique([name, step_id])
+    @@unique([order, step_id])
+}
+
+model syllabus {
+    id       BigInt    @id @default(autoincrement())
+    user_id  BigInt
+    book_id  BigInt
+    app_user app_user  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    book     book      @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    sessions session[]
+}
+
+model session {
+    id               BigInt             @id @default(autoincrement())
+    order            Int
+    syllabus_id      BigInt
+    syllabus         syllabus           @relation(fields: [syllabus_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    sessionQuestions session_question[]
+
+    @@unique([order, syllabus_id])
+}
+
+model session_question {
+    id          BigInt   @id @default(autoincrement())
+    session_id  BigInt
+    question_id BigInt
+    session     session  @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    question    question @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+    @@unique([session_id, question_id])
 }

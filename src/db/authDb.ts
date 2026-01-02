@@ -1,7 +1,7 @@
 import type { SignupPayload, LoginProvider, LoginPayload, MePatchPayload } from "../interfaces/interfaces.js"
 import prismaClient from "./prismaClient.js"
 
-export const dbFindMe = async (loginProvider: LoginProvider, loginPayload: LoginPayload) => {
+export const dbFindMeInLogin = async (loginProvider: LoginProvider, loginPayload: LoginPayload) => {
     switch (loginProvider) {
         case "kakao": {
             const kakao_id = loginPayload.kakao_id
@@ -15,6 +15,37 @@ export const dbFindMe = async (loginProvider: LoginProvider, loginPayload: Login
     }
 }
 
+export const dbFindMe = async (id: number) => {
+    const result = await prismaClient.app_user.findUnique({ where: { id } })
+
+    const additional_info: { school_name: string | null; hagwon_name: string | null } = {
+        school_name: null,
+        hagwon_name: null,
+    }
+    if (result && result.role === "PRINCIPAL") {
+        const principalResult = await prismaClient.principal.findUnique({
+            where: { user_id: id },
+            select: { hagwon: { select: { name: true } } },
+        })
+        additional_info.hagwon_name = principalResult?.hagwon.name ?? null
+    }
+    if (result && result.role === "STUDENT") {
+        const studentResult = await prismaClient.student.findUnique({
+            where: { user_id: id },
+            select: {
+                hagwon: { select: { name: true } },
+                school: { select: { name: true } },
+            },
+        })
+        additional_info.hagwon_name = studentResult?.hagwon.name ?? null
+        additional_info.school_name = studentResult?.school.name ?? null
+    }
+
+    const resume = await prismaClient.resume.findUnique({ where: { user_id: id } })
+
+    return { result, resume, additional_info }
+}
+
 export const dbCreateMe = async (signupPayload: SignupPayload) => {
     const result = await prismaClient.app_user.create({ data: signupPayload })
     const serializable = {
@@ -26,84 +57,92 @@ export const dbCreateMe = async (signupPayload: SignupPayload) => {
 }
 
 export const dbPatchMe = async (id: number, mePatchPayload: MePatchPayload) => {
-    const {
-        name,
-        role,
-        phone_number,
-        hagwon,
-        // children,
-        school,
-    } = mePatchPayload
-    const userUpdateData = Object.fromEntries(Object.entries({ name, role, phone_number }).filter(([, value]) => value))
+    const { name, role, phone_number, hagwon, school } = mePatchPayload
 
     await prismaClient.app_user.update({
         where: { id },
-        data: userUpdateData,
+        data: { ...(name && { name }), ...(phone_number && { phone_number }) },
     })
 
-    const hagwonResult = hagwon ? await prismaClient.hagwon.findUnique({ where: { name: hagwon } }) : null
+    await prismaClient.resume.upsert({
+        where: { user_id: id },
+        update: {
+            ...(hagwon && { hagwon_name: hagwon }),
+            ...(school && { school_name: school }),
+        },
+        create: {
+            user_id: id,
+            role: role!,
+            hagwon_name: hagwon!,
+            ...(school && { school_name: school }),
+        },
+    })
+}
 
-    if (role === "MAINTAINER") {
-        return
-    }
-    if (role === "PARENT") {
-        throw new Error("---- 학부모 기능은 구현되지 않았습니다")
-    }
+export const dbAcceptResume = async (id: number) => {
+    const user = await prismaClient.app_user.findUnique({ where: { id } })
+    const resume = await prismaClient.resume.findUnique({ where: { user_id: id } })
 
-    if (role === "PRINCIPAL") {
-        // TODO: 개인 정보만 수정하는 건 위에서 처리했으니 여기에서는 없어야 한다
-        const existingPrincipal = await prismaClient.principal.findUnique({ where: { user_id: id } })
+    if (!user) throw new Error("---- 유저가 없는데")
+    if (!resume) throw new Error("---- 지원서가 없는데?")
 
-        if (!existingPrincipal) {
-            if (hagwon && !hagwonResult) {
-                // NOTE: 원장 및 학원 신규 등록
-                const newHagwonResult = await prismaClient.hagwon.create({ data: { name: hagwon } })
-                await prismaClient.principal.create({
-                    data: { hagwon_id: newHagwonResult.id, user_id: id },
-                })
-                return
-            }
-
-            throw new Error("---- Bad Request")
+    // NOTE: 권한이 바뀐다면 이전 권한의 원장(학생) 행 삭제
+    if (user.role && resume.role && user.role !== resume.role) {
+        switch (user.role) {
+            case "STUDENT":
+                await prismaClient.student.delete({ where: { user_id: id } })
+                break
+            case "PARENT":
+                await prismaClient.parent.delete({ where: { user_id: id } })
+                break
+            case "PRINCIPAL":
+                await prismaClient.principal.delete({ where: { user_id: id } })
+                break
+            case "HELPER":
+                await prismaClient.helper.delete({ where: { user_id: id } })
+                break
+            case "MAINTAINER":
+                throw new Error("---- 이거를 어찌 하셨소?")
         }
-
-        if (hagwonResult && existingPrincipal.hagwon_id !== hagwonResult.id) {
-            throw new Error("---- Bad Request")
-        }
-
-        await prismaClient.hagwon.update({
-            where: { id: existingPrincipal.hagwon_id },
-            data: { name: hagwon ?? null },
-        })
-        return
     }
 
-    if (!hagwonResult) {
-        return
+    if (!resume.role) return
+
+    // NOTE: 새 권한으로 유저 정보 갱신
+    await prismaClient.app_user.update({ where: { id }, data: { role: resume.role } })
+
+    // NOTE: 입력된 이름에 해당하는 학교, 학원 결과 (없으면 새로 만듦)
+    let school = resume.school_name
+        ? await prismaClient.school.findFirst({ where: { name: resume.school_name } })
+        : null
+    if (!school && resume.school_name) {
+        school = await prismaClient.school.create({ data: { name: resume.school_name } })
+    }
+    let hagwon = resume.hagwon_name
+        ? await prismaClient.hagwon.findFirst({ where: { name: resume.hagwon_name } })
+        : null
+    if (!hagwon && resume.hagwon_name) {
+        hagwon = await prismaClient.hagwon.create({ data: { name: resume.hagwon_name } })
     }
 
-    if (role === "HELPER") {
-        await prismaClient.helper.upsert({
-            where: { user_id: id },
-            update: { hagwon_id: hagwonResult.id },
-            create: { hagwon_id: hagwonResult.id, user_id: id },
-        })
-        return
+    // NOTE: 권한에 맞게 새 원장(학생) 행 추가
+    switch (resume.role) {
+        case "STUDENT":
+            await prismaClient.student.create({ data: { hagwon_id: hagwon!.id, user_id: id, school_id: school!.id } })
+            break
+        case "PARENT":
+            break
+        case "PRINCIPAL":
+            await prismaClient.principal.create({ data: { hagwon_id: hagwon!.id, user_id: id } })
+            break
+        case "HELPER":
+            break
+        case "MAINTAINER":
+            throw new Error("---- 이걸 고르는 일은 없어야 해")
     }
 
-    if (role === "STUDENT") {
-        await prismaClient.student.upsert({
-            where: { user_id: id },
-            update: { hagwon_id: hagwonResult.id },
-            create: { hagwon_id: hagwonResult.id, user_id: id, school: school ?? "이게 보이면 안 됩니다" },
-        })
-        if (school) {
-            await prismaClient.student.update({ where: { user_id: id }, data: { school } })
-        }
-        return
-    }
-
-    throw new Error("---- Unknown Error")
+    // NOTE: resume 삭제
+    await prismaClient.resume.delete({ where: { user_id: id } })
 }
 
 export const dbDeleteMe = async (id: number) => prismaClient.app_user.delete({ where: { id } })

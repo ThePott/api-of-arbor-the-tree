@@ -24,3 +24,55 @@ export interface MePatchPayload {
     school?: string
     children?: ChildOfParent[]
 }
+
+type BookDetailKey =
+    | "topic"
+    | "step"
+    | "question_name"
+    | "question_page"
+    | "solution_page"
+    | "session"
+    | "sub_question_name"
+
+export type BookDetail = Record<BookDetailKey, string>
+
+export type BookWritePayload = { title: string; published_year: number; data: BookDetail[] }
+
+export type QuestionPayload = {
+    // NOTE: biging? string? number?
+    // TODO: MIGHT NEED TO FIX LASTER
+    id?: number
+    name: string
+    order: number
+    page: number
+    solution_page: number
+    session: number
+    sub_question_name?: string
+}
+
+export type StepPayload = {
+    // NOTE: biging? string? number?
+    // TODO: MIGHT NEED TO FIX LASTER
+    id?: number
+    title: string
+    order: number
+    questions: QuestionPayload[]
+}
+
+export type TopicPayload = {
+    // NOTE: biging? string? number?
+    // TODO: MIGHT NEED TO FIX LASTER
+    id?: number
+    title: string
+    order: number
+    steps: StepPayload[]
+}
+
+export type BookPayload = {
+    // NOTE: biging? string? number?
+    // TODO: MIGHT NEED TO FIX LASTER
+    id?: number
+    title: string
+    published_year: number
+    topics: TopicPayload[]
+}
