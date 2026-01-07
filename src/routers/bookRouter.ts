@@ -24,7 +24,8 @@ bookRouter.delete("/:bookId", async (req, res) => {
     try {
         extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
         const bookId = Number(req.params.bookId)
-        if (!bookId) await dbDeleteBook(bookId)
+        if (!bookId) throw new Error("---- no book id")
+        await dbDeleteBook(bookId)
         res.status(204).send()
     } catch (error) {
         console.error(error)
