@@ -1,34 +1,23 @@
 import { Router } from "express"
-import { bookArrayDummy, type Book } from "../dummy/bookDummy.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
-import { dbCheckIfBookExists, dbCreateBook } from "../db/bookDb.js"
+import { dbCreateBook, dbFindManyBook } from "../db/bookDb.js"
 import { validateBody } from "../utils/validateBody.js"
+import { makeSerializable } from "../utils/makeSerializable.js"
 
+// NOTE: MUST SERIALIZE before respond result
 const bookRouter = Router()
 
-type BookActivity = "active" | "inactive" | "total"
-
 bookRouter.get("/", async (req, res) => {
-    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
-    const activity = String(req.query.activity) as BookActivity
-
-    // NOTE: THIS IS TEMPORARY DUMMY DATA
-    const bookArray: Book[] = bookArrayDummy
-
-    // NOTE: MUST FILTER VIA Prisma
-    const filteredBookArray = bookArray.filter((book) => {
-        switch (activity) {
-            case "active":
-                return book.isActive
-            case "inactive":
-                return !book.isActive
-            case "total":
-                return true
-            default:
-                return true
-        }
-    })
-    res.status(200).json(filteredBookArray)
+    try {
+        extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+        console.log("---- here")
+        const result = await dbFindManyBook()
+        result.map((el) => makeSerializable(el))
+        res.status(200).json(result)
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "something is wrong with book find many" })
+    }
 })
 
 bookRouter.get("/detail", async (req, res) => {
