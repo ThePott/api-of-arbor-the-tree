@@ -1,6 +1,6 @@
 import { Router } from "express"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
-import { dbCreateBook, dbFindManyBook } from "../db/bookDb.js"
+import { dbCreateBook, dbDeleteBook, dbFindManyBook } from "../db/bookDb.js"
 import { validateBody } from "../utils/validateBody.js"
 import { makeSerializable } from "../utils/makeSerializable.js"
 
@@ -17,6 +17,18 @@ bookRouter.get("/", async (req, res) => {
     } catch (error) {
         console.error(error)
         res.status(500).json({ message: "something is wrong with book find many" })
+    }
+})
+
+bookRouter.delete("/:bookId", async (req, res) => {
+    try {
+        extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+        const bookId = Number(req.params.bookId)
+        if (!bookId) await dbDeleteBook(bookId)
+        res.status(204).send()
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "---- failed deleting book" })
     }
 })
 

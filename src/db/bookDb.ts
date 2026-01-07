@@ -151,8 +151,6 @@ export const dbCreateBook = async ({
     console.timeEnd("book write ____ session quesion join create")
 }
 
-export const dbFindManyBook = async () => {
-    const result = await prismaClient.book.findMany()
-    console.log({ result })
-    return result
-}
+export const dbFindManyBook = async () => await prismaClient.book.findMany()
+
+export const dbDeleteBook = async (id: number) => await prismaClient.book.delete({ where: { id } })
