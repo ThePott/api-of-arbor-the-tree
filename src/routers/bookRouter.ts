@@ -3,6 +3,7 @@ import { extractAccessToken } from "../utils/extractAccessToken.js"
 import { dbCreateBook, dbDeleteBook, dbFindManyBook } from "../db/bookDb.js"
 import { validateBody } from "../utils/validateBody.js"
 import { makeSerializable } from "../utils/makeSerializable.js"
+import { Prisma } from "../../generated/prisma/client.js"
 
 // NOTE: MUST SERIALIZE before respond result
 const bookRouter = Router()
@@ -56,23 +57,14 @@ bookRouter.get("/detail", async (req, res) => {
 })
 
 bookRouter.post("/write", async (req, res) => {
-    try {
-        extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
 
-        const { title, published_year, data, user_id } = req.body
-        validateBody({ title, published_year, data, user_id })
+    const { title, published_year, data, user_id } = req.body
+    validateBody({ title, published_year, data, user_id })
 
-        await dbCreateBook({ title: String(title), published_year: Number(published_year), data, user_id })
+    await dbCreateBook({ title: String(title), published_year: Number(published_year), data, user_id })
 
-        res.status(204).send()
-    } catch (error) {
-        console.error(error)
-        res.status(409).json({
-            // NOTE: 지금은 위에서 실패하면 무조건 이름 같은 책 있어서라고 임의 판단
-            // TODO: 어떤 에러인지 어떻게 판단하지?
-            message: "---- already existing",
-        })
-    }
+    res.status(204).send()
 })
 
 export default bookRouter
