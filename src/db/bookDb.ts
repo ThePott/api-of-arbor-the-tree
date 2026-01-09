@@ -52,6 +52,7 @@ export const dbCreateBook = async ({ title, published_year, data, user_id }: Boo
 
         const bookPayload: BookPayload = { title, published_year, topics }
 
+        console.time("dbCreateBook: tx.book.create")
         const bookResult = await tx.book.create({
             data: {
                 title: bookPayload.title,
@@ -89,7 +90,9 @@ export const dbCreateBook = async ({ title, published_year, data, user_id }: Boo
                 },
             },
         })
+        console.timeEnd("dbCreateBook: tx.book.create")
 
+        console.time("dbCreateBook: tx.syllabus.create")
         const syllabusResult = await tx.syllabus.create({
             data: {
                 user_id,
@@ -104,6 +107,7 @@ export const dbCreateBook = async ({ title, published_year, data, user_id }: Boo
                 sessions: true,
             },
         })
+        console.timeEnd("dbCreateBook: tx.syllabus.create")
 
         const questionKeyToSessionOrder: Map<string, number> = new Map()
         const questionKeyToId: Map<string, bigint> = new Map()
@@ -134,9 +138,17 @@ export const dbCreateBook = async ({ title, published_year, data, user_id }: Boo
             sessionQuestionArray.push({ question_id, session_id })
         }
 
+        console.time("dbCreateBook: tx.session_question.createMany")
         await tx.session_question.createMany({ data: sessionQuestionArray })
+        console.timeEnd("dbCreateBook: tx.session_question.createMany")
     })
 
 export const dbFindManyBook = async () => await prismaClient.book.findMany()
 
-export const dbDeleteBook = async (id: number) => await prismaClient.book.delete({ where: { id } })
+export const dbDeleteBook = async (id: number) => {
+    console.log("---- this is delete")
+    console.time("book delete")
+    const result = await prismaClient.book.delete({ where: { id } })
+    console.timeEnd("book delete")
+    return result
+}
