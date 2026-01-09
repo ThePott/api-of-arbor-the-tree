@@ -10,7 +10,6 @@ const bookRouter = Router()
 bookRouter.get("/", async (req, res) => {
     try {
         extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
-        console.log("---- here")
         const result = await dbFindManyBook()
         result.map((el) => makeSerializable(el))
         res.status(200).json(result)
@@ -61,7 +60,7 @@ bookRouter.post("/write", async (req, res) => {
     const { title, published_year, data, user_id } = req.body
     validateBody({ title, published_year, data, user_id })
 
-    await dbCreateBook({ title: String(title), published_year: Number(published_year), data, user_id })
+    await dbCreateBook({ title: String(title), published_year: Number(published_year), data, user_id: BigInt(user_id) })
 
     res.status(204).send()
 })
