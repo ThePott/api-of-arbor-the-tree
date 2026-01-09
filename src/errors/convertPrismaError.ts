@@ -2,6 +2,8 @@ import { PrismaClientKnownRequestError } from "../../generated/prisma/internal/p
 import { AppError } from "./AppError.js"
 
 const convertPrismaError = (error: unknown): AppError => {
+    console.log({ error })
+    console.error(error)
     if (error instanceof PrismaClientKnownRequestError) {
         switch (error.code) {
             case "P2002":

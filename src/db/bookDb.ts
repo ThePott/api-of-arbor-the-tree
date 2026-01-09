@@ -19,7 +19,6 @@ export const dbCreateBook = async ({
     data,
     user_id,
 }: BookWritePayload & { user_id: number }) => {
-    console.time("book write ____ payload conversion")
     const groupedByTopic = Object.groupBy(data, ({ topic }) => topic)
     const topicEntryArray = Object.entries(groupedByTopic)
     const sessionOrderArray = [...new Set(data.map((row) => row.session))]
@@ -56,9 +55,7 @@ export const dbCreateBook = async ({
     }, [] as TopicPayload[])
 
     const bookPayload: BookPayload = { title, published_year, topics }
-    console.timeEnd("book write ____ payload conversion")
 
-    console.time("book write ____ book create")
     const bookResult = await prismaClient.book.create({
         data: {
             title: bookPayload.title,
@@ -96,9 +93,7 @@ export const dbCreateBook = async ({
             },
         },
     })
-    console.timeEnd("book write ____ book create")
 
-    console.time("book write ____ syllabus create")
     const syllabusResult = await prismaClient.syllabus.create({
         data: {
             user_id,
@@ -113,9 +108,7 @@ export const dbCreateBook = async ({
             sessions: true,
         },
     })
-    console.timeEnd("book write ____ syllabus create")
 
-    console.time("book write ____ result conversion")
     const questionKeyToSessionOrder: Map<string, number> = new Map()
     const questionKeyToId: Map<string, bigint> = new Map()
     const sessionOrderToId: Map<number, bigint> = new Map()
@@ -144,11 +137,8 @@ export const dbCreateBook = async ({
 
         sessionQuestionArray.push({ question_id, session_id })
     }
-    console.timeEnd("book write ____ result conversion")
 
-    console.time("book write ____ session quesion join create")
     await prismaClient.session_question.createMany({ data: sessionQuestionArray })
-    console.timeEnd("book write ____ session quesion join create")
 }
 
 export const dbFindManyBook = async () => await prismaClient.book.findMany()
