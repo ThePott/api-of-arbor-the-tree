@@ -1,34 +1,35 @@
 import { Router } from "express"
-import { bookArrayDummy, type Book } from "../dummy/bookDummy.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
-import { dbCheckIfBookExists, dbCreateBook } from "../db/bookDb.js"
+import { dbCreateBook, dbDeleteBook, dbFindManyBook } from "../db/bookDb.js"
 import { validateBody } from "../utils/validateBody.js"
+import { makeSerializable } from "../utils/makeSerializable.js"
 
+// NOTE: MUST SERIALIZE before respond result
 const bookRouter = Router()
 
-type BookActivity = "active" | "inactive" | "total"
-
 bookRouter.get("/", async (req, res) => {
-    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
-    const activity = String(req.query.activity) as BookActivity
+    try {
+        extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+        const result = await dbFindManyBook()
+        result.map((el) => makeSerializable(el))
+        res.status(200).json(result)
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "something is wrong with book find many" })
+    }
+})
 
-    // NOTE: THIS IS TEMPORARY DUMMY DATA
-    const bookArray: Book[] = bookArrayDummy
-
-    // NOTE: MUST FILTER VIA Prisma
-    const filteredBookArray = bookArray.filter((book) => {
-        switch (activity) {
-            case "active":
-                return book.isActive
-            case "inactive":
-                return !book.isActive
-            case "total":
-                return true
-            default:
-                return true
-        }
-    })
-    res.status(200).json(filteredBookArray)
+bookRouter.delete("/:bookId", async (req, res) => {
+    try {
+        extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+        const bookId = Number(req.params.bookId)
+        if (!bookId) throw new Error("---- no book id")
+        await dbDeleteBook(bookId)
+        res.status(204).send()
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "---- failed deleting book" })
+    }
 })
 
 bookRouter.get("/detail", async (req, res) => {
@@ -54,23 +55,14 @@ bookRouter.get("/detail", async (req, res) => {
 })
 
 bookRouter.post("/write", async (req, res) => {
-    try {
-        extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
 
-        const { title, published_year, data, user_id } = req.body
-        validateBody({ title, published_year, data, user_id })
+    const { title, published_year, data, user_id } = req.body
+    validateBody({ title, published_year, data, user_id })
 
-        await dbCreateBook({ title: String(title), published_year: Number(published_year), data, user_id })
+    await dbCreateBook({ title: String(title), published_year: Number(published_year), data, user_id: BigInt(user_id) })
 
-        res.status(204).send()
-    } catch (error) {
-        console.error(error)
-        res.status(409).json({
-            // NOTE: 지금은 위에서 실패하면 무조건 이름 같은 책 있어서라고 임의 판단
-            // TODO: 어떤 에러인지 어떻게 판단하지?
-            message: "---- already existing",
-        })
-    }
+    res.status(204).send()
 })
 
 export default bookRouter
