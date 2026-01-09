@@ -6,7 +6,7 @@ import type {
     StepPayload,
     TopicPayload,
 } from "../interfaces/interfaces.js"
-import type { session_question } from "@/generated/prisma/browser.js"
+import type { session_question } from "../../generated/prisma/browser.js"
 
 export const dbCheckIfBookExists = async (title: string): Promise<boolean> => {
     const result = await prismaClient.book.findFirst({ where: { title } })

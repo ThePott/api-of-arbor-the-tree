@@ -1,6 +1,6 @@
 import type { ErrorRequestHandler } from "express"
 import { AppError } from "./AppError.js"
-import { PrismaClientKnownRequestError } from "@/generated/prisma/internal/prismaNamespace.js"
+import { PrismaClientKnownRequestError } from "../../generated/prisma/internal/prismaNamespace.js"
 import convertPrismaError from "./convertPrismaError.js"
 
 const errorRequestHandler: ErrorRequestHandler = (err, _req, res, _next) => {
