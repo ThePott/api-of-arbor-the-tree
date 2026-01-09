@@ -3,7 +3,6 @@ import { extractAccessToken } from "../utils/extractAccessToken.js"
 import { dbCreateBook, dbDeleteBook, dbFindManyBook } from "../db/bookDb.js"
 import { validateBody } from "../utils/validateBody.js"
 import { makeSerializable } from "../utils/makeSerializable.js"
-import { Prisma } from "../../generated/prisma/client.js"
 
 // NOTE: MUST SERIALIZE before respond result
 const bookRouter = Router()
