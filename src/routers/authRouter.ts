@@ -141,4 +141,13 @@ authRouter.post("/resume/user/:userId/accept", async (req, res) => {
     res.status(200).send("----good")
 })
 
+// TODO: MUST DELETE BEFORE PRODUCTION
+authRouter.post("/dev/email/signup", async (req, res) => {
+    res.status(200).send("---- good")
+})
+// TODO: MUST DELETE BEFORE PRODUCTION
+authRouter.post("/dev/email/login", async (req, res) => {
+    res.status(200).send("---- good")
+})
+
 export default authRouter
