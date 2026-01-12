@@ -1,3 +1,4 @@
+import type { role } from "@/generated/prisma/enums.js"
 import { AppError } from "../errors/AppError.js"
 import type { SignupPayload, LoginProvider, LoginPayload, MePatchPayload } from "../interfaces/interfaces.js"
 import prismaClient from "./prismaClient.js"
@@ -170,4 +171,25 @@ export const DEBUG_dbFindManyUser = async () => {
         kakao_id: user.kakao_id?.toString(),
     }))
     return serializable
+}
+
+export const dbFindManyResume = async (user_id: bigint) => {
+    const user = await prismaClient.app_user.findUnique({ where: { id: user_id } })
+    const allowedRoleArray: role[] = ["MAINTAINER", "PRINCIPAL"]
+    const allowedCondition = user && user.role && allowedRoleArray.includes(user.role)
+    if (!allowedCondition) throw AppError.Forbidden("이 기능은 이용할 수 없어요")
+
+    if (user.role === "MAINTAINER") {
+        const result = await prismaClient.resume.findMany()
+        return result
+    }
+
+    const principal = await prismaClient.principal.findUnique({
+        where: { user_id },
+        include: { hagwon: true },
+    })
+
+    if (!principal || !principal.hagwon.name) throw AppError.Forbidden("이 기능은 이용할 수 없어요")
+    const result = await prismaClient.resume.findMany({ where: { hagwon_name: principal.hagwon.name } })
+    return result
 }

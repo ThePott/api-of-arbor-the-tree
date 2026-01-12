@@ -2,7 +2,15 @@ import { Router } from "express"
 import { checkEnvVar } from "../utils/checkEnvVar.js"
 import axios from "axios"
 import type { LoginPayload, SignupPayload } from "../interfaces/interfaces.js"
-import { dbAcceptResume, dbCreateMe, dbDeleteMe, dbFindMe, dbFindMeInLogin, dbPatchMe } from "../db/authDb.js"
+import {
+    dbAcceptResume,
+    dbCreateMe,
+    dbDeleteMe,
+    dbFindManyResume,
+    dbFindMe,
+    dbFindMeInLogin,
+    dbPatchMe,
+} from "../db/authDb.js"
 import { makeSerializable } from "../utils/makeSerializable.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
 import bcrypt from "bcrypt"
@@ -157,6 +165,14 @@ authRouter.post("/email/login", async (req, res) => {
     const result = await dbFindMeInLogin("email", { email, password: rawPassword })
     if (!result) throw AppError.NotFound("이메일과 비밀번호를 다시 확인해주세요")
     makeSerializable(result)
+    res.status(200).json(result)
+})
+
+// TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
+authRouter.get("/resume/user/:userId", async (req, res) => {
+    const user_id = BigInt(req.params.userId)
+    const result = await dbFindManyResume(user_id)
+    result.forEach((el) => makeSerializable(el))
     res.status(200).json(result)
 })
 
