@@ -174,7 +174,11 @@ export const DEBUG_dbFindManyUser = async () => {
 }
 
 export const dbFindManyResume = async (user_id: bigint) => {
-    const user = await prismaClient.app_user.findUnique({ where: { id: user_id } })
+    const user = await prismaClient.app_user.findUnique({
+        where: { id: user_id },
+        include: { principal: { include: { hagwon: true } } },
+    })
+
     const allowedRoleArray: role[] = ["MAINTAINER", "PRINCIPAL"]
     const allowedCondition = user && user.role && allowedRoleArray.includes(user.role)
     if (!allowedCondition) throw AppError.Forbidden("이 기능은 이용할 수 없어요")
@@ -184,12 +188,7 @@ export const dbFindManyResume = async (user_id: bigint) => {
         return result
     }
 
-    const principal = await prismaClient.principal.findUnique({
-        where: { user_id },
-        include: { hagwon: true },
-    })
-
-    if (!principal || !principal.hagwon.name) throw AppError.Forbidden("이 기능은 이용할 수 없어요")
-    const result = await prismaClient.resume.findMany({ where: { hagwon_name: principal.hagwon.name } })
+    if (!user.principal || !user.principal.hagwon.name) throw AppError.Forbidden("이 기능은 이용할 수 없어요")
+    const result = await prismaClient.resume.findMany({ where: { hagwon_name: user.principal.hagwon.name } })
     return result
 }
