@@ -1,5 +1,7 @@
+import { AppError } from "../errors/AppError.js"
 import type { SignupPayload, LoginProvider, LoginPayload, MePatchPayload } from "../interfaces/interfaces.js"
 import prismaClient from "./prismaClient.js"
+import bcrypt from "bcrypt"
 
 export const dbFindMeInLogin = async (loginProvider: LoginProvider, loginPayload: LoginPayload) => {
     switch (loginProvider) {
@@ -10,8 +12,21 @@ export const dbFindMeInLogin = async (loginProvider: LoginProvider, loginPayload
             }
             return prismaClient.app_user.findUnique({ where: { kakao_id } })
         }
-        case "email":
-            return undefined
+        case "email": {
+            const { email, password } = loginPayload
+            if (!email || !password) throw AppError.BadRequest("이메일 혹은 비밀번호를 다시 확인해주세요")
+
+            const result = await prismaClient.app_user.findUnique({ where: { email } })
+            if (!result) throw AppError.NotFound("이메일 혹은 비밀번호를 다시 확인해주세요")
+
+            const { password: hashedPassword, ...rest } = result
+            if (!hashedPassword) throw AppError.Internal("알 수 없는 오류가 발생했어요")
+
+            const isMatch = await bcrypt.compare(password, hashedPassword)
+            if (!isMatch) throw AppError.BadRequest("이메일 혹은 비밀번호를 다시 확인해주세요")
+
+            return rest
+        }
     }
 }
 

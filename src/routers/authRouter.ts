@@ -5,6 +5,8 @@ import type { LoginPayload, SignupPayload } from "../interfaces/interfaces.js"
 import { dbAcceptResume, dbCreateMe, dbDeleteMe, dbFindMe, dbFindMeInLogin, dbPatchMe } from "../db/authDb.js"
 import { makeSerializable } from "../utils/makeSerializable.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
+import bcrypt from "bcrypt"
+import { AppError } from "../errors/AppError.js"
 
 const authRouter = Router()
 const headers = {
@@ -143,13 +145,19 @@ authRouter.post("/resume/user/:userId/accept", async (req, res) => {
 
 authRouter.post("/email/signup", async (req, res) => {
     const body = req.body
-    const result = await dbCreateMe(body)
+    const { password: rawPassword } = body
+    const hashedPassword = await bcrypt.hash(rawPassword, 10)
+    const result = await dbCreateMe({ ...body, password: hashedPassword })
     makeSerializable(result)
     res.status(200).json(result)
 })
+
 authRouter.post("/email/login", async (req, res) => {
-    const { email, password } = req.body
-    res.status(200).send("---- good -> make login logic more")
+    const { email, password: rawPassword } = req.body
+    const result = await dbFindMeInLogin("email", { email, password: rawPassword })
+    if (!result) throw AppError.NotFound("이메일과 비밀번호를 다시 확인해주세요")
+    makeSerializable(result)
+    res.status(200).json(result)
 })
 
 export default authRouter
