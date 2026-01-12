@@ -141,13 +141,15 @@ authRouter.post("/resume/user/:userId/accept", async (req, res) => {
     res.status(200).send("----good")
 })
 
-// TODO: MUST DELETE BEFORE PRODUCTION
-authRouter.post("/dev/email/signup", async (req, res) => {
-    res.status(200).send("---- good")
+authRouter.post("/email/signup", async (req, res) => {
+    const body = req.body
+    const result = await dbCreateMe(body)
+    makeSerializable(result)
+    res.status(200).json(result)
 })
-// TODO: MUST DELETE BEFORE PRODUCTION
-authRouter.post("/dev/email/login", async (req, res) => {
-    res.status(200).send("---- good")
+authRouter.post("/email/login", async (req, res) => {
+    const { email, password } = req.body
+    res.status(200).send("---- good -> make login logic more")
 })
 
 export default authRouter
