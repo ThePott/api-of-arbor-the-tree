@@ -180,15 +180,16 @@ export const dbFindManyResume = async (user_id: bigint) => {
     })
 
     const allowedRoleArray: role[] = ["MAINTAINER", "PRINCIPAL"]
-    const allowedCondition = user && user.role && allowedRoleArray.includes(user.role)
-    if (!allowedCondition) throw AppError.Forbidden("이 기능은 이용할 수 없어요")
+    if (!user) throw AppError.NotFound("사용자를 찾을 수 없어요")
+    const allowedCondition = user.role && allowedRoleArray.includes(user.role)
+    if (!allowedCondition) throw AppError.Forbidden("이 기능을 쓰려면 권한이 필요해요")
 
     if (user.role === "MAINTAINER") {
         const result = await prismaClient.resume.findMany()
         return result
     }
 
-    if (!user.principal || !user.principal.hagwon.name) throw AppError.Forbidden("이 기능은 이용할 수 없어요")
+    if (!user.principal || !user.principal.hagwon.name) throw AppError.Internal("원장 정보에 문제가 있어요")
     const result = await prismaClient.resume.findMany({ where: { hagwon_name: user.principal.hagwon.name } })
     return result
 }
