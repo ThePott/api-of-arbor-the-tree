@@ -11,7 +11,7 @@ import {
     dbFindMeInLogin,
     dbPatchMe,
 } from "../db/authDb.js"
-import { makeSerializable } from "../utils/makeSerializable.js"
+import { makeSerializable, mutateToSerializable } from "../utils/makeSerializable.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
 import bcrypt from "bcrypt"
 import { AppError } from "../errors/AppError.js"
@@ -56,7 +56,7 @@ authRouter.post("/kakao/me", async (req, res) => {
     const meResult = await dbFindMeInLogin("kakao", loginPayload)
 
     if (meResult) {
-        makeSerializable(meResult)
+        mutateToSerializable(meResult)
         res.status(200).json(meResult)
         return
     }
@@ -66,7 +66,7 @@ authRouter.post("/kakao/me", async (req, res) => {
         kakao_id: Number(kakaoMe.id),
     }
     const signupResult = await dbCreateMe(signupPayload)
-    makeSerializable(signupResult)
+    mutateToSerializable(signupResult)
     res.status(200).json(signupResult)
 })
 
@@ -96,9 +96,9 @@ authRouter.get("/me/:userId", async (req, res) => {
         return
     }
 
-    makeSerializable(result)
+    mutateToSerializable(result)
     if (resume) {
-        makeSerializable(resume)
+        mutateToSerializable(resume)
     }
     res.status(200).json({ result, resume, additional_info })
 })
@@ -126,7 +126,7 @@ authRouter.delete("/me/:userId", async (req, res) => {
     const access_token = authorization.split(" ")[1]
 
     const result = await dbDeleteMe(id)
-    makeSerializable(result)
+    mutateToSerializable(result)
 
     if (result.kakao_id) {
         // NOTE: NO NEED TO AWAIT
@@ -156,7 +156,7 @@ authRouter.post("/email/signup", async (req, res) => {
     const { password: rawPassword } = body
     const hashedPassword = await bcrypt.hash(rawPassword, 10)
     const result = await dbCreateMe({ ...body, password: hashedPassword })
-    makeSerializable(result)
+    mutateToSerializable(result)
     res.status(200).json(result)
 })
 
@@ -164,7 +164,7 @@ authRouter.post("/email/login", async (req, res) => {
     const { email, password: rawPassword } = req.body
     const result = await dbFindMeInLogin("email", { email, password: rawPassword })
     if (!result) throw AppError.NotFound("이메일과 비밀번호를 다시 확인해주세요")
-    makeSerializable(result)
+    mutateToSerializable(result)
     res.status(200).json(result)
 })
 
@@ -172,8 +172,9 @@ authRouter.post("/email/login", async (req, res) => {
 authRouter.get("/resume/user/:userId", async (req, res) => {
     const user_id = BigInt(req.params.userId)
     const result = await dbFindManyResume(user_id)
-    result.forEach((el) => makeSerializable(el))
-    res.status(200).json(result)
+    console.log(result)
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
 })
 
 export default authRouter

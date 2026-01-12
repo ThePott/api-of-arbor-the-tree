@@ -17,7 +17,7 @@ export const dbFindMeInLogin = async (loginProvider: LoginProvider, loginPayload
             const { email, password } = loginPayload
             if (!email || !password) throw AppError.BadRequest("이메일 혹은 비밀번호를 다시 확인해주세요")
 
-            const result = await prismaClient.app_user.findUnique({ where: { email } })
+            const result = await prismaClient.app_user.findUnique({ where: { email }, omit: { password: false } })
             if (!result) throw AppError.NotFound("이메일 혹은 비밀번호를 다시 확인해주세요")
 
             const { password: hashedPassword, ...rest } = result
@@ -185,11 +185,34 @@ export const dbFindManyResume = async (user_id: bigint) => {
     if (!allowedCondition) throw AppError.Forbidden("이 기능을 쓰려면 권한이 필요해요")
 
     if (user.role === "MAINTAINER") {
-        const result = await prismaClient.resume.findMany()
+        const result = await prismaClient.resume.findMany({
+            include: {
+                users: {
+                    include: {
+                        principal: true,
+                        student: true,
+                        parent: true,
+                        helper: true,
+                    },
+                },
+            },
+        })
+        console.log(result)
         return result
     }
 
     if (!user.principal || !user.principal.hagwon.name) throw AppError.Internal("원장 정보에 문제가 있어요")
-    const result = await prismaClient.resume.findMany({ where: { hagwon_name: user.principal.hagwon.name } })
+    const result = await prismaClient.resume.findMany({
+        where: { hagwon_name: user.principal.hagwon.name },
+        include: {
+            users: {
+                include: {
+                    student: true,
+                    parent: true,
+                    helper: true,
+                },
+            },
+        },
+    })
     return result
 }

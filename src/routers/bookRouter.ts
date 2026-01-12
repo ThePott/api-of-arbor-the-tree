@@ -2,7 +2,7 @@ import { Router } from "express"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
 import { dbCreateBook, dbDeleteBook, dbFindManyBook } from "../db/bookDb.js"
 import { validateBody } from "../utils/validateBody.js"
-import { makeSerializable } from "../utils/makeSerializable.js"
+import { mutateToSerializable } from "../utils/makeSerializable.js"
 
 // NOTE: MUST SERIALIZE before respond result
 const bookRouter = Router()
@@ -11,7 +11,7 @@ bookRouter.get("/", async (req, res) => {
     try {
         extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
         const result = await dbFindManyBook()
-        result.map((el) => makeSerializable(el))
+        result.map((el) => mutateToSerializable(el))
         res.status(200).json(result)
     } catch (error) {
         console.error(error)
