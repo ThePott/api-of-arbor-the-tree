@@ -172,7 +172,6 @@ authRouter.post("/email/login", async (req, res) => {
 authRouter.get("/resume/user/:userId", async (req, res) => {
     const user_id = BigInt(req.params.userId)
     const result = await dbFindManyResume(user_id)
-    console.log(result)
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
