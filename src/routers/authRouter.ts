@@ -6,7 +6,9 @@ import {
     dbAcceptResume,
     dbCreateMe,
     dbDeleteMe,
+    dbDeleteUser,
     dbFindManyResume,
+    dbFindManyUser,
     dbFindMe,
     dbFindMeInLogin,
     dbPatchMe,
@@ -170,10 +172,27 @@ authRouter.post("/email/login", async (req, res) => {
 
 // TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
 authRouter.get("/resume/user/:userId", async (req, res) => {
+    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
     const user_id = BigInt(req.params.userId)
     const result = await dbFindManyResume(user_id)
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
+})
+
+authRouter.get("/all/user/:userId", async (req, res) => {
+    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+    const user_id = BigInt(req.params.userId)
+
+    const result = await dbFindManyUser(user_id)
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+
+authRouter.delete("/user/:userId", async (req, res) => {
+    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+    const user_id = BigInt(req.params.userId)
+    await dbDeleteUser(user_id)
+    res.status(200).send("----good")
 })
 
 export default authRouter

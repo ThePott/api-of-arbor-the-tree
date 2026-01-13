@@ -3,7 +3,6 @@ import { AppError } from "../errors/AppError.js"
 import type { SignupPayload, LoginProvider, LoginPayload, MePatchPayload } from "../interfaces/interfaces.js"
 import prismaClient from "./prismaClient.js"
 import bcrypt from "bcrypt"
-import { use } from "react"
 
 export const dbFindMeInLogin = async (loginProvider: LoginProvider, loginPayload: LoginPayload) => {
     switch (loginProvider) {
@@ -203,12 +202,13 @@ export const dbFindManyUser = async (user_id: bigint) => {
     if (user.role === "MAINTAINER") {
         const result = await prismaClient.app_user.findMany({
             where: { NOT: { id: user_id } },
-            include: {
-                principal: true,
-                helper: true,
-                student: true,
-                parent: true,
-            },
+            // TODO: 필요 없으면 삭제하자
+            // include: {
+            //     principal: true,
+            //     helper: true,
+            //     student: true,
+            //     parent: true,
+            // },
         })
         return result
     }
@@ -222,12 +222,17 @@ export const dbFindManyUser = async (user_id: bigint) => {
             ],
         },
         include: {
-            helper: true,
-            student: true,
+            // TODO: 필요 없으면 삭제하자
+            // helper: true,
+            // student: true,
             // NOTE: 넣는게 좋을지 아닐지 모르겠다
             // principal: true,
             // parent: true,
         },
     })
     return result
+}
+
+export const dbDeleteUser = async (user_id: bigint) => {
+    await prismaClient.app_user.delete({ where: { id: user_id } })
 }
