@@ -36,8 +36,10 @@ authRouter.post("/kakao/code-to-token", async (req, res) => {
     const response = await axios.post(url, body, { headers })
 
     const access_token = response.data.access_token
+    const refresh_token = response.data.refresh_token
+    console.log({ refresh_token })
 
-    res.status(200).json({ access_token })
+    res.status(200).json({ access_token, refresh_token })
 })
 
 authRouter.post("/kakao/me", async (req, res) => {
