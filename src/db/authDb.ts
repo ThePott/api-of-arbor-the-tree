@@ -3,6 +3,7 @@ import { AppError } from "../errors/AppError.js"
 import type { SignupPayload, LoginProvider, LoginPayload, MePatchPayload } from "../interfaces/interfaces.js"
 import prismaClient from "./prismaClient.js"
 import bcrypt from "bcrypt"
+import { use } from "react"
 
 export const dbFindMeInLogin = async (loginProvider: LoginProvider, loginPayload: LoginPayload) => {
     switch (loginProvider) {
@@ -164,16 +165,6 @@ export const dbAcceptResume = async ({ resume_id }: DbAcceptResumeProps) => {
 
 export const dbDeleteMe = async (id: number) => prismaClient.app_user.delete({ where: { id } })
 
-export const DEBUG_dbFindManyUser = async () => {
-    const result = await prismaClient.app_user.findMany()
-    const serializable = result.map((user) => ({
-        ...user,
-        id: user.id.toString(),
-        kakao_id: user.kakao_id?.toString(),
-    }))
-    return serializable
-}
-
 export const dbFindManyResume = async (user_id: bigint) => {
     const user = await prismaClient.app_user.findUnique({
         where: { id: user_id },
@@ -194,6 +185,49 @@ export const dbFindManyResume = async (user_id: bigint) => {
     const result = await prismaClient.resume.findMany({
         where: { hagwon_name: user.principal.hagwon.name },
         include: { users: true },
+    })
+    return result
+}
+
+export const dbFindManyUser = async (user_id: bigint) => {
+    const user = await prismaClient.app_user.findUnique({
+        where: { id: user_id },
+        include: { principal: { include: { hagwon: true } } },
+    })
+
+    const allowedRoleArray: role[] = ["MAINTAINER", "PRINCIPAL"]
+    if (!user) throw AppError.NotFound("사용자를 찾을 수 없어요")
+    const allowedCondition = user.role && allowedRoleArray.includes(user.role)
+    if (!allowedCondition) throw AppError.Forbidden("이 기능을 쓰려면 권한이 필요해요")
+
+    if (user.role === "MAINTAINER") {
+        const result = await prismaClient.app_user.findMany({
+            where: { NOT: { id: user_id } },
+            include: {
+                principal: true,
+                helper: true,
+                student: true,
+                parent: true,
+            },
+        })
+        return result
+    }
+
+    if (!user.principal || !user.principal.hagwon.name) throw AppError.Internal("원장 정보에 문제가 있어요")
+    const result = await prismaClient.app_user.findMany({
+        where: {
+            OR: [
+                { student: { hagwon_id: user.principal.hagwon_id } },
+                { helper: { hagwon_id: user.principal.hagwon_id } },
+            ],
+        },
+        include: {
+            helper: true,
+            student: true,
+            // NOTE: 넣는게 좋을지 아닐지 모르겠다
+            // principal: true,
+            // parent: true,
+        },
     })
     return result
 }
