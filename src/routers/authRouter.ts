@@ -1,5 +1,4 @@
 import { Router } from "express"
-import { checkEnvVar } from "../utils/checkEnvVar.js"
 import axios from "axios"
 import type { LoginPayload, SignupPayload } from "../interfaces/interfaces.js"
 import {
@@ -17,6 +16,18 @@ import { makeSerializable, mutateToSerializable } from "../utils/makeSerializabl
 import { extractAccessToken } from "../utils/extractAccessToken.js"
 import bcrypt from "bcrypt"
 import { AppError } from "../errors/AppError.js"
+import jwt from "jsonwebtoken"
+import {
+    KAKAO_REQUEST_TOKEN_URL,
+    KAKAO_CLIENT_ID,
+    KAKAO_REDIRECT_URI,
+    KAKAO_ME_URL,
+    REFRESH_TOKEN_SECRET,
+    ACCESS_TOKEN_SECRET,
+    KAKAO_LOGOUT_URL,
+    KAKAO_UNLINK_URL,
+} from "../config/env.js"
+import { decodeAccessToken } from "../utils/decodeAccessToken.js"
 
 const authRouter = Router()
 const headers = {
@@ -26,29 +37,28 @@ const headers = {
 authRouter.post("/kakao/code-to-token", async (req, res) => {
     const { code } = req.body
 
-    const url = checkEnvVar(process.env.KAKAO_REQUEST_TOKEN_URL)
+    const url = KAKAO_REQUEST_TOKEN_URL
     const body = {
         grant_type: "authorization_code",
-        client_id: checkEnvVar(process.env.KAKAO_CLIENT_ID),
-        redirect_uri: checkEnvVar(process.env.KAKAO_REDIRECT_URI),
+        client_id: KAKAO_CLIENT_ID,
+        redirect_uri: KAKAO_REDIRECT_URI,
         code,
     }
     const response = await axios.post(url, body, { headers })
 
-    const access_token = response.data.access_token
-    const refresh_token = response.data.refresh_token
-    console.log({ refresh_token })
+    const kakao_access_token = response.data.access_token
+    console.log({ kakao_access_token })
 
-    res.status(200).json({ access_token, refresh_token })
+    res.status(200).json({ kakao_access_token })
 })
 
 authRouter.post("/kakao/me", async (req, res) => {
-    const { access_token } = req.body
-    const url = checkEnvVar(process.env.KAKAO_ME_URL)
+    const { kakao_access_token } = req.body
+    const url = KAKAO_ME_URL
     const response = await axios.post(url, undefined, {
         headers: {
             ...headers,
-            Authorization: `Bearer ${access_token}`,
+            Authorization: `Bearer ${kakao_access_token}`,
         },
     })
 
@@ -61,7 +71,15 @@ authRouter.post("/kakao/me", async (req, res) => {
 
     if (meResult) {
         mutateToSerializable(meResult)
-        res.status(200).json(meResult)
+        const access_token = jwt.sign({ user_id: meResult.id }, ACCESS_TOKEN_SECRET, {
+            // TODO: 1 days
+            expiresIn: "1 minutes",
+        })
+        const refresh_token = jwt.sign({ user_id: meResult.id }, REFRESH_TOKEN_SECRET, {
+            // TODO: 30 days
+            expiresIn: "10 minutes",
+        })
+        res.status(200).json({ me: meResult, access_token, refresh_token })
         return
     }
 
@@ -70,13 +88,21 @@ authRouter.post("/kakao/me", async (req, res) => {
         kakao_id: Number(kakaoMe.id),
     }
     const signupResult = await dbCreateMe(signupPayload)
+    const access_token = jwt.sign({ user_id: signupResult.id }, ACCESS_TOKEN_SECRET, {
+        // TODO: 1 days
+        expiresIn: "1 minutes",
+    })
+    const refresh_token = jwt.sign({ user_id: signupResult.id }, REFRESH_TOKEN_SECRET, {
+        // TODO: 30 days
+        expiresIn: "10 minutes",
+    })
     mutateToSerializable(signupResult)
-    res.status(200).json(signupResult)
+    res.status(200).json({ me: signupResult, access_token, refresh_token })
 })
 
 authRouter.post("/kakao/logout", async (req, res) => {
     const access_token = extractAccessToken(req.headers)
-    const url = checkEnvVar(process.env.KAKAO_LOGOUT_URL)
+    const url = KAKAO_LOGOUT_URL
     try {
         axios.post(url, undefined, {
             headers: {
@@ -91,9 +117,10 @@ authRouter.post("/kakao/logout", async (req, res) => {
 })
 
 // TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
-authRouter.get("/me/:userId", async (req, res) => {
-    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
-    const id = Number(req.params.userId)
+authRouter.get("/me", async (req, res) => {
+    const decoded = decodeAccessToken(req.headers) as { user_id: bigint }
+    console.log({ decoded })
+    const id = Number(decoded.user_id)
     const { result, resume, additional_info } = await dbFindMe(id)
     if (!result) {
         res.status(400).json({ message: "---- 와 이게 없네" })
@@ -134,7 +161,7 @@ authRouter.delete("/me/:userId", async (req, res) => {
 
     if (result.kakao_id) {
         // NOTE: NO NEED TO AWAIT
-        const url = checkEnvVar(process.env.KAKAO_UNLINK_URL)
+        const url = KAKAO_UNLINK_URL
         const body = {
             target_id_type: "user_id",
             target_id: result.kakao_id,
@@ -195,6 +222,10 @@ authRouter.delete("/user/:userId", async (req, res) => {
     const user_id = BigInt(req.params.userId)
     await dbDeleteUser(user_id)
     res.status(200).send("----good")
+})
+
+authRouter.post("/refresh", async (req, res) => {
+    res.status(200).send("---- good")
 })
 
 export default authRouter

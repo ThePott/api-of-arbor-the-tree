@@ -2,18 +2,18 @@ import "dotenv/config"
 import express from "express"
 import cors, { type CorsOptions } from "cors"
 import checkHealthRouter from "./routers/checkHealthRouter.js"
-import { checkEnvVar } from "./utils/checkEnvVar.js"
 import authRouter from "./routers/authRouter.js"
 import schoolRouter from "./routers/schoolRouter.js"
 import hagwonRouter from "./routers/hagwonRouter.js"
 import bookRouter from "./routers/bookRouter.js"
 import errorRequestHandler from "./errors/errorRequestHandler.js"
 import manageRouter from "./routers/manageRouter.js"
+import { CLIENT_ORIGIN } from "./config/env.js"
 
 const app = express()
 
 const corsOptions: CorsOptions = {
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173", checkEnvVar(process.env.CLIENT_ORIGIN)],
+    origin: ["http://localhost:5173", "http://127.0.0.1:5173", CLIENT_ORIGIN],
     methods: ["OPTIONS", "GET", "POST", "PATCH", "PUT", "DELETE"],
 }
 app.use(express.json())
