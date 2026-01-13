@@ -185,18 +185,7 @@ export const dbFindManyResume = async (user_id: bigint) => {
     if (!allowedCondition) throw AppError.Forbidden("이 기능을 쓰려면 권한이 필요해요")
 
     if (user.role === "MAINTAINER") {
-        const result = await prismaClient.resume.findMany({
-            include: {
-                users: {
-                    include: {
-                        principal: true,
-                        student: true,
-                        parent: true,
-                        helper: true,
-                    },
-                },
-            },
-        })
+        const result = await prismaClient.resume.findMany({ include: { users: true } })
         console.log(result)
         return result
     }
@@ -204,15 +193,7 @@ export const dbFindManyResume = async (user_id: bigint) => {
     if (!user.principal || !user.principal.hagwon.name) throw AppError.Internal("원장 정보에 문제가 있어요")
     const result = await prismaClient.resume.findMany({
         where: { hagwon_name: user.principal.hagwon.name },
-        include: {
-            users: {
-                include: {
-                    student: true,
-                    parent: true,
-                    helper: true,
-                },
-            },
-        },
+        include: { users: true },
     })
     return result
 }
