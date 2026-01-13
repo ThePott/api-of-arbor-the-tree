@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "resume" ADD COLUMN     "applied_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

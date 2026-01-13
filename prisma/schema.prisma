@@ -88,6 +88,7 @@ model resume {
     role        role
     school_name String?  @db.VarChar(255)
     hagwon_name String   @db.VarChar(20)
+    applied_at  DateTime @default(now())
     users       app_user @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 

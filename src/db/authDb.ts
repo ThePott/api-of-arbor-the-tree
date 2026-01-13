@@ -95,27 +95,25 @@ export const dbPatchMe = async (id: number, mePatchPayload: MePatchPayload) => {
     })
 }
 
-export const dbAcceptResume = async (id: number) => {
-    const user = await prismaClient.app_user.findUnique({ where: { id } })
-    const resume = await prismaClient.resume.findUnique({ where: { user_id: id } })
-
-    if (!user) throw new Error("---- 유저가 없는데")
-    if (!resume) throw new Error("---- 지원서가 없는데?")
+type DbAcceptResumeProps = { resume_id: bigint }
+export const dbAcceptResume = async ({ resume_id }: DbAcceptResumeProps) => {
+    const resume = await prismaClient.resume.findUnique({ where: { id: resume_id }, include: { users: true } })
+    if (!resume) throw AppError.NotFound("해당 지원서를 못 찾았어요")
 
     // NOTE: 권한이 바뀐다면 이전 권한의 원장(학생) 행 삭제
-    if (user.role && resume.role && user.role !== resume.role) {
-        switch (user.role) {
+    if (resume.users.role && resume.role && resume.users.role !== resume.role) {
+        switch (resume.users.role) {
             case "STUDENT":
-                await prismaClient.student.delete({ where: { user_id: id } })
+                await prismaClient.student.delete({ where: { user_id: resume.users.id } })
                 break
             case "PARENT":
-                await prismaClient.parent.delete({ where: { user_id: id } })
+                await prismaClient.parent.delete({ where: { user_id: resume.users.id } })
                 break
             case "PRINCIPAL":
-                await prismaClient.principal.delete({ where: { user_id: id } })
+                await prismaClient.principal.delete({ where: { user_id: resume.users.id } })
                 break
             case "HELPER":
-                await prismaClient.helper.delete({ where: { user_id: id } })
+                await prismaClient.helper.delete({ where: { user_id: resume.users.id } })
                 break
             case "MAINTAINER":
                 throw new Error("---- 이거를 어찌 하셨소?")
@@ -125,7 +123,7 @@ export const dbAcceptResume = async (id: number) => {
     if (!resume.role) return
 
     // NOTE: 새 권한으로 유저 정보 갱신
-    await prismaClient.app_user.update({ where: { id }, data: { role: resume.role } })
+    await prismaClient.app_user.update({ where: { id: resume.users.id }, data: { role: resume.role } })
 
     // NOTE: 입력된 이름에 해당하는 학교, 학원 결과 (없으면 새로 만듦)
     let school = resume.school_name
@@ -144,12 +142,14 @@ export const dbAcceptResume = async (id: number) => {
     // NOTE: 권한에 맞게 새 원장(학생) 행 추가
     switch (resume.role) {
         case "STUDENT":
-            await prismaClient.student.create({ data: { hagwon_id: hagwon!.id, user_id: id, school_id: school!.id } })
+            await prismaClient.student.create({
+                data: { hagwon_id: hagwon!.id, user_id: resume.users.id, school_id: school!.id },
+            })
             break
         case "PARENT":
             break
         case "PRINCIPAL":
-            await prismaClient.principal.create({ data: { hagwon_id: hagwon!.id, user_id: id } })
+            await prismaClient.principal.create({ data: { hagwon_id: hagwon!.id, user_id: resume.users.id } })
             break
         case "HELPER":
             break
@@ -158,7 +158,7 @@ export const dbAcceptResume = async (id: number) => {
     }
 
     // NOTE: resume 삭제
-    await prismaClient.resume.delete({ where: { user_id: id } })
+    await prismaClient.resume.delete({ where: { id: resume_id } })
 }
 
 export const dbDeleteMe = async (id: number) => prismaClient.app_user.delete({ where: { id } })
@@ -185,7 +185,7 @@ export const dbFindManyResume = async (user_id: bigint) => {
     if (!allowedCondition) throw AppError.Forbidden("이 기능을 쓰려면 권한이 필요해요")
 
     if (user.role === "MAINTAINER") {
-        const result = await prismaClient.resume.findMany({ include: { users: true } })
+        const result = await prismaClient.resume.findMany({ include: { users: true }, orderBy: { applied_at: "desc" } })
         console.log(result)
         return result
     }

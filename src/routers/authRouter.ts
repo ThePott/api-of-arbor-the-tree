@@ -143,10 +143,10 @@ authRouter.delete("/me/:userId", async (req, res) => {
     res.status(200).json(result)
 })
 
-authRouter.post("/resume/user/:userId/accept", async (req, res) => {
+authRouter.post("/resume/:resumeId/accept", async (req, res) => {
     extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
-    const id = Number(req.params.userId)
-    await dbAcceptResume(id)
+    const resume_id = BigInt(req.params.resumeId)
+    await dbAcceptResume({ resume_id })
 
     res.status(200).send("----good")
 })

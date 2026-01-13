@@ -15,7 +15,8 @@ export const makeSerializable = (obj: unknown): unknown => {
         return obj.map((el) => makeSerializable(el))
     }
 
-    if (obj !== null && typeof obj === "object") {
+    const isNormalObject = obj !== null && typeof obj === "object" && !(obj instanceof Date)
+    if (isNormalObject) {
         const entryArray = Object.entries(obj)
         const newEntryArray = entryArray.map(([key, value]) => [key, makeSerializable(value)])
         const newObj = Object.fromEntries(newEntryArray)
