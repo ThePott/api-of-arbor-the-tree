@@ -10,7 +10,6 @@ manageRouter.get("/student", async (req, res) => {
     const user_id = BigInt(userIdInString)
     const result = await dbFindManyStudent({ user_id })
     const serializable = makeSerializable(result)
-    console.log({ serializable })
     res.status(200).json(serializable)
 })
 
