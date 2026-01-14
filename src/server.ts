@@ -16,17 +16,20 @@ const app = express()
 const corsOptions: CorsOptions = {
     origin: ["http://localhost:5173", "http://127.0.0.1:5173", CLIENT_ORIGIN],
     methods: ["OPTIONS", "GET", "POST", "PATCH", "PUT", "DELETE"],
+    credentials: true,
 }
 app.use(express.json())
 app.use(express.text())
 app.use(cors(corsOptions))
+app.use(cookieParser())
+
 app.use("/auth", authRouter)
 app.use("/school", schoolRouter)
 app.use("/hagwon", hagwonRouter)
 app.use("/book", bookRouter)
 app.use("/manage", manageRouter)
 app.use("/", checkHealthRouter)
-app.use(cookieParser())
+
 app.use(errorRequestHandler)
 
 const port = process.env.PORT || 3000

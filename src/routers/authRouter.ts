@@ -29,6 +29,7 @@ import {
 } from "../config/env.js"
 import { decodeAccessToken } from "../utils/decodeAccessToken.js"
 import { issueTokens } from "../utils/issueTokens.js"
+import { REFRESH_TOKEN_AGE } from "../constants/cookieOptions/index.js"
 
 const authRouter = Router()
 const headers = {
@@ -221,7 +222,7 @@ authRouter.delete("/user/:userId", async (req, res) => {
 
 authRouter.post("/refresh", async (req, res) => {
     try {
-        const refresh_token = req.cookies("arbor-refresh-token")
+        const refresh_token = req.cookies(REFRESH_TOKEN_AGE)
         if (!refresh_token) throw ApiError.RefreshTokenExpired()
 
         const decoded = jwt.verify(refresh_token, REFRESH_TOKEN_SECRET)
