@@ -1,5 +1,5 @@
 import type { IncomingHttpHeaders } from "http"
-import { ApiError } from "../errors/AppError.js"
+import { ApiError } from "../errors/appError/AppError.js"
 
 // TODO: 지금은 이 토큰이 asdf여도 통과됨
 // TODO: 토큰 검증하는 로직이 있어야 함

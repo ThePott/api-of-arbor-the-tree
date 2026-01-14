@@ -9,6 +9,7 @@ import bookRouter from "./routers/bookRouter.js"
 import errorRequestHandler from "./errors/errorRequestHandler.js"
 import manageRouter from "./routers/manageRouter.js"
 import { CLIENT_ORIGIN } from "./config/env.js"
+import cookieParser from "cookie-parser"
 
 const app = express()
 
@@ -25,6 +26,7 @@ app.use("/hagwon", hagwonRouter)
 app.use("/book", bookRouter)
 app.use("/manage", manageRouter)
 app.use("/", checkHealthRouter)
+app.use(cookieParser())
 app.use(errorRequestHandler)
 
 const port = process.env.PORT || 3000

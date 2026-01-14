@@ -1,5 +1,5 @@
 import type { role } from "@/generated/prisma/enums.js"
-import { ApiError } from "../errors/AppError.js"
+import { ApiError } from "../errors/appError/AppError.js"
 import type { SignupPayload, LoginProvider, LoginPayload, MePatchPayload } from "../interfaces/interfaces.js"
 import prismaClient from "./prismaClient.js"
 import bcrypt from "bcrypt"
@@ -31,7 +31,7 @@ export const dbFindMeInLogin = async (loginProvider: LoginProvider, loginPayload
     }
 }
 
-export const dbFindMe = async (id: number) => {
+export const dbFindMe = async (id: bigint) => {
     const result = await prismaClient.app_user.findUnique({ where: { id } })
 
     const additional_info: { school_name: string | null; hagwon_name: string | null } = {
@@ -64,12 +64,7 @@ export const dbFindMe = async (id: number) => {
 
 export const dbCreateMe = async (signupPayload: SignupPayload) => {
     const result = await prismaClient.app_user.create({ data: signupPayload })
-    const serializable = {
-        ...result,
-        id: result.id.toString(),
-        kakao_id: result.kakao_id?.toString(),
-    }
-    return serializable
+    return result
 }
 
 export const dbPatchMe = async (id: number, mePatchPayload: MePatchPayload) => {

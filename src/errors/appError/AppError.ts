@@ -1,12 +1,14 @@
+import type { ApiErrorCode } from "./types/index.js"
+
 export class ApiError extends Error {
-    code: string
+    code: ApiErrorCode
     statusCode: number
 
-    constructor(message: string, code: string, statusCode: number) {
+    constructor(message: string, code: ApiErrorCode, statusCode: number) {
         super(message)
         this.code = code
         this.statusCode = statusCode
-        this.name = "AppError"
+        this.name = "ApiError"
     }
 
     // 400 - Bad Request (invalid input, missing params)
@@ -17,6 +19,12 @@ export class ApiError extends Error {
     // 401 - Unauthorized (missing/invalid token)
     static Unauthorized(message: string) {
         return new ApiError(message, "UNAUTHORIZED", 401)
+    }
+    static AccessTokenExpired() {
+        return new ApiError("액세스 토큰이 만료되었습니다", "ACCESS_TOKEN_EXPIRED", 401)
+    }
+    static RefreshTokenExpired() {
+        return new ApiError("다시 로그인해주세요", "REFRESH_TOKEN_EXPIRED", 401)
     }
 
     // 403 - Forbidden (authenticated but not allowed)

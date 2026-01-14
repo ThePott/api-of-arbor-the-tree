@@ -1,5 +1,5 @@
 import type { ErrorRequestHandler } from "express"
-import { ApiError } from "./AppError.js"
+import { ApiError } from "./appError/AppError.js"
 import { PrismaClientKnownRequestError } from "../../generated/prisma/internal/prismaNamespace.js"
 import convertPrismaError from "./convertPrismaError.js"
 

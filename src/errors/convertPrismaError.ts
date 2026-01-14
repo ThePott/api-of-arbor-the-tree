@@ -1,5 +1,5 @@
 import { PrismaClientKnownRequestError } from "../../generated/prisma/internal/prismaNamespace.js"
-import { ApiError } from "./AppError.js"
+import { ApiError } from "./appError/AppError.js"
 
 const convertPrismaError = (error: unknown): ApiError => {
     if (error instanceof PrismaClientKnownRequestError) {
