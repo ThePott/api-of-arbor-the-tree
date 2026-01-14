@@ -1,3 +1,5 @@
+import { ApiError } from "../errors/appError/AppError.js"
+
 export const mutateToSerializable = (obj: Record<string, unknown>) => {
     Object.entries(obj).forEach(([key, value]) => {
         if (typeof value !== "bigint") {
@@ -9,6 +11,8 @@ export const mutateToSerializable = (obj: Record<string, unknown>) => {
 }
 
 export const makeSerializable = (obj: unknown): unknown => {
+    if (obj instanceof Promise) throw ApiError.Internal("약속을 기다려주세요")
+
     if (typeof obj === "bigint") return obj.toString()
 
     if (Array.isArray(obj)) {

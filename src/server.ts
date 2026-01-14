@@ -7,9 +7,9 @@ import schoolRouter from "./routers/schoolRouter.js"
 import hagwonRouter from "./routers/hagwonRouter.js"
 import bookRouter from "./routers/bookRouter.js"
 import errorRequestHandler from "./errors/errorRequestHandler.js"
-import manageRouter from "./routers/manageRouter.js"
 import { CLIENT_ORIGIN } from "./config/env.js"
 import cookieParser from "cookie-parser"
+import manageRouter from "./features/manage/route/index.js"
 
 const app = express()
 
