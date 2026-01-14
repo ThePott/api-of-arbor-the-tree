@@ -28,6 +28,7 @@ import {
     KAKAO_UNLINK_URL,
 } from "../config/env.js"
 import { decodeAccessToken } from "../utils/decodeAccessToken.js"
+import { verify } from "crypto"
 
 const authRouter = Router()
 const headers = {
@@ -118,6 +119,7 @@ authRouter.post("/kakao/logout", async (req, res) => {
 
 // TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
 authRouter.get("/me", async (req, res) => {
+    console.log({ message: "here i am" })
     const decoded = decodeAccessToken(req.headers) as { user_id: bigint }
     console.log({ decoded })
     const id = Number(decoded.user_id)
@@ -225,7 +227,10 @@ authRouter.delete("/user/:userId", async (req, res) => {
 })
 
 authRouter.post("/refresh", async (req, res) => {
-    res.status(200).send("---- good")
+    const { refresh_token } = req.body
+    const decoded = jwt.verify(refresh_token, REFRESH_TOKEN_SECRET)
+    const access_token = jwt.sign(decoded, ACCESS_TOKEN_SECRET)
+    res.status(200).json({ access_token })
 })
 
 export default authRouter
