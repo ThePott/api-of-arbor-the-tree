@@ -15,7 +15,7 @@ import {
 import { makeSerializable, mutateToSerializable } from "../utils/makeSerializable.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
 import bcrypt from "bcrypt"
-import { AppError } from "../errors/AppError.js"
+import { ApiError } from "../errors/AppError.js"
 import jwt from "jsonwebtoken"
 import {
     KAKAO_REQUEST_TOKEN_URL,
@@ -196,7 +196,7 @@ authRouter.post("/email/signup", async (req, res) => {
 authRouter.post("/email/login", async (req, res) => {
     const { email, password: rawPassword } = req.body
     const result = await dbFindMeInLogin("email", { email, password: rawPassword })
-    if (!result) throw AppError.NotFound("이메일과 비밀번호를 다시 확인해주세요")
+    if (!result) throw ApiError.NotFound("이메일과 비밀번호를 다시 확인해주세요")
     mutateToSerializable(result)
     res.status(200).json(result)
 })

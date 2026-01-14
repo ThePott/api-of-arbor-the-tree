@@ -1,5 +1,5 @@
 import type { role } from "@/generated/prisma/enums.js"
-import { AppError } from "../errors/AppError.js"
+import { ApiError } from "../errors/AppError.js"
 import type { SignupPayload, LoginProvider, LoginPayload, MePatchPayload } from "../interfaces/interfaces.js"
 import prismaClient from "./prismaClient.js"
 import bcrypt from "bcrypt"
@@ -15,16 +15,16 @@ export const dbFindMeInLogin = async (loginProvider: LoginProvider, loginPayload
         }
         case "email": {
             const { email, password } = loginPayload
-            if (!email || !password) throw AppError.BadRequest("이메일 혹은 비밀번호를 다시 확인해주세요")
+            if (!email || !password) throw ApiError.BadRequest("이메일 혹은 비밀번호를 다시 확인해주세요")
 
             const result = await prismaClient.app_user.findUnique({ where: { email }, omit: { password: false } })
-            if (!result) throw AppError.NotFound("이메일 혹은 비밀번호를 다시 확인해주세요")
+            if (!result) throw ApiError.NotFound("이메일 혹은 비밀번호를 다시 확인해주세요")
 
             const { password: hashedPassword, ...rest } = result
-            if (!hashedPassword) throw AppError.Internal("알 수 없는 오류가 발생했어요")
+            if (!hashedPassword) throw ApiError.Internal("알 수 없는 오류가 발생했어요")
 
             const isMatch = await bcrypt.compare(password, hashedPassword)
-            if (!isMatch) throw AppError.BadRequest("이메일 혹은 비밀번호를 다시 확인해주세요")
+            if (!isMatch) throw ApiError.BadRequest("이메일 혹은 비밀번호를 다시 확인해주세요")
 
             return rest
         }
@@ -98,7 +98,7 @@ export const dbPatchMe = async (id: number, mePatchPayload: MePatchPayload) => {
 type DbAcceptResumeProps = { resume_id: bigint }
 export const dbAcceptResume = async ({ resume_id }: DbAcceptResumeProps) => {
     const resume = await prismaClient.resume.findUnique({ where: { id: resume_id }, include: { users: true } })
-    if (!resume) throw AppError.NotFound("해당 지원서를 못 찾았어요")
+    if (!resume) throw ApiError.NotFound("해당 지원서를 못 찾았어요")
 
     // NOTE: 이전 권한이 존재한다면...
     // NOTE: 이전 권한은 지움
@@ -171,16 +171,16 @@ export const dbFindManyResume = async (user_id: bigint) => {
     })
 
     const allowedRoleArray: role[] = ["MAINTAINER", "PRINCIPAL"]
-    if (!user) throw AppError.NotFound("사용자를 찾을 수 없어요")
+    if (!user) throw ApiError.NotFound("사용자를 찾을 수 없어요")
     const allowedCondition = user.role && allowedRoleArray.includes(user.role)
-    if (!allowedCondition) throw AppError.Forbidden("이 기능을 쓰려면 권한이 필요해요")
+    if (!allowedCondition) throw ApiError.Forbidden("이 기능을 쓰려면 권한이 필요해요")
 
     if (user.role === "MAINTAINER") {
         const result = await prismaClient.resume.findMany({ include: { users: true }, orderBy: { applied_at: "desc" } })
         return result
     }
 
-    if (!user.principal || !user.principal.hagwon.name) throw AppError.Internal("원장 정보에 문제가 있어요")
+    if (!user.principal || !user.principal.hagwon.name) throw ApiError.Internal("원장 정보에 문제가 있어요")
     const result = await prismaClient.resume.findMany({
         where: { hagwon_name: user.principal.hagwon.name },
         include: { users: true },
@@ -195,9 +195,9 @@ export const dbFindManyUser = async (user_id: bigint) => {
     })
 
     const allowedRoleArray: role[] = ["MAINTAINER", "PRINCIPAL"]
-    if (!user) throw AppError.NotFound("사용자를 찾을 수 없어요")
+    if (!user) throw ApiError.NotFound("사용자를 찾을 수 없어요")
     const allowedCondition = user.role && allowedRoleArray.includes(user.role)
-    if (!allowedCondition) throw AppError.Forbidden("이 기능을 쓰려면 권한이 필요해요")
+    if (!allowedCondition) throw ApiError.Forbidden("이 기능을 쓰려면 권한이 필요해요")
 
     if (user.role === "MAINTAINER") {
         const result = await prismaClient.app_user.findMany({
@@ -213,7 +213,7 @@ export const dbFindManyUser = async (user_id: bigint) => {
         return result
     }
 
-    if (!user.principal || !user.principal.hagwon.name) throw AppError.Internal("원장 정보에 문제가 있어요")
+    if (!user.principal || !user.principal.hagwon.name) throw ApiError.Internal("원장 정보에 문제가 있어요")
     const result = await prismaClient.app_user.findMany({
         where: {
             OR: [
