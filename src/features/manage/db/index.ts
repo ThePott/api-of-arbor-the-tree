@@ -6,6 +6,13 @@ import { ApiError } from "@/src/errors/appError/AppError.js"
 // NOTE: 파라미터가 두 개 이상 -> object param으로, props type 위에 작성
 
 export const dbFindManyByClassroom = async (user_id: bigint) => {
+    const studentPromise = prismaClient.student.findMany({
+        where: {
+            hagwon: { principal: { user_id } },
+            classroomStudents: { none: {} },
+        },
+        include: { users: true, school: true, classroomStudents: { include: { classroom: true } } },
+    })
     const isolatedStudentPropmise = prismaClient.student.findMany({
         where: {
             hagwon: { principal: { user_id } },
@@ -29,9 +36,13 @@ export const dbFindManyByClassroom = async (user_id: bigint) => {
             },
         },
     })
-    const [isolatedStudentArray, classroomArray] = await Promise.all([isolatedStudentPropmise, classroomPromise])
+    const [studentArray, isolatedStudentArray, classroomArray] = await Promise.all([
+        studentPromise,
+        isolatedStudentPropmise,
+        classroomPromise,
+    ])
     const classroomNameArray = classroomArray.map((classroom) => classroom.name)
-    return { isolatedStudentArray, classroomArray, classroomNameArray }
+    return { studentArray, isolatedStudentArray, classroomArray, classroomNameArray }
 }
 
 type DbCreateClassroomProps = {
