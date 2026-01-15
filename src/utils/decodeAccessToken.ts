@@ -15,7 +15,7 @@ export const decodeAccessToken = (headers: IncomingHttpHeaders): DecodedToken =>
     }
 }
 
-export const extractUserIdFromAccessToken = (headers: IncomingHttpHeaders): bigint => {
+export const extractUserId = (headers: IncomingHttpHeaders): bigint => {
     const { userIdInString } = decodeAccessToken(headers)
     const user_id = BigInt(userIdInString)
     return user_id

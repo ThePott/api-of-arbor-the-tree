@@ -1,6 +1,11 @@
-import { decodeAccessToken, extractUserIdFromAccessToken as extractUserI } from "@/src/utils/decodeAccessToken.js"
+import { decodeAccessToken, extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { Router } from "express"
-import { dbAppendStudentToClassroom, dbCreateClassroom, dbFindManyStudentAndClassroom } from "../db/index.js"
+import {
+    dbAppendStudentToClassroom,
+    dbCreateClassroom,
+    dbDeleteClassroomStudent,
+    dbFindManyByClassroom,
+} from "../db/index.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 
 const manageRouter = Router()
@@ -8,13 +13,13 @@ const manageRouter = Router()
 manageRouter.get("/student", async (req, res) => {
     const { userIdInString } = decodeAccessToken(req.headers)
     const user_id = BigInt(userIdInString)
-    const result = await dbFindManyStudentAndClassroom(user_id)
+    const result = await dbFindManyByClassroom(user_id)
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
 
 manageRouter.post("/classroom", async (req, res) => {
-    const user_id = extractUserI(req.headers)
+    const user_id = extractUserId(req.headers)
     const { name } = req.body
 
     const result = await dbCreateClassroom({ name, user_id })
@@ -32,6 +37,14 @@ manageRouter.post("/classroom/student", async (req, res) => {
     const serializable = makeSerializable(result)
     console.log({ result, serializable })
     res.status(201).json(serializable)
+})
+
+manageRouter.delete("/classroom-student/:classroomStudentId", async (req, res) => {
+    const _user_id = extractUserId(req.headers)
+    const classroom_student_id = BigInt(req.params.classroomStudentId)
+    const result = await dbDeleteClassroomStudent(classroom_student_id)
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
 })
 
 export default manageRouter
