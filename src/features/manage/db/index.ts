@@ -15,10 +15,22 @@ export const dbFindManyByClassroom = async (user_id: bigint) => {
     })
     const classroomPromise = prismaClient.classroom.findMany({
         where: { hagwon: { principal: { user_id } } },
-        include: { classroomStudents: { include: { student: { include: { users: true, school: true } } } } },
+        include: {
+            classroomStudents: {
+                include: {
+                    student: {
+                        include: {
+                            users: true,
+                            school: true,
+                            classroomStudents: { include: { classroom: true } },
+                        },
+                    },
+                },
+            },
+        },
     })
-    const [studentArray, classroomArray] = await Promise.all([isolatedStudentPropmise, classroomPromise])
-    return { studentArray, classroomArray }
+    const [isolatedStudentArray, classroomArray] = await Promise.all([isolatedStudentPropmise, classroomPromise])
+    return { isolatedStudentArray, classroomArray }
 }
 // export const dbFindManyByStudent = async (user_id: bigint) => {}
 
