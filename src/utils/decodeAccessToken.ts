@@ -14,3 +14,9 @@ export const decodeAccessToken = (headers: IncomingHttpHeaders): DecodedToken =>
         throw ApiError.AccessTokenExpired()
     }
 }
+
+export const extractUserIdFromAccessToken = (headers: IncomingHttpHeaders): bigint => {
+    const { userIdInString } = decodeAccessToken(headers)
+    const user_id = BigInt(userIdInString)
+    return user_id
+}
