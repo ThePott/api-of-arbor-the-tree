@@ -9,7 +9,6 @@ export const dbFindManyByClassroom = async (user_id: bigint) => {
     const studentPromise = prismaClient.student.findMany({
         where: {
             hagwon: { principal: { user_id } },
-            classroomStudents: { none: {} },
         },
         include: { users: true, school: true, classroomStudents: { include: { classroom: true } } },
     })
