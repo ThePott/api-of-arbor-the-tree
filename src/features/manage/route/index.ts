@@ -36,7 +36,6 @@ manageRouter.post("/classroom/student", async (req, res) => {
         classroom_id: BigInt(classroom_id),
     })
     const serializable = makeSerializable(result)
-    console.log({ result, serializable })
     res.status(201).json(serializable)
 })
 
