@@ -3,6 +3,7 @@ import { Router } from "express"
 import {
     dbAppendStudentToClassroom,
     dbCreateClassroom,
+    dbDeleteClassroom,
     dbDeleteClassroomStudent,
     dbFindManyByClassroom,
 } from "../db/index.js"
@@ -43,6 +44,14 @@ manageRouter.delete("/classroom-student/:classroomStudentId", async (req, res) =
     const _user_id = extractUserId(req.headers)
     const classroom_student_id = BigInt(req.params.classroomStudentId)
     const result = await dbDeleteClassroomStudent(classroom_student_id)
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+
+manageRouter.delete("/classroom/:classroomId", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const classroom_id = BigInt(req.params.classroomId)
+    const result = await dbDeleteClassroom({ user_id, classroom_id })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })

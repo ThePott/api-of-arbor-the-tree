@@ -58,3 +58,14 @@ export const dbDeleteClassroomStudent = async (classroom_student_id: bigint) => 
     const result = await prismaClient.classroom_student.delete({ where: { id: classroom_student_id } })
     return result
 }
+
+type DbDeleteClassroomProps = {
+    user_id: bigint
+    classroom_id: bigint
+}
+export const dbDeleteClassroom = async ({ user_id, classroom_id }: DbDeleteClassroomProps) => {
+    const result = await prismaClient.classroom.delete({
+        where: { id: classroom_id, hagwon: { principal: { user_id } } },
+    })
+    return result
+}
