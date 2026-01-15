@@ -30,18 +30,20 @@ export const dbFindManyByClassroom = async (user_id: bigint) => {
         },
     })
     const [isolatedStudentArray, classroomArray] = await Promise.all([isolatedStudentPropmise, classroomPromise])
-    return { isolatedStudentArray, classroomArray }
+    const classroomNameArray = classroomArray.map((classroom) => classroom.name)
+    return { isolatedStudentArray, classroomArray, classroomNameArray }
 }
-// export const dbFindManyByStudent = async (user_id: bigint) => {}
 
 type DbCreateClassroomProps = {
-    name: string
+    classroom_name: string
     user_id: bigint
 }
-export const dbCreateClassroom = async ({ name, user_id }: DbCreateClassroomProps) => {
+export const dbCreateClassroom = async ({ classroom_name, user_id }: DbCreateClassroomProps) => {
     const principalResult = await prismaClient.principal.findUnique({ where: { user_id } })
     if (!principalResult) throw ApiError.NotFound("학원을 못 찾았어요")
-    const result = await prismaClient.classroom.create({ data: { name, hagwon_id: principalResult.hagwon_id } })
+    const result = await prismaClient.classroom.create({
+        data: { name: classroom_name, hagwon_id: principalResult.hagwon_id },
+    })
     return result
 }
 

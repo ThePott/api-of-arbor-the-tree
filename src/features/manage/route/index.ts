@@ -21,9 +21,9 @@ manageRouter.get("/student", async (req, res) => {
 
 manageRouter.post("/classroom", async (req, res) => {
     const user_id = extractUserId(req.headers)
-    const { name } = req.body
+    const { classroom_name } = req.body
 
-    const result = await dbCreateClassroom({ name, user_id })
+    const result = await dbCreateClassroom({ classroom_name, user_id })
     const serializable = makeSerializable(result)
 
     res.status(200).json(serializable)
