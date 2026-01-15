@@ -25,3 +25,12 @@ export const dbCreateClassroom = async ({ name, user_id }: DbCreateClassroomProp
     const result = await prismaClient.classroom.create({ data: { name, hagwon_id: principalResult.hagwon_id } })
     return result
 }
+
+type DbAppendStudentToClassroom = {
+    student_id: bigint
+    classroom_id: bigint
+}
+export const dbAppendStudentToClassroom = async ({ student_id, classroom_id }: DbAppendStudentToClassroom) => {
+    const result = await prismaClient.classroom_student.create({ data: { student_id, classroom_id } })
+    return result
+}

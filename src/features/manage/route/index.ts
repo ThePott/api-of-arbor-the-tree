@@ -1,6 +1,6 @@
 import { decodeAccessToken, extractUserIdFromAccessToken as extractUserI } from "@/src/utils/decodeAccessToken.js"
 import { Router } from "express"
-import { dbCreateClassroom, dbFindManyStudentAndClassroom } from "../db/index.js"
+import { dbAppendStudentToClassroom, dbCreateClassroom, dbFindManyStudentAndClassroom } from "../db/index.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 
 const manageRouter = Router()
@@ -21,6 +21,17 @@ manageRouter.post("/classroom", async (req, res) => {
     const serializable = makeSerializable(result)
 
     res.status(200).json(serializable)
+})
+
+manageRouter.post("/classroom/student", async (req, res) => {
+    const { classroom_id, student_id } = req.body
+    const result = await dbAppendStudentToClassroom({
+        student_id: BigInt(student_id),
+        classroom_id: BigInt(classroom_id),
+    })
+    const serializable = makeSerializable(result)
+    console.log({ result, serializable })
+    res.status(201).json(serializable)
 })
 
 export default manageRouter
