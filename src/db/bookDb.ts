@@ -146,7 +146,6 @@ export const dbCreateBook = async ({ title, published_year, data, user_id }: Boo
 export const dbFindManyBook = async () => await prismaClient.book.findMany()
 
 export const dbDeleteBook = async (id: number) => {
-    console.log("---- this is delete")
     console.time("book delete")
     const result = await prismaClient.book.delete({ where: { id } })
     console.timeEnd("book delete")

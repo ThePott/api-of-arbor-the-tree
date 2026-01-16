@@ -1,10 +1,35 @@
 import { Router } from "express"
-import { checkEnvVar } from "../utils/checkEnvVar.js"
 import axios from "axios"
 import type { LoginPayload, SignupPayload } from "../interfaces/interfaces.js"
-import { dbAcceptResume, dbCreateMe, dbDeleteMe, dbFindMe, dbFindMeInLogin, dbPatchMe } from "../db/authDb.js"
-import { makeSerializable } from "../utils/makeSerializable.js"
+import {
+    dbAcceptResume,
+    dbCreateMe,
+    dbDeleteMe,
+    dbDeleteUser,
+    dbFindManyResume,
+    dbFindManyUser,
+    dbFindMe,
+    dbFindMeInLogin,
+    dbPatchMe,
+} from "../db/authDb.js"
+import { makeSerializable, mutateToSerializable } from "../utils/makeSerializable.js"
 import { extractAccessToken } from "../utils/extractAccessToken.js"
+import bcrypt from "bcrypt"
+import { ApiError } from "../errors/appError/AppError.js"
+import jwt from "jsonwebtoken"
+import {
+    KAKAO_REQUEST_TOKEN_URL,
+    KAKAO_CLIENT_ID,
+    KAKAO_REDIRECT_URI,
+    KAKAO_ME_URL,
+    REFRESH_TOKEN_SECRET,
+    ACCESS_TOKEN_SECRET,
+    KAKAO_LOGOUT_URL,
+    KAKAO_UNLINK_URL,
+} from "../config/env.js"
+import { decodeAccessToken } from "../utils/decodeAccessToken.js"
+import { issueTokens } from "../utils/issueTokens.js"
+import { REFRESH_TOKEN_AGE } from "../constants/cookieOptions/index.js"
 
 const authRouter = Router()
 const headers = {
@@ -14,27 +39,27 @@ const headers = {
 authRouter.post("/kakao/code-to-token", async (req, res) => {
     const { code } = req.body
 
-    const url = checkEnvVar(process.env.KAKAO_REQUEST_TOKEN_URL)
+    const url = KAKAO_REQUEST_TOKEN_URL
     const body = {
         grant_type: "authorization_code",
-        client_id: checkEnvVar(process.env.KAKAO_CLIENT_ID),
-        redirect_uri: checkEnvVar(process.env.KAKAO_REDIRECT_URI),
+        client_id: KAKAO_CLIENT_ID,
+        redirect_uri: KAKAO_REDIRECT_URI,
         code,
     }
     const response = await axios.post(url, body, { headers })
 
-    const access_token = response.data.access_token
+    const kakao_access_token = response.data.access_token
 
-    res.status(200).json({ access_token })
+    res.status(200).json({ kakao_access_token })
 })
 
 authRouter.post("/kakao/me", async (req, res) => {
-    const { access_token } = req.body
-    const url = checkEnvVar(process.env.KAKAO_ME_URL)
+    const { kakao_access_token } = req.body
+    const url = KAKAO_ME_URL
     const response = await axios.post(url, undefined, {
         headers: {
             ...headers,
-            Authorization: `Bearer ${access_token}`,
+            Authorization: `Bearer ${kakao_access_token}`,
         },
     })
 
@@ -46,8 +71,11 @@ authRouter.post("/kakao/me", async (req, res) => {
     const meResult = await dbFindMeInLogin("kakao", loginPayload)
 
     if (meResult) {
-        makeSerializable(meResult)
-        res.status(200).json(meResult)
+        const { access_token, resCookieParams } = issueTokens({ userIdInString: meResult.id.toString() })
+        res.cookie(...resCookieParams)
+
+        mutateToSerializable(meResult)
+        res.status(200).json({ me: meResult, access_token })
         return
     }
 
@@ -56,13 +84,17 @@ authRouter.post("/kakao/me", async (req, res) => {
         kakao_id: Number(kakaoMe.id),
     }
     const signupResult = await dbCreateMe(signupPayload)
-    makeSerializable(signupResult)
-    res.status(200).json(signupResult)
+
+    const { access_token, resCookieParams } = issueTokens({ userIdInString: signupResult.id.toString() })
+    res.cookie(...resCookieParams)
+
+    const serializable = makeSerializable(signupResult)
+    res.status(200).json({ me: serializable, access_token })
 })
 
 authRouter.post("/kakao/logout", async (req, res) => {
     const access_token = extractAccessToken(req.headers)
-    const url = checkEnvVar(process.env.KAKAO_LOGOUT_URL)
+    const url = KAKAO_LOGOUT_URL
     try {
         axios.post(url, undefined, {
             headers: {
@@ -77,18 +109,18 @@ authRouter.post("/kakao/logout", async (req, res) => {
 })
 
 // TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
-authRouter.get("/me/:userId", async (req, res) => {
-    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
-    const id = Number(req.params.userId)
+authRouter.get("/me", async (req, res) => {
+    const decoded = decodeAccessToken(req.headers)
+    const id = BigInt(decoded.userIdInString)
     const { result, resume, additional_info } = await dbFindMe(id)
     if (!result) {
         res.status(400).json({ message: "---- 와 이게 없네" })
         return
     }
 
-    makeSerializable(result)
+    mutateToSerializable(result)
     if (resume) {
-        makeSerializable(resume)
+        mutateToSerializable(resume)
     }
     res.status(200).json({ result, resume, additional_info })
 })
@@ -116,11 +148,11 @@ authRouter.delete("/me/:userId", async (req, res) => {
     const access_token = authorization.split(" ")[1]
 
     const result = await dbDeleteMe(id)
-    makeSerializable(result)
+    mutateToSerializable(result)
 
     if (result.kakao_id) {
         // NOTE: NO NEED TO AWAIT
-        const url = checkEnvVar(process.env.KAKAO_UNLINK_URL)
+        const url = KAKAO_UNLINK_URL
         const body = {
             target_id_type: "user_id",
             target_id: result.kakao_id,
@@ -133,12 +165,72 @@ authRouter.delete("/me/:userId", async (req, res) => {
     res.status(200).json(result)
 })
 
-authRouter.post("/resume/user/:userId/accept", async (req, res) => {
+authRouter.post("/resume/:resumeId/accept", async (req, res) => {
     extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
-    const id = Number(req.params.userId)
-    await dbAcceptResume(id)
+    const resume_id = BigInt(req.params.resumeId)
+    await dbAcceptResume({ resume_id })
 
     res.status(200).send("----good")
+})
+
+authRouter.post("/email/signup", async (req, res) => {
+    const body = req.body
+    const { password: rawPassword } = body
+    const hashedPassword = await bcrypt.hash(rawPassword, 10)
+    const result = await dbCreateMe({ ...body, password: hashedPassword })
+
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+
+authRouter.post("/email/login", async (req, res) => {
+    const { email, password: rawPassword } = req.body
+    const result = await dbFindMeInLogin("email", { email, password: rawPassword })
+    if (!result) throw ApiError.NotFound("이메일과 비밀번호를 다시 확인해주세요")
+
+    const { access_token, resCookieParams } = issueTokens({ userIdInString: result.id.toString() })
+    res.cookie(...resCookieParams)
+
+    const serializable = makeSerializable(result)
+    res.status(200).json({ me: serializable, access_token })
+})
+
+// TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
+authRouter.get("/resume/user/:userId", async (req, res) => {
+    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+    const user_id = BigInt(req.params.userId)
+    const result = await dbFindManyResume(user_id)
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+
+authRouter.get("/all/user/:userId", async (req, res) => {
+    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+    const user_id = BigInt(req.params.userId)
+
+    const result = await dbFindManyUser(user_id)
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+
+authRouter.delete("/user/:userId", async (req, res) => {
+    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
+    const user_id = BigInt(req.params.userId)
+    await dbDeleteUser(user_id)
+    res.status(200).send("----good")
+})
+
+authRouter.post("/refresh", async (req, res) => {
+    try {
+        const refresh_token = req.cookies(REFRESH_TOKEN_AGE)
+        if (!refresh_token) throw ApiError.RefreshTokenExpired()
+
+        const decoded = jwt.verify(refresh_token, REFRESH_TOKEN_SECRET)
+        const access_token = jwt.sign(decoded, ACCESS_TOKEN_SECRET)
+        res.status(200).json({ access_token })
+    } catch {
+        throw ApiError.RefreshTokenExpired()
+    }
 })
 
 export default authRouter
