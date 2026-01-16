@@ -29,7 +29,7 @@ manageRouter.post("/classroom", async (req, res) => {
     res.status(200).json(serializable)
 })
 
-manageRouter.post("/classroom/student", async (req, res) => {
+manageRouter.post("/classroom-student", async (req, res) => {
     const { classroom_id, student_id } = req.body
     const result = await dbAppendStudentToClassroom({
         student_id: BigInt(student_id),

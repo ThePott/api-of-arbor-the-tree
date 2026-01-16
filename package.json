@@ -7,7 +7,7 @@
         "test": "echo \"Error: no test specified\" && exit 1",
         "dev": "tsx --watch ./src/server.ts",
         "debug": "tsx --inspect-brk --watch ./src/server.ts",
-        "build": "npx prisma generate && tsc",
+        "build": "npx prisma generate && tsc && tsc-alias",
         "format": "prettier --write --cache .",
         "prepare": "husky",
         "postinstall": "npx prisma generate"
@@ -43,6 +43,7 @@
         "nodemon": "^3.1.11",
         "prettier": "3.7.1",
         "prisma": "^7.2.0",
+        "tsc-alias": "^1.8.16",
         "tsx": "^4.20.6",
         "typescript-eslint": "^8.48.0"
     }
