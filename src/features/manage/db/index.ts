@@ -10,38 +10,21 @@ export const dbFindManyByClassroom = async (user_id: bigint) => {
         where: {
             hagwon: { principal: { user_id } },
         },
-        include: { users: true, school: true, classroomStudents: { include: { classroom: true } } },
-    })
-    const isolatedStudentPropmise = prismaClient.student.findMany({
-        where: {
-            hagwon: { principal: { user_id } },
-            classroomStudents: { none: {} },
-        },
         include: { users: true, school: true },
     })
-    const classroomPromise = prismaClient.classroom.findMany({
-        where: { hagwon: { principal: { user_id } } },
-        include: {
-            classroomStudents: {
-                include: {
-                    student: {
-                        include: {
-                            users: true,
-                            school: true,
-                            classroomStudents: { include: { classroom: true } },
-                        },
-                    },
-                },
-            },
-        },
+
+    const classroomPromise = prismaClient.classroom.findMany({ where: { hagwon: { principal: { user_id } } } })
+    const classroomStudentPromise = prismaClient.classroom_student.findMany({
+        where: { classroom: { hagwon: { principal: { user_id } } } },
     })
-    const [studentArray, isolatedStudentArray, classroomArray] = await Promise.all([
+
+    const [studentArray, classroomArray, classroomStudentArray] = await Promise.all([
         studentPromise,
-        isolatedStudentPropmise,
         classroomPromise,
+        classroomStudentPromise,
     ])
     const classroomNameArray = classroomArray.map((classroom) => classroom.name)
-    return { studentArray, isolatedStudentArray, classroomArray, classroomNameArray }
+    return { studentArray, classroomArray, classroomNameArray, classroomStudentArray }
 }
 
 type DbCreateClassroomProps = {
