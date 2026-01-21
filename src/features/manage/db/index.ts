@@ -23,8 +23,7 @@ export const dbFindManyByClassroom = async (user_id: bigint) => {
         classroomPromise,
         classroomStudentPromise,
     ])
-    const classroomNameArray = classroomArray.map((classroom) => classroom.name)
-    return { studentArray, classroomArray, classroomNameArray, classroomStudentArray }
+    return { studentArray, classroomArray, classroomStudentArray }
 }
 
 type DbCreateClassroomProps = {
