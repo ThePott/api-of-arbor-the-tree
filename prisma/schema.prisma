@@ -104,11 +104,12 @@ enum role {
 }
 
 model book {
-    id             BigInt         @id @default(autoincrement())
-    title          String         @unique @db.VarChar(255)
+    id             BigInt           @id @default(autoincrement())
+    title          String           @unique @db.VarChar(255)
     published_year Int
     topics         topic[]
     syllabi        syllabus[]
+    bookClassrooms book_classroom[]
     bookStudents   book_student[]
 }
 
@@ -188,6 +189,7 @@ model classroom {
     hagwon_id         BigInt
     hagwon            hagwon              @relation(fields: [hagwon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
     classroomStudents classroom_student[]
+    bookClassrooms    book_classroom[]
 
     @@unique([name, hagwon_id])
 }
@@ -201,6 +203,17 @@ model classroom_student {
     student   student   @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
     @@unique([classroom_id, student_id])
+}
+
+model book_classroom {
+    id           BigInt @id @default(autoincrement())
+    book_id      BigInt
+    classroom_id BigInt
+
+    book      book      @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    classroom classroom @relation(fields: [classroom_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+    @@unique([book_id, classroom_id])
 }
 
 model book_student {
