@@ -3,42 +3,53 @@ import { ApiError } from "@/src/errors/appError/AppError.js"
 
 type DbProgressCreateBook = {
     book_id: bigint
+    // NOTE: classroom_id, student_id 둘 중 하나만 있어야 함
     classroom_id?: bigint
-    student_id_array: bigint[]
+    student_id?: bigint
     user_id: bigint
 }
-export const dbProgressCreateBook = async ({
-    book_id,
-    classroom_id,
-    student_id_array,
-    user_id,
-}: DbProgressCreateBook) => {
-    const studentArrayPromise = await prismaClient.student.findMany({
-        where: {
-            id: { in: student_id_array },
-            hagwon: { principal: { user_id } },
-        },
-    })
-    const classroomPromise = classroom_id
-        ? await prismaClient.classroom.findUnique({
-              where: {
-                  id: classroom_id,
-                  hagwon: { principal: { user_id } },
-              },
-          })
-        : Promise.resolve(null)
-    const [studentArray, classroom] = await Promise.all([studentArrayPromise, classroomPromise])
+export const dbProgressCreateBook = async ({ book_id, classroom_id, student_id, user_id }: DbProgressCreateBook) => {
+    if (student_id) {
+        const student = await prismaClient.student.findUnique({
+            where: {
+                id: student_id,
+                hagwon: { principal: { user_id } },
+            },
+        })
+        if (!student) throw ApiError.Forbidden("학원 내의 학생만 관리할 수 있어요")
 
-    if (studentArray.length !== student_id_array.length) throw ApiError.Forbidden("학원 내의 학생만 관리할 수 있어요")
-    if (classroom_id && !classroom) throw ApiError.Forbidden("학원 내의 반만 관리할 수 있어요")
+        const result = await prismaClient.book_student.create({ data: { book_id, student_id } })
+        return result
+    }
 
-    const result = await prismaClient.book_classroom_student.createMany({
-        data: student_id_array.map((student_id) => ({
-            book_id,
-            student_id,
-            classroom_id: classroom_id ? classroom_id : null,
-        })),
-    })
+    if (classroom_id) {
+        const classroom = await prismaClient.classroom.findUnique({
+            where: {
+                id: classroom_id,
+                hagwon: { principal: { user_id } },
+            },
+        })
 
+        if (!classroom) throw ApiError.Forbidden("학원 내의 학생만 관리할 수 있어요")
+        const result = await prismaClient.book_classroom.create({ data: { book_id, classroom_id } })
+        return result
+    }
+
+    throw ApiError.BadRequest("반 혹은 개별 진도 학생을 선택해주세요")
+}
+
+type DbProgressFindManyBookProps = {
+    classroom_id: bigint | null
+    student_id: bigint | null
+}
+export const dbProgressFindManyBook = async ({ classroom_id, student_id }: DbProgressFindManyBookProps) => {
+    if (classroom_id) {
+        const result = await prismaClient.book_classroom.findMany({ where: { classroom_id }, include: { book: true } })
+        return result
+    }
+
+    if (!student_id) throw ApiError.BadRequest("반 혹은 개별 진도 학생을 선택해주세요")
+
+    const result = await prismaClient.book_student.findMany({ where: { student_id }, include: { book: true } })
     return result
 }
