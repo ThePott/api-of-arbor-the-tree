@@ -43,11 +43,19 @@ export const dbProgressCreateSyllabus = async ({
     throw ApiError.BadRequest("반 혹은 개별 진도 학생을 선택해주세요")
 }
 
-type DbProgressFindManySyllabusProps = {
+export const dbProgressFindManySyllabus = async (user_id: bigint) => {
+    const result = await prismaClient.syllabus.findMany({ where: { user_id } })
+    return result
+}
+
+type DbProgressFindManySyllabusAssignedProps = {
     classroom_id: bigint | null
     student_id: bigint | null
 }
-export const dbProgressFindManySyllabus = async ({ classroom_id, student_id }: DbProgressFindManySyllabusProps) => {
+export const dbProgressFindManySyllabusAssigned = async ({
+    classroom_id,
+    student_id,
+}: DbProgressFindManySyllabusAssignedProps) => {
     if (classroom_id) {
         const result = await prismaClient.classroom_syllabus.findMany({
             where: { classroom_id },

@@ -1,12 +1,18 @@
 import { Router } from "express"
-import { dbProgressCreateSyllabus, dbProgressDeleteSyllabus, dbProgressFindManySyllabus } from "../db/index.js"
+import {
+    dbProgressCreateSyllabus,
+    dbProgressDeleteSyllabus,
+    dbProgressFindManySyllabus,
+    dbProgressFindManySyllabusAssigned,
+} from "../db/index.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 
 const progressRouter = Router()
 
-progressRouter.post("/book", async (req, res) => {
+// NOTE: 과정 추가할 때
+progressRouter.post("/syllabus", async (req, res) => {
     const body = req.body // NOTE: book_id, classroom_id, student_id
     const user_id = extractUserId(req.headers)
 
@@ -20,13 +26,22 @@ progressRouter.post("/book", async (req, res) => {
     res.status(200).json(serializable)
 })
 
+// NOTE: auto complete에 사용할 실라버스 받아와야
 progressRouter.get("/syllabus", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const result = await dbProgressFindManySyllabus(user_id)
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+
+// NOTE: 학생, 반한테 등록된 실라버스를 받아올 때
+progressRouter.get("/syllabus/assigned", async (req, res) => {
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
 
     if (!classroom_id && !student_id) throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
 
-    const result = await dbProgressFindManySyllabus({ classroom_id, student_id })
+    const result = await dbProgressFindManySyllabusAssigned({ classroom_id, student_id })
     const serializable = makeSerializable(result)
 
     res.status(200).json(serializable)
