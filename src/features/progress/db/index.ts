@@ -44,7 +44,7 @@ export const dbProgressCreateSyllabus = async ({
 }
 
 export const dbProgressFindManySyllabus = async (user_id: bigint) => {
-    const result = await prismaClient.syllabus.findMany({ where: { user_id } })
+    const result = await prismaClient.syllabus.findMany({ where: { user_id }, include: { book: true } })
     return result
 }
 
