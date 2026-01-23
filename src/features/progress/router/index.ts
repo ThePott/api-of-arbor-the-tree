@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { dbProgressCreateBook, dbProgressDeleteBook, dbProgressFindManyBook } from "../db/index.js"
+import { dbProgressCreateSyllabus, dbProgressDeleteBook, dbProgressFindManyBook } from "../db/index.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
@@ -14,7 +14,7 @@ progressRouter.post("/book", async (req, res) => {
     if ((classroom_id && student_id) || (!classroom_id && !student_id))
         throw ApiError.BadRequest("반 혹은 개별 진도 학생을 선택해주세요")
 
-    const result = await dbProgressCreateBook({ ...body, user_id })
+    const result = await dbProgressCreateSyllabus({ ...body, user_id })
     const serializable = makeSerializable(result)
     console.log({ serializable })
     res.status(200).json(serializable)
