@@ -65,48 +65,63 @@ export const dbProgressFindManySyllabus = async ({ classroom_id, student_id }: D
     return result
 }
 
-type DbProgressDeleteBookProps = {
+type DbProgressDeleteSyllabusProps = {
     classroom_id: bigint | null
     student_id: bigint | null
-    book_id: bigint
+    syllabus_id: bigint
     user_id: bigint
 }
-export const dbProgressDeleteBook = async ({
+export const dbProgressDeleteSyllabus = async ({
     classroom_id,
     student_id,
     user_id,
-    book_id,
-}: DbProgressDeleteBookProps) => {
+    syllabus_id,
+}: DbProgressDeleteSyllabusProps) => {
     if (classroom_id) {
         const result = prismaClient.classroom_syllabus.delete({
             where: {
-                classroom_id: { book_id, classroom_id },
+                classroom_id_syllabus_id: { classroom_id, syllabus_id },
                 classroom: { hagwon: { principal: { user_id } } },
             },
         })
         return result
     }
     if (!student_id) throw ApiError.BadRequest("반 혹은 학생을 선택해주세요")
-    const result = prismaClient.book_student.delete({
+    const result = prismaClient.student_syllabus.delete({
         where: {
-            book_id_student_id: { book_id, student_id },
+            student_id_syllabus_id: { syllabus_id, student_id },
             student: { hagwon: { principal: { user_id } } },
         },
     })
     return result
 }
 
-type DbProgressSessionProps = {
+type DbProgressFindManySessionProps = {
     classroom_id: bigint | null
     student_id: bigint | null
-    book_id: bigint
+    syllabus_id: bigint
     user_id: bigint
 }
-export const dbProgressSession = async ({ classroom_id, student_id, user_id, book_id }: DbProgressSessionProps) => {
-    // classroom yes ,student no -> 이건 선생이 정하면 자동으로 되는 거니까...
-    // 로직이 다르겠구나
-    // 반 -> homework, today, null
-    // 학생 -> done
-    // 반이면 반에서
-    const result = await prismaClient.book.findMany({ where: { id: book_id }, include: { syllabi: {} } })
+export const dbProgressFindManySession = async ({
+    classroom_id,
+    student_id,
+    user_id,
+    syllabus_id,
+}: DbProgressFindManySessionProps) => {
+    // NOTE: 반 진도 (학생 세부 사항 없음)
+    if (classroom_id) {
+        // TODO: 반의 학생 세부 진도 받아오는 것도 만들어야
+        const result = await prismaClient.session.findMany({
+            where: { syllabus_id, syllabus: { user_id } },
+            include: {
+                sessionQuestions: { include: { question: { include: { step: { include: { topic: true } } } } } },
+            },
+        })
+        return result
+    }
+
+    if (student_id) {
+        // TODO: 여기 채워야
+        throw ApiError.Internal("---- 여기는 아직 만들지 않았어요")
+    }
 }
