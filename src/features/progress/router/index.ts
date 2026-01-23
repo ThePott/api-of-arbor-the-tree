@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { dbProgressCreateBook, dbProgressFindManyBook } from "../db/index.js"
+import { dbProgressCreateBook, dbProgressDeleteBook, dbProgressFindManyBook } from "../db/index.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
@@ -30,6 +30,22 @@ progressRouter.get("/book", async (req, res) => {
     const serializable = makeSerializable(result)
 
     res.status(200).json(serializable)
+})
+
+progressRouter.delete("/book/:book_id", async (req, res) => {
+    const book_id = BigInt(req.params.book_id)
+    const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
+    const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
+    const user_id = extractUserId(req.headers)
+
+    const result = await dbProgressDeleteBook({ classroom_id, student_id, user_id, book_id })
+    const serializable = makeSerializable(result)
+
+    res.status(200).json(serializable)
+})
+
+progressRouter.get("/session", async (req, res) => {
+    res.status(200).send("----good")
 })
 
 export default progressRouter

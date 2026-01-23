@@ -41,18 +41,19 @@ model principal {
 }
 
 model student {
-    id                BigInt              @id @default(autoincrement())
-    user_id           BigInt              @unique
-    school_id         BigInt
-    hagwon_id         BigInt
-    grade             Int?
-    parent_student    parent_student[]
-    users             app_user            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    hagwon            hagwon              @relation(fields: [hagwon_id], references: [id])
-    school            school              @relation(fields: [school_id], references: [id])
-    classroomStudents classroom_student[]
-    bookStudents      book_student[]
-    sessionStudents   session_student[]
+    id                       BigInt                      @id @default(autoincrement())
+    user_id                  BigInt                      @unique
+    school_id                BigInt
+    hagwon_id                BigInt
+    grade                    Int?
+    parent_student           parent_student[]
+    users                    app_user                    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    hagwon                   hagwon                      @relation(fields: [hagwon_id], references: [id])
+    school                   school                      @relation(fields: [school_id], references: [id])
+    classroomStudents        classroom_student[]
+    studentSyllabuses        student_syllabus[]
+    assignedSessionStudents  assigned_session_student[]
+    completedSessionStudents completed_session_student[]
 
     @@index([user_id], map: "idx_student_user_id")
 }
@@ -105,13 +106,11 @@ enum role {
 }
 
 model book {
-    id             BigInt           @id @default(autoincrement())
-    title          String           @unique @db.VarChar(255)
+    id             BigInt     @id @default(autoincrement())
+    title          String     @unique @db.VarChar(255)
     published_year Int
     topics         topic[]
     syllabi        syllabus[]
-    bookClassrooms book_classroom[]
-    bookStudents   book_student[]
 }
 
 model topic {
@@ -156,21 +155,27 @@ model question {
 }
 
 model syllabus {
-    id       BigInt    @id @default(autoincrement())
-    user_id  BigInt
-    book_id  BigInt
-    app_user app_user  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    book     book      @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    sessions session[]
+    id         BigInt   @id @default(autoincrement())
+    user_id    BigInt
+    book_id    BigInt
+    created_at DateTime @default(now())
+
+    app_user            app_user             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    book                book                 @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    sessions            session[]
+    classroomSyllabuses classroom_syllabus[]
+    studentSyllabuses   student_syllabus[]
 }
 
 model session {
-    id               BigInt             @id @default(autoincrement())
-    order            Int
-    syllabus_id      BigInt
-    syllabus         syllabus           @relation(fields: [syllabus_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    sessionQuestions session_question[]
-    sessionStudents  session_student[]
+    id                        BigInt                       @id @default(autoincrement())
+    order                     Int
+    syllabus_id               BigInt
+    syllabus                  syllabus                     @relation(fields: [syllabus_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    sessionQuestions          session_question[]
+    assignedSessionClassrooms assigned_session_classroom[]
+    assignedSessionStudents   assigned_session_student[]
+    completedSessionStudents  completed_session_student[]
 
     @@unique([order, syllabus_id])
 }
@@ -186,12 +191,13 @@ model session_question {
 }
 
 model classroom {
-    id                BigInt              @id @default(autoincrement())
-    name              String              @db.VarChar(255)
-    hagwon_id         BigInt
-    hagwon            hagwon              @relation(fields: [hagwon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    classroomStudents classroom_student[]
-    bookClassrooms    book_classroom[]
+    id                        BigInt                       @id @default(autoincrement())
+    name                      String                       @db.VarChar(255)
+    hagwon_id                 BigInt
+    hagwon                    hagwon                       @relation(fields: [hagwon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    classroomStudents         classroom_student[]
+    classroomSyllabuses       classroom_syllabus[]
+    assignedSessionClassrooms assigned_session_classroom[]
 
     @@unique([name, hagwon_id])
 }
@@ -207,39 +213,56 @@ model classroom_student {
     @@unique([classroom_id, student_id])
 }
 
-model book_classroom {
-    id           BigInt @id @default(autoincrement())
-    book_id      BigInt
-    classroom_id BigInt
-
-    book      book      @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    classroom classroom @relation(fields: [classroom_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-    @@unique([book_id, classroom_id])
-}
-
-model book_student {
-    id         BigInt @id @default(autoincrement())
-    book_id    BigInt
-    student_id BigInt
-
-    book    book    @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    student student @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-    @@unique([book_id, student_id])
-}
-
 enum session_status {
-    DONE
     HOMEWORK
     TODAY
 }
 
-model session_student {
+model classroom_syllabus {
+    id           BigInt    @id @default(autoincrement())
+    classroom_id BigInt
+    syllabus_id  BigInt
+    completed_at DateTime?
+
+    classroom classroom @relation(fields: [classroom_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    syllabus  syllabus  @relation(fields: [syllabus_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model student_syllabus {
+    id           BigInt    @id @default(autoincrement())
+    student_id   BigInt
+    syllabus_id  BigInt
+    completed_at DateTime?
+
+    student  student  @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    syllabus syllabus @relation(fields: [syllabus_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model assigned_session_classroom {
+    id           BigInt         @id @default(autoincrement())
+    session_id   BigInt
+    classroom_id BigInt
+    status       session_status
+
+    session   session   @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    classroom classroom @relation(fields: [classroom_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model assigned_session_student {
     id         BigInt         @id @default(autoincrement())
     session_id BigInt
     student_id BigInt
     status     session_status
+
+    session session @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    student student @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model completed_session_student {
+    id           BigInt   @id @default(autoincrement())
+    session_id   BigInt
+    student_id   BigInt
+    completed_at DateTime @default(now())
 
     session session @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
     student student @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
