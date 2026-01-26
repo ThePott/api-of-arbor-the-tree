@@ -9,7 +9,7 @@ import {
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
-import type { session_question } from "@/generated/prisma/client.js"
+import type { book } from "@/generated/prisma/client.js"
 
 const progressRouter = Router()
 
@@ -78,7 +78,6 @@ type ExtendedSession = {
         }
     }[]
 }
-
 const extractUnqueTopicStepArray = (session: ExtendedSession): TopicStep[] => {
     const topicStepArray = [
         ...new Set(
@@ -96,27 +95,88 @@ const extractUnqueTopicStepArray = (session: ExtendedSession): TopicStep[] => {
     })
     return topicStepArray
 }
-const summarizeTopicStepArray = (topicStepArray: TopicStep[]): string => {
-    const topicStepJoint = " __"
-    const firstLastJoint = " ~ "
-
+const summarizeTopicStepArray = (topicStepArray: TopicStep[]): ConciseSession => {
     const first = topicStepArray[0]
     const last = topicStepArray[topicStepArray.length - 1]
     if (!first) throw ApiError.Internal("묶음 이름을 정리하는 데에 문제가 생겼어요")
     if (!last) throw ApiError.Internal("묶음 이름을 정리하는 데에 문제가 생겼어요")
 
     if (topicStepArray.length === 0) throw ApiError.Internal("묶음 단원 정보를 정리하는 데에 실패했어요")
-    if (topicStepArray.length === 1) return `${first.topic}${topicStepJoint}${first.step}`
-    if (first.topic !== last.topic) {
-        return `${first.topic}${topicStepJoint}${first.step}${firstLastJoint}${last.topic}${topicStepJoint}${last.step}`
+    if (!first.topic || !first.step) throw ApiError.Internal("묶음 단원 정보를 정리하는 데에 실패했어요")
+
+    if (topicStepArray.length === 1) return { firstTopic: first.topic, firstStep: first.step }
+
+    if (first.topic === last.topic) {
+        return {
+            firstTopic: first.topic,
+            firstStep: first.step,
+            lastStep: last.step,
+        }
     }
 
-    return `${first.topic}${topicStepJoint}${first.step}${firstLastJoint}${last.step}`
+    return {
+        firstTopic: first.topic,
+        firstStep: first.step,
+        lastTopic: last.topic,
+        lastStep: last.step,
+    }
 }
-const summarizeSesion = (session: ExtendedSession): string => {
+type ConciseSession = {
+    firstTopic: string
+    firstStep: string
+    lastTopic?: string | undefined
+    lastStep?: string | undefined
+}
+
+type GroupedTopic = {
+    title: string
+    conciseSessionArray: ConciseSession[]
+}
+type GroupedConciseSyllabus = {
+    id: bigint
+    book: book
+    topicWithSession: GroupedTopic[]
+}
+const groupByTopic = (conciseSessionArray: ConciseSession[]) => {
+    const grouped = Object.groupBy(conciseSessionArray, ({ firstTopic }) => firstTopic)
+    const groupedTopic: GroupedTopic[] = Object.entries(grouped).map(([key, value]) => ({
+        title: key,
+        conciseSessionArray: value,
+    }))
+
+    return groupedTopic
+}
+
+const summarizeSesion = (session: ExtendedSession) => {
     const uniqueTopicStepArray = extractUnqueTopicStepArray(session)
-    const summarized = summarizeTopicStepArray(uniqueTopicStepArray)
-    return summarized
+    const conciseSession = summarizeTopicStepArray(uniqueTopicStepArray)
+    return conciseSession
+}
+
+const groupSessionsByTopic = (sessionArray: ExtendedSession[]) => {
+    const result: GroupedTopic[] = []
+    let current: GroupedTopic | null = null
+    const summarizedSessionArray = sessionArray.map((elSession) => summarizeSesion(elSession))
+    summarizedSessionArray.forEach((session) => {
+        if (!current) {
+            current = {
+                title: session.firstTopic,
+                conciseSessionArray: [session],
+            }
+            return
+        }
+        if (current.title === session.firstTopic) {
+            current.conciseSessionArray.push(session)
+            return
+        }
+        result.push(current)
+        current = {
+            title: session.firstTopic,
+            conciseSessionArray: [session],
+        }
+    })
+
+    return result
 }
 
 progressRouter.get("/session", async (req, res) => {
@@ -125,7 +185,6 @@ progressRouter.get("/session", async (req, res) => {
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
 
     const user_id = extractUserId(req.headers)
-
     const duplicatedResult = await dbProgressFindManySyllabusWithSession({
         classroom_id,
         syllabus_id,
@@ -136,15 +195,11 @@ progressRouter.get("/session", async (req, res) => {
     const conciseResult = duplicatedResult.map((el) => ({
         id: el.id,
         book: el.book,
-        sessions: el.sessions.map((elSession) => ({
-            id: elSession.id,
-            topic_step: summarizeSesion(elSession),
-        })),
+        sessionsByTopic: groupSessionsByTopic(el.sessions),
     }))
 
     const serializable = makeSerializable(conciseResult)
     res.status(200).json(serializable)
-    // res.status(200).send()
 })
 
 export default progressRouter
