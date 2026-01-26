@@ -110,6 +110,30 @@ type DbProgressFindManySessionProps = {
     syllabus_id: bigint | null
     user_id: bigint
 }
+const selectConciseSyllabus = {
+    id: true,
+    book: true,
+    // NOTE: 각 세션에 제목을 붙이려면 문제집 정보 싹 긁어와야 함
+    sessions: {
+        select: {
+            id: true,
+            sessionQuestions: {
+                select: {
+                    question: {
+                        select: {
+                            step: {
+                                select: {
+                                    title: true,
+                                    topic: { select: { title: true } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    },
+}
 // NOTE: THIS RETURNS DUPLICATED DATA. NEED TO DEDUPLICATE
 export const dbProgressFindManySyllabusWithSession = async ({
     classroom_id,
@@ -124,29 +148,7 @@ export const dbProgressFindManySyllabusWithSession = async ({
         // TODO: 반의 학생 세부 진도 받아오는 것도 만들어야
         const result = await prismaClient.syllabus.findMany({
             where: { id: syllabus_id, user_id },
-            select: {
-                book: true,
-                // NOTE: 각 세션에 제목을 붙이려면 문제집 정보 싹 긁어와야 함
-                sessions: {
-                    select: {
-                        id: true,
-                        sessionQuestions: {
-                            select: {
-                                question: {
-                                    select: {
-                                        step: {
-                                            select: {
-                                                title: true,
-                                                topic: { select: { title: true } },
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
+            select: selectConciseSyllabus,
         })
         return result
     }
@@ -155,29 +157,7 @@ export const dbProgressFindManySyllabusWithSession = async ({
     if (classroom_id && !syllabus_id) {
         const result = await prismaClient.syllabus.findMany({
             where: { user_id, classroomSyllabuses: { some: { classroom_id } } },
-            select: {
-                book: true,
-                // NOTE: 각 세션에 제목을 붙이려면 문제집 정보 싹 긁어와야 함
-                sessions: {
-                    select: {
-                        id: true,
-                        sessionQuestions: {
-                            select: {
-                                question: {
-                                    select: {
-                                        step: {
-                                            select: {
-                                                title: true,
-                                                topic: { select: { title: true } },
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
+            select: selectConciseSyllabus,
         })
         return result
     }
@@ -187,58 +167,14 @@ export const dbProgressFindManySyllabusWithSession = async ({
     if (syllabus_id) {
         const result = await prismaClient.syllabus.findMany({
             where: { user_id, id: syllabus_id },
-            select: {
-                book: true,
-                // NOTE: 각 세션에 제목을 붙이려면 문제집 정보 싹 긁어와야 함
-                sessions: {
-                    select: {
-                        id: true,
-                        sessionQuestions: {
-                            select: {
-                                question: {
-                                    select: {
-                                        step: {
-                                            select: {
-                                                title: true,
-                                                topic: { select: { title: true } },
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
+            select: selectConciseSyllabus,
         })
         return result
     }
 
     const result = await prismaClient.syllabus.findMany({
         where: { user_id, studentSyllabuses: { some: { student_id } } },
-        select: {
-            book: true,
-            // NOTE: 각 세션에 제목을 붙이려면 문제집 정보 싹 긁어와야 함
-            sessions: {
-                select: {
-                    id: true,
-                    sessionQuestions: {
-                        select: {
-                            question: {
-                                select: {
-                                    step: {
-                                        select: {
-                                            title: true,
-                                            topic: { select: { title: true } },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
+        select: selectConciseSyllabus,
     })
     return result
 }

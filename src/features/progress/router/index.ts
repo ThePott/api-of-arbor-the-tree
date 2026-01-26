@@ -134,6 +134,7 @@ progressRouter.get("/session", async (req, res) => {
     })
 
     const conciseResult = duplicatedResult.map((el) => ({
+        id: el.id,
         book: el.book,
         sessions: el.sessions.map((elSession) => ({
             id: elSession.id,
