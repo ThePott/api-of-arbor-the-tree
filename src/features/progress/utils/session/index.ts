@@ -20,6 +20,7 @@ type ExtendedSession = {
     }[]
 }
 type ConciseSession = {
+    id: bigint
     start: TopicStep
     end: Partial<TopicStep>
 }
@@ -45,7 +46,7 @@ const extractUnqueTopicStepArray = (session: ExtendedSession): TopicStep[] => {
     })
     return topicStepArray
 }
-const condenseTopicStepArray = (topicStepArray: TopicStep[]): ConciseSession => {
+const condenseTopicStepArray = (topicStepArray: TopicStep[]): Omit<ConciseSession, "id"> => {
     const start = topicStepArray[0]
     const end = topicStepArray[topicStepArray.length - 1]
     if (!start) throw ApiError.Internal("묶음 이름을 정리하는 데에 문제가 생겼어요")
@@ -89,9 +90,9 @@ const groupConciseSessionsByTopic = (conciseSessionArray: ConciseSession[]) => {
     return result
 }
 const groupSessionsByTopic = (sessionArray: ExtendedSession[]) => {
-    const conciseSessionArray = sessionArray.map((session) => {
+    const conciseSessionArray: ConciseSession[] = sessionArray.map((session) => {
         const uniqueTopicStepArray = extractUnqueTopicStepArray(session)
-        return condenseTopicStepArray(uniqueTopicStepArray)
+        return { ...condenseTopicStepArray(uniqueTopicStepArray), id: session.id }
     })
     const sessionsByTopic = groupConciseSessionsByTopic(conciseSessionArray)
 
