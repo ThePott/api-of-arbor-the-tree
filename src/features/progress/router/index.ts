@@ -10,8 +10,8 @@ import {
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
-import { groupSessionsByTopic } from "../utils/index.js"
 import type { session_status } from "@/generated/prisma/enums.js"
+import groupSessionsByTopic from "./utils/session.js"
 
 const progressRouter = Router()
 
@@ -40,12 +40,13 @@ progressRouter.post("/syllabus/assigned", async (req, res) => {
 
 // NOTE: 학생, 반한테 등록된 실라버스를 받아올 때
 progressRouter.get("/syllabus/assigned", async (req, res) => {
+    const user_id = extractUserId(req.headers)
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
 
     if (!classroom_id && !student_id) throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
 
-    const result = await dbProgressFindManySyllabusAssigned({ classroom_id, student_id })
+    const result = await dbProgressFindManySyllabusAssigned({ user_id, classroom_id, student_id })
     const serializable = makeSerializable(result)
 
     res.status(200).json(serializable)

@@ -19,7 +19,12 @@ type ExtendedSession = {
             } | null
         }
     }[]
-    assignedSessionClassrooms: [
+    assignedSessionClassrooms?: [
+        {
+            status: session_status
+        },
+    ]
+    assignedSessionStudents?: [
         {
             status: session_status
         },
@@ -101,7 +106,7 @@ const groupSessionsByTopic = (sessionArray: ExtendedSession[]) => {
         return {
             ...condenseTopicStepArray(uniqueTopicStepArray),
             id: session.id,
-            status: session.assignedSessionClassrooms[0] ? session.assignedSessionClassrooms[0].status : null,
+            status: session.assignedSessionClassrooms?.[0] ? session.assignedSessionClassrooms[0].status : null,
         }
     })
     const sessionsByTopicArray = groupConciseSessionsByTopic(conciseSessionArray)

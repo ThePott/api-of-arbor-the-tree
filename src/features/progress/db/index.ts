@@ -3,19 +3,21 @@ import type { session_status } from "@/generated/prisma/enums.js"
 import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 
-type DbProgressCreateBook = {
-    syllabus_id: bigint
-    // NOTE: classroom_id, student_id 둘 중 하나만 있어야 함
-    classroom_id?: bigint
-    student_id?: bigint
+export type ProgressBase = {
+    classroom_id: bigint | null
+    student_id: bigint | null
     user_id: bigint
 }
+export type ProgressSyllabusRelated = ProgressBase & {
+    syllabus_id: bigint | null
+}
+
 export const dbProgressCreateSyllabus = async ({
     syllabus_id,
     classroom_id,
     student_id,
     user_id,
-}: DbProgressCreateBook) => {
+}: ProgressSyllabusRelated) => {
     if (student_id) {
         const student = await prismaClient.student.findUnique({
             where: {
@@ -50,17 +52,10 @@ export const dbProgressFindManySyllabus = async (user_id: bigint) => {
     return result
 }
 
-type DbProgressFindManySyllabusAssignedProps = {
-    classroom_id: bigint | null
-    student_id: bigint | null
-}
-export const dbProgressFindManySyllabusAssigned = async ({
-    classroom_id,
-    student_id,
-}: DbProgressFindManySyllabusAssignedProps) => {
+export const dbProgressFindManySyllabusAssigned = async ({ user_id, classroom_id, student_id }: ProgressBase) => {
     if (classroom_id) {
         const result = await prismaClient.classroom_syllabus.findMany({
-            where: { classroom_id },
+            where: { classroom_id, classroom: { hagwon: { principal: { user_id } } } },
             include: { syllabus: { include: { book: true } } },
         })
         return result
@@ -69,24 +64,18 @@ export const dbProgressFindManySyllabusAssigned = async ({
     if (!student_id) throw ApiError.BadRequest("반 혹은 개별 진도 학생을 선택해주세요")
 
     const result = await prismaClient.student_syllabus.findMany({
-        where: { student_id },
+        where: { student_id, syllabus: { user_id } },
         include: { syllabus: { include: { book: true } } },
     })
     return result
 }
 
-type DbProgressDeleteSyllabusProps = {
-    classroom_id: bigint | null
-    student_id: bigint | null
-    syllabus_id: bigint
-    user_id: bigint
-}
 export const dbProgressDeleteSyllabus = async ({
     classroom_id,
     student_id,
     user_id,
     syllabus_id,
-}: DbProgressDeleteSyllabusProps) => {
+}: ProgressSyllabusRelated) => {
     if (classroom_id) {
         const result = prismaClient.classroom_syllabus.delete({
             where: {
@@ -106,13 +95,7 @@ export const dbProgressDeleteSyllabus = async ({
     return result
 }
 
-type DbProgressFindManySessionProps = {
-    classroom_id: bigint | null
-    student_id: bigint | null
-    syllabus_id: bigint | null
-    user_id: bigint
-}
-const selectConciseSyllabus = {
+const baseSelect = {
     id: true,
     book: true,
     // NOTE: 각 세션에 제목을 붙이려면 문제집 정보 싹 긁어와야 함
@@ -121,101 +104,21 @@ const selectConciseSyllabus = {
             id: true,
             sessionQuestions: {
                 select: {
-                    question: { select: { step: { select: { title: true, topic: { select: { title: true } } } } } },
+                    question: {
+                        select: { step: { select: { title: true, topic: { select: { title: true } } } } },
+                    },
                 },
             },
         },
     },
-} satisfies Prisma.syllabusSelect
-const makeSelect = ({
-    classroom_id,
-    student_id,
-    syllabus_id,
-}: DbProgressFindManySessionProps): Prisma.syllabusSelect => {
-    if (classroom_id) {
-        if (!syllabus_id) {
-            return {
-                id: true,
-                book: true,
-                // NOTE: 각 세션에 제목을 붙이려면 문제집 정보 싹 긁어와야 함
-                sessions: {
-                    select: {
-                        id: true,
-                        sessionQuestions: {
-                            select: {
-                                question: {
-                                    select: { step: { select: { title: true, topic: { select: { title: true } } } } },
-                                },
-                            },
-                        },
-                        assignedSessionClassrooms: {
-                            select: { status: true },
-                            where: {
-                                classroom_id,
-                            },
-                        },
-                    },
-                },
-            }
-        }
-        return {
-            id: true,
-            book: true,
-            // NOTE: 각 세션에 제목을 붙이려면 문제집 정보 싹 긁어와야 함
-            sessions: {
-                select: {
-                    id: true,
-                    sessionQuestions: {
-                        select: {
-                            question: {
-                                select: { step: { select: { title: true, topic: { select: { title: true } } } } },
-                            },
-                        },
-                    },
-                    assignedSessionClassrooms: {
-                        select: { status: true },
-                        where: {
-                            classroom_id,
-                            session: { syllabus_id },
-                        },
-                    },
-                },
-            },
-        }
-    }
-
-    if (!student_id) throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
-    return {
-        id: true,
-        book: true,
-        // NOTE: 각 세션에 제목을 붙이려면 문제집 정보 싹 긁어와야 함
-        sessions: {
-            select: {
-                id: true,
-                sessionQuestions: {
-                    select: {
-                        question: {
-                            select: { step: { select: { title: true, topic: { select: { title: true } } } } },
-                        },
-                    },
-                },
-                assignedSessionStudents: {
-                    select: { status: true },
-                    where: {
-                        student_id,
-                        session: { syllabus_id },
-                    },
-                },
-            },
-        },
-    }
 }
+
 const makeWhereForSyllabusWithSession = ({
     classroom_id,
     student_id,
     user_id,
     syllabus_id,
-}: DbProgressFindManySessionProps) => {
+}: ProgressSyllabusRelated) => {
     if (classroom_id && syllabus_id) return { id: syllabus_id, user_id }
 
     if (classroom_id && !syllabus_id) return { user_id, classroomSyllabuses: { some: { classroom_id } } }
@@ -226,21 +129,53 @@ const makeWhereForSyllabusWithSession = ({
 
     return { user_id, studentSyllabuses: { some: { student_id } } }
 }
-
 // NOTE: THIS RETURNS DUPLICATED DATA. NEED TO DEDUPLICATE
-export const dbProgressFindManySyllabusWithSession = async (props: DbProgressFindManySessionProps) => {
-    const syllabusResult = await prismaClient.syllabus.findMany({
+export const dbProgressFindManySyllabusWithSession = async (props: ProgressSyllabusRelated) => {
+    const { student_id, classroom_id } = props
+    if (classroom_id) {
+        const result = await prismaClient.syllabus.findMany({
+            where: makeWhereForSyllabusWithSession(props),
+            select: {
+                ...baseSelect,
+                sessions: {
+                    select: {
+                        ...baseSelect.sessions.select,
+                        assignedSessionClassrooms: {
+                            select: { status: true },
+                            where: {
+                                classroom_id,
+                            },
+                        },
+                    },
+                },
+            },
+        })
+        return result
+    }
+
+    if (!student_id) throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
+    const result = await prismaClient.syllabus.findMany({
         where: makeWhereForSyllabusWithSession(props),
-        select: makeSelect(props),
+        select: {
+            ...baseSelect,
+            sessions: {
+                select: {
+                    ...baseSelect.sessions.select,
+                    assignedSessionStudents: {
+                        select: { status: true },
+                        where: {
+                            student_id,
+                        },
+                    },
+                },
+            },
+        },
     })
-    return syllabusResult
+    return result
 }
 
-type DbProgressAssignSessionProps = {
-    user_id: bigint
+type DbProgressAssignSessionProps = ProgressBase & {
     session_id: bigint
-    classroom_id: bigint | null
-    student_id: bigint | null
     session_status: session_status
 }
 export const dbProgressAssignSession = async ({
