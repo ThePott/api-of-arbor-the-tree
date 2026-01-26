@@ -4,10 +4,12 @@ import {
     dbProgressDeleteSyllabus,
     dbProgressFindManySyllabus,
     dbProgressFindManySyllabusAssigned,
+    dbProgressFindManySyllabusWithSession,
 } from "../db/index.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
+import type { session_question } from "@/generated/prisma/client.js"
 
 const progressRouter = Router()
 
@@ -59,8 +61,89 @@ progressRouter.delete("/syllabus/assigned/:syllabus_id", async (req, res) => {
     res.status(200).json(serializable)
 })
 
+type TopicStep = {
+    topic: string | undefined
+    step: string | undefined
+}
+type ExtendedSession = {
+    id: bigint
+    sessionQuestions: {
+        question: {
+            step: {
+                title: string
+                topic: {
+                    title: string
+                } | null
+            } | null
+        }
+    }[]
+}
+
+const extractUnqueTopicStepArray = (session: ExtendedSession): TopicStep[] => {
+    const topicStepArray = [
+        ...new Set(
+            session.sessionQuestions.map(
+                (sessionQuestion) =>
+                    `${sessionQuestion.question.step?.topic?.title}____${sessionQuestion.question.step?.title}`
+            )
+        ),
+    ].map((stringified) => {
+        const splitted = stringified.split("____")
+        return {
+            topic: splitted[0],
+            step: splitted[1],
+        }
+    })
+    return topicStepArray
+}
+const summarizeTopicStepArray = (topicStepArray: TopicStep[]): string => {
+    const topicStepJoint = " __"
+    const firstLastJoint = " ~ "
+
+    const first = topicStepArray[0]
+    const last = topicStepArray[topicStepArray.length - 1]
+    if (!first) throw ApiError.Internal("묶음 이름을 정리하는 데에 문제가 생겼어요")
+    if (!last) throw ApiError.Internal("묶음 이름을 정리하는 데에 문제가 생겼어요")
+
+    if (topicStepArray.length === 0) throw ApiError.Internal("묶음 단원 정보를 정리하는 데에 실패했어요")
+    if (topicStepArray.length === 1) return `${first.topic}${topicStepJoint}${first.step}`
+    if (first.topic !== last.topic) {
+        return `${first.topic}${topicStepJoint}${first.step}${firstLastJoint}${last.topic}${topicStepJoint}${last.step}`
+    }
+
+    return `${first.topic}${topicStepJoint}${first.step}${firstLastJoint}${last.step}`
+}
+const summarizeSesion = (session: ExtendedSession): string => {
+    const uniqueTopicStepArray = extractUnqueTopicStepArray(session)
+    const summarized = summarizeTopicStepArray(uniqueTopicStepArray)
+    return summarized
+}
+
 progressRouter.get("/session", async (req, res) => {
-    res.status(200).send("----good")
+    const syllabus_id = req.query.syllabus_id ? BigInt(String(req.query.syllabus_id)) : null
+    const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
+    const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
+
+    const user_id = extractUserId(req.headers)
+
+    const duplicatedResult = await dbProgressFindManySyllabusWithSession({
+        classroom_id,
+        syllabus_id,
+        student_id,
+        user_id,
+    })
+
+    const conciseResult = duplicatedResult.map((el) => ({
+        book: el.book,
+        sessions: el.sessions.map((elSession) => ({
+            id: elSession.id,
+            topic_step: summarizeSesion(elSession),
+        })),
+    }))
+
+    const serializable = makeSerializable(conciseResult)
+    res.status(200).json(serializable)
+    // res.status(200).send()
 })
 
 export default progressRouter
