@@ -94,7 +94,10 @@ progressRouter.post("/session", async (req, res) => {
     const student_id = body.student_id ? BigInt(body.student_id) : null
     const classroom_id = body.classroom_id ? BigInt(body.classroom_id) : null
 
-    if (Boolean(classroom_id) === Boolean(student_id)) throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
+    if (Boolean(classroom_id) === Boolean(student_id)) {
+        console.log(classroom_id, student_id)
+        throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
+    }
 
     const result = await dbProgressAssignSession({ session_id, session_status, user_id, classroom_id, student_id })
     const serializable = makeSerializable(result)

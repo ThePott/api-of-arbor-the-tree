@@ -1,3 +1,4 @@
+import type { session_status } from "@/generated/prisma/enums.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 
 const SessionCondensingError = ApiError.Internal("묶음 이름을 정리하는 데에 문제가 생겼어요")
@@ -18,6 +19,11 @@ type ExtendedSession = {
             } | null
         }
     }[]
+    assignedSessionClassrooms: [
+        {
+            status: session_status
+        },
+    ]
 }
 type ConciseSession = {
     id: bigint
@@ -92,7 +98,11 @@ const groupConciseSessionsByTopic = (conciseSessionArray: ConciseSession[]) => {
 const groupSessionsByTopic = (sessionArray: ExtendedSession[]) => {
     const conciseSessionArray: ConciseSession[] = sessionArray.map((session) => {
         const uniqueTopicStepArray = extractUnqueTopicStepArray(session)
-        return { ...condenseTopicStepArray(uniqueTopicStepArray), id: session.id }
+        return {
+            ...condenseTopicStepArray(uniqueTopicStepArray),
+            id: session.id,
+            status: session.assignedSessionClassrooms[0] ? session.assignedSessionClassrooms[0].status : null,
+        }
     })
     const sessionsByTopicArray = groupConciseSessionsByTopic(conciseSessionArray)
 

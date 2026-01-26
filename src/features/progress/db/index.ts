@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client.js"
 import type { session_status } from "@/generated/prisma/enums.js"
 import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
@@ -120,64 +121,119 @@ const selectConciseSyllabus = {
             id: true,
             sessionQuestions: {
                 select: {
-                    question: {
-                        select: {
-                            step: {
-                                select: {
-                                    title: true,
-                                    topic: { select: { title: true } },
-                                },
-                            },
-                        },
-                    },
+                    question: { select: { step: { select: { title: true, topic: { select: { title: true } } } } } },
                 },
             },
         },
     },
+} satisfies Prisma.syllabusSelect
+const makeSelect = ({
+    classroom_id,
+    student_id,
+    syllabus_id,
+}: DbProgressFindManySessionProps): Prisma.syllabusSelect => {
+    if (classroom_id) {
+        if (!syllabus_id) {
+            return {
+                id: true,
+                book: true,
+                // NOTE: 각 세션에 제목을 붙이려면 문제집 정보 싹 긁어와야 함
+                sessions: {
+                    select: {
+                        id: true,
+                        sessionQuestions: {
+                            select: {
+                                question: {
+                                    select: { step: { select: { title: true, topic: { select: { title: true } } } } },
+                                },
+                            },
+                        },
+                        assignedSessionClassrooms: {
+                            select: { status: true },
+                            where: {
+                                classroom_id,
+                            },
+                        },
+                    },
+                },
+            }
+        }
+        return {
+            id: true,
+            book: true,
+            // NOTE: 각 세션에 제목을 붙이려면 문제집 정보 싹 긁어와야 함
+            sessions: {
+                select: {
+                    id: true,
+                    sessionQuestions: {
+                        select: {
+                            question: {
+                                select: { step: { select: { title: true, topic: { select: { title: true } } } } },
+                            },
+                        },
+                    },
+                    assignedSessionClassrooms: {
+                        select: { status: true },
+                        where: {
+                            classroom_id,
+                            session: { syllabus_id },
+                        },
+                    },
+                },
+            },
+        }
+    }
+
+    if (!student_id) throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
+    return {
+        id: true,
+        book: true,
+        // NOTE: 각 세션에 제목을 붙이려면 문제집 정보 싹 긁어와야 함
+        sessions: {
+            select: {
+                id: true,
+                sessionQuestions: {
+                    select: {
+                        question: {
+                            select: { step: { select: { title: true, topic: { select: { title: true } } } } },
+                        },
+                    },
+                },
+                assignedSessionStudents: {
+                    select: { status: true },
+                    where: {
+                        student_id,
+                        session: { syllabus_id },
+                    },
+                },
+            },
+        },
+    }
 }
-// NOTE: THIS RETURNS DUPLICATED DATA. NEED TO DEDUPLICATE
-export const dbProgressFindManySyllabusWithSession = async ({
+const makeWhereForSyllabusWithSession = ({
     classroom_id,
     student_id,
     user_id,
     syllabus_id,
 }: DbProgressFindManySessionProps) => {
-    // TODO: 현재 반에서 한 명을 선택했을 때 그 학생의 정보 받아오는 건 없음
+    if (classroom_id && syllabus_id) return { id: syllabus_id, user_id }
 
-    // NOTE: 반에 할당된 특정 실라버스의 세션만 받아오기 (raw + with status)
-    if (classroom_id && syllabus_id) {
-        // TODO: 반의 학생 세부 진도 받아오는 것도 만들어야
-        const result = await prismaClient.syllabus.findMany({
-            where: { id: syllabus_id, user_id },
-            select: selectConciseSyllabus,
-        })
-        return result
-    }
-
-    // NOTE: 반에 할당된 모든 실라버스의 세션 전체 받아오기 (raw + with status)
-    if (classroom_id && !syllabus_id) {
-        const result = await prismaClient.syllabus.findMany({
-            where: { user_id, classroomSyllabuses: { some: { classroom_id } } },
-            select: selectConciseSyllabus,
-        })
-        return result
-    }
+    if (classroom_id && !syllabus_id) return { user_id, classroomSyllabuses: { some: { classroom_id } } }
 
     if (!student_id) throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
 
-    if (syllabus_id) {
-        const result = await prismaClient.syllabus.findMany({
-            where: { user_id, id: syllabus_id },
-            select: selectConciseSyllabus,
-        })
-        return result
-    }
+    if (syllabus_id) return { user_id, id: syllabus_id }
 
-    const result = await prismaClient.syllabus.findMany({
-        where: { user_id, studentSyllabuses: { some: { student_id } } },
-        select: selectConciseSyllabus,
+    return { user_id, studentSyllabuses: { some: { student_id } } }
+}
+
+// NOTE: THIS RETURNS DUPLICATED DATA. NEED TO DEDUPLICATE
+export const dbProgressFindManySyllabusWithSession = async (props: DbProgressFindManySessionProps) => {
+    const syllabusResult = await prismaClient.syllabus.findMany({
+        where: makeWhereForSyllabusWithSession(props),
+        select: makeSelect(props),
     })
-    return result
+    return syllabusResult
 }
 
 type DbProgressAssignSessionProps = {
