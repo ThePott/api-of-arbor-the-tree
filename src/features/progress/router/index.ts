@@ -132,20 +132,6 @@ type GroupedTopic = {
     title: string
     conciseSessionArray: ConciseSession[]
 }
-type GroupedConciseSyllabus = {
-    id: bigint
-    book: book
-    topicWithSession: GroupedTopic[]
-}
-const groupByTopic = (conciseSessionArray: ConciseSession[]) => {
-    const grouped = Object.groupBy(conciseSessionArray, ({ firstTopic }) => firstTopic)
-    const groupedTopic: GroupedTopic[] = Object.entries(grouped).map(([key, value]) => ({
-        title: key,
-        conciseSessionArray: value,
-    }))
-
-    return groupedTopic
-}
 
 const summarizeSesion = (session: ExtendedSession) => {
     const uniqueTopicStepArray = extractUnqueTopicStepArray(session)
