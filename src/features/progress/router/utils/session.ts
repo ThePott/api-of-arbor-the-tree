@@ -109,11 +109,12 @@ const groupSessionsByTopic = (sessionArray: ExtendedSession[]) => {
         return {
             ...condenseTopicStepArray(uniqueTopicStepArray),
             id: session.id,
-            status: session.assignedSessionClassrooms?.[0]
-                ? session.assignedSessionClassrooms[0].status
-                : session.assignedSessionStudents?.[0]
-                  ? session.assignedSessionStudents[0].status
-                  : null,
+            status:
+                "assignedSessionClassrooms" in session
+                    ? session.assignedSessionClassrooms[0]?.status
+                    : "assignedSessionStudents" in session
+                      ? session.assignedSessionStudents[0]?.status
+                      : null,
         }
     })
     const sessionsByTopicArray = groupConciseSessionsByTopic(conciseSessionArray)

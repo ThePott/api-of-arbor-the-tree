@@ -8,6 +8,9 @@ export type ProgressBase = {
     user_id: bigint
 }
 export type ProgressSyllabusRelated = ProgressBase & {
+    syllabus_id: bigint
+}
+export type ProgressOptionalSyllabusRelated = ProgressBase & {
     syllabus_id: bigint | null
 }
 
@@ -117,7 +120,7 @@ const makeWhereForSyllabusWithSession = ({
     student_id,
     user_id,
     syllabus_id,
-}: ProgressSyllabusRelated) => {
+}: ProgressOptionalSyllabusRelated) => {
     if (classroom_id && syllabus_id) return { id: syllabus_id, user_id }
 
     if (classroom_id && !syllabus_id) return { user_id, classroomSyllabuses: { some: { classroom_id } } }
@@ -129,7 +132,7 @@ const makeWhereForSyllabusWithSession = ({
     return { user_id, studentSyllabuses: { some: { student_id } } }
 }
 // NOTE: THIS RETURNS DUPLICATED DATA. NEED TO DEDUPLICATE
-export const dbProgressFindManySyllabusWithSession = async (props: ProgressSyllabusRelated) => {
+export const dbProgressFindManySyllabusWithSession = async (props: ProgressOptionalSyllabusRelated) => {
     const { student_id, classroom_id } = props
     if (classroom_id) {
         const result = await prismaClient.syllabus.findMany({
