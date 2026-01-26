@@ -1,4 +1,3 @@
-import type { Prisma } from "@/generated/prisma/client.js"
 import type { session_status } from "@/generated/prisma/enums.js"
 import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"

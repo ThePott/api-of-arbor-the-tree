@@ -7,7 +7,7 @@ type TopicStep = {
     topic: string
     step: string
 }
-type ExtendedSession = {
+type ExtendedSessionBase = {
     id: bigint
     sessionQuestions: {
         question: {
@@ -19,17 +19,20 @@ type ExtendedSession = {
             } | null
         }
     }[]
-    assignedSessionClassrooms?: [
-        {
-            status: session_status
-        },
-    ]
-    assignedSessionStudents?: [
-        {
-            status: session_status
-        },
-    ]
 }
+type WithAssignedSessionClassrooms = {
+    assignedSessionClassrooms: {
+        status: session_status
+    }[]
+}
+type WithAssignedSessionStudents = {
+    assignedSessionStudents: {
+        status: session_status
+    }[]
+}
+type ExtendedSession =
+    | (ExtendedSessionBase & WithAssignedSessionClassrooms)
+    | (ExtendedSessionBase & WithAssignedSessionStudents)
 type ConciseSession = {
     id: bigint
     start: TopicStep
@@ -106,7 +109,11 @@ const groupSessionsByTopic = (sessionArray: ExtendedSession[]) => {
         return {
             ...condenseTopicStepArray(uniqueTopicStepArray),
             id: session.id,
-            status: session.assignedSessionClassrooms?.[0] ? session.assignedSessionClassrooms[0].status : null,
+            status: session.assignedSessionClassrooms?.[0]
+                ? session.assignedSessionClassrooms[0].status
+                : session.assignedSessionStudents?.[0]
+                  ? session.assignedSessionStudents[0].status
+                  : null,
         }
     })
     const sessionsByTopicArray = groupConciseSessionsByTopic(conciseSessionArray)
