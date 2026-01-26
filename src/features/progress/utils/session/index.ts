@@ -94,9 +94,9 @@ const groupSessionsByTopic = (sessionArray: ExtendedSession[]) => {
         const uniqueTopicStepArray = extractUnqueTopicStepArray(session)
         return { ...condenseTopicStepArray(uniqueTopicStepArray), id: session.id }
     })
-    const sessionsByTopic = groupConciseSessionsByTopic(conciseSessionArray)
+    const sessionsByTopicArray = groupConciseSessionsByTopic(conciseSessionArray)
 
-    return sessionsByTopic
+    return sessionsByTopicArray
 }
 
 export default groupSessionsByTopic

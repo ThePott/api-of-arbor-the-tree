@@ -1,5 +1,6 @@
 import { Router } from "express"
 import {
+    dbProgressAssignSession,
     dbProgressCreateSyllabus,
     dbProgressDeleteSyllabus,
     dbProgressFindManySyllabus,
@@ -10,6 +11,7 @@ import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import { groupSessionsByTopic } from "../utils/index.js"
+import type { session_status } from "@/generated/prisma/enums.js"
 
 const progressRouter = Router()
 
@@ -77,10 +79,26 @@ progressRouter.get("/session", async (req, res) => {
     const conciseSyllabusArray = syllabusArray.map((syllabus) => ({
         id: syllabus.id,
         book: syllabus.book,
-        sessionsByTopic: groupSessionsByTopic(syllabus.sessions),
+        sessionsByTopicArray: groupSessionsByTopic(syllabus.sessions),
     }))
 
     const serializable = makeSerializable(conciseSyllabusArray)
+    res.status(200).json(serializable)
+})
+
+progressRouter.post("/session", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const body = req.body
+    const session_id = BigInt(body.session_id)
+    const session_status = body.session_status as session_status
+    const student_id = body.student_id ? BigInt(body.student_id) : null
+    const classroom_id = body.classroom_id ? BigInt(body.classroom_id) : null
+
+    if (Boolean(classroom_id) === Boolean(student_id)) throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
+
+    const result = await dbProgressAssignSession({ session_id, session_status, user_id, classroom_id, student_id })
+    const serializable = makeSerializable(result)
+
     res.status(200).json(serializable)
 })
 

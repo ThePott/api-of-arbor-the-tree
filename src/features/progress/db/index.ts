@@ -1,3 +1,4 @@
+import type { session_status } from "@/generated/prisma/enums.js"
 import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 
@@ -175,6 +176,41 @@ export const dbProgressFindManySyllabusWithSession = async ({
     const result = await prismaClient.syllabus.findMany({
         where: { user_id, studentSyllabuses: { some: { student_id } } },
         select: selectConciseSyllabus,
+    })
+    return result
+}
+
+type DbProgressAssignSessionProps = {
+    user_id: bigint
+    session_id: bigint
+    classroom_id: bigint | null
+    student_id: bigint | null
+    session_status: session_status
+}
+export const dbProgressAssignSession = async ({
+    user_id,
+    session_id,
+    session_status,
+    classroom_id,
+    student_id,
+}: DbProgressAssignSessionProps) => {
+    if (Boolean(classroom_id) === Boolean(student_id)) throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
+
+    if (classroom_id) {
+        const result = await prismaClient.assigned_session_classroom.upsert({
+            where: { session_id_classroom_id: { session_id, classroom_id }, session: { syllabus: { user_id } } },
+            create: { session_id, classroom_id, status: session_status },
+            update: { status: session_status },
+        })
+        return result
+    }
+
+    if (!student_id) throw ApiError.Internal("학생을 선택해주세요")
+
+    const result = await prismaClient.assigned_session_student.upsert({
+        where: { session_id_student_id: { session_id, student_id }, session: { syllabus: { user_id } } },
+        create: { session_id, student_id, status: session_status },
+        update: { status: session_status },
     })
     return result
 }
