@@ -9,7 +9,7 @@ import {
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
-import type { book } from "@/generated/prisma/client.js"
+import { groupSessionsByTopic } from "../utils/index.js"
 
 const progressRouter = Router()
 
@@ -61,130 +61,26 @@ progressRouter.delete("/syllabus/assigned/:syllabus_id", async (req, res) => {
     res.status(200).json(serializable)
 })
 
-type TopicStep = {
-    topic: string | undefined
-    step: string | undefined
-}
-type ExtendedSession = {
-    id: bigint
-    sessionQuestions: {
-        question: {
-            step: {
-                title: string
-                topic: {
-                    title: string
-                } | null
-            } | null
-        }
-    }[]
-}
-const extractUnqueTopicStepArray = (session: ExtendedSession): TopicStep[] => {
-    const topicStepArray = [
-        ...new Set(
-            session.sessionQuestions.map(
-                (sessionQuestion) =>
-                    `${sessionQuestion.question.step?.topic?.title}____${sessionQuestion.question.step?.title}`
-            )
-        ),
-    ].map((stringified) => {
-        const splitted = stringified.split("____")
-        return {
-            topic: splitted[0],
-            step: splitted[1],
-        }
-    })
-    return topicStepArray
-}
-const summarizeTopicStepArray = (topicStepArray: TopicStep[]): ConciseSession => {
-    const first = topicStepArray[0]
-    const last = topicStepArray[topicStepArray.length - 1]
-    if (!first) throw ApiError.Internal("묶음 이름을 정리하는 데에 문제가 생겼어요")
-    if (!last) throw ApiError.Internal("묶음 이름을 정리하는 데에 문제가 생겼어요")
-
-    if (topicStepArray.length === 0) throw ApiError.Internal("묶음 단원 정보를 정리하는 데에 실패했어요")
-    if (!first.topic || !first.step) throw ApiError.Internal("묶음 단원 정보를 정리하는 데에 실패했어요")
-
-    if (topicStepArray.length === 1) return { firstTopic: first.topic, firstStep: first.step }
-
-    if (first.topic === last.topic) {
-        return {
-            firstTopic: first.topic,
-            firstStep: first.step,
-            lastStep: last.step,
-        }
-    }
-
-    return {
-        firstTopic: first.topic,
-        firstStep: first.step,
-        lastTopic: last.topic,
-        lastStep: last.step,
-    }
-}
-type ConciseSession = {
-    firstTopic: string
-    firstStep: string
-    lastTopic?: string | undefined
-    lastStep?: string | undefined
-}
-
-type GroupedTopic = {
-    title: string
-    conciseSessionArray: ConciseSession[]
-}
-
-const summarizeSesion = (session: ExtendedSession) => {
-    const uniqueTopicStepArray = extractUnqueTopicStepArray(session)
-    const conciseSession = summarizeTopicStepArray(uniqueTopicStepArray)
-    return conciseSession
-}
-
-const groupSessionsByTopic = (sessionArray: ExtendedSession[]) => {
-    const result: GroupedTopic[] = []
-    let current: GroupedTopic | null = null
-    const summarizedSessionArray = sessionArray.map((elSession) => summarizeSesion(elSession))
-    summarizedSessionArray.forEach((session) => {
-        if (!current) {
-            current = {
-                title: session.firstTopic,
-                conciseSessionArray: [session],
-            }
-            return
-        }
-        if (current.title === session.firstTopic) {
-            current.conciseSessionArray.push(session)
-            return
-        }
-        result.push(current)
-        current = {
-            title: session.firstTopic,
-            conciseSessionArray: [session],
-        }
-    })
-
-    return result
-}
-
 progressRouter.get("/session", async (req, res) => {
     const syllabus_id = req.query.syllabus_id ? BigInt(String(req.query.syllabus_id)) : null
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
 
     const user_id = extractUserId(req.headers)
-    const duplicatedResult = await dbProgressFindManySyllabusWithSession({
+    const syllabusArray = await dbProgressFindManySyllabusWithSession({
         classroom_id,
         syllabus_id,
         student_id,
         user_id,
     })
 
-    const conciseResult = duplicatedResult.map((el) => ({
-        id: el.id,
-        book: el.book,
-        sessionsByTopic: groupSessionsByTopic(el.sessions),
+    const conciseSyllabusArray = syllabusArray.map((syllabus) => ({
+        id: syllabus.id,
+        book: syllabus.book,
+        sessionsByTopic: groupSessionsByTopic(syllabus.sessions),
     }))
 
-    const serializable = makeSerializable(conciseResult)
+    const serializable = makeSerializable(conciseSyllabusArray)
     res.status(200).json(serializable)
 })
 
