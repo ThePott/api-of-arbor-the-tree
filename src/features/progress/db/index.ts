@@ -148,7 +148,7 @@ export const dbProgressFindManySyllabusWithSession = async (props: ProgressOptio
                     select: {
                         ...baseSelect.sessions.select,
                         assignedSessionClassrooms: {
-                            select: { status: true },
+                            select: { status: true, assigned_at: true },
                             where: {
                                 classroom_id,
                             },
@@ -173,7 +173,7 @@ export const dbProgressFindManySyllabusWithSession = async (props: ProgressOptio
                 select: {
                     ...baseSelect.sessions.select,
                     assignedSessionStudents: {
-                        select: { status: true },
+                        select: { status: true, assigned_at: true },
                         where: {
                             student_id,
                         },

@@ -23,6 +23,7 @@ type ExtendedSessionBase = {
 type WithAssignedSessionClassrooms = {
     assignedSessionClassrooms: {
         status: session_status
+        assigned_at: Date
     }[]
     completedSessionClassrooms: {
         completed_at: Date
@@ -31,6 +32,7 @@ type WithAssignedSessionClassrooms = {
 type WithAssignedSessionStudents = {
     assignedSessionStudents: {
         status: session_status
+        assigned_at: Date
     }[]
     completedSessionStudents: {
         completed_at: Date
@@ -43,6 +45,9 @@ type ConciseSession = {
     id: bigint
     start: TopicStep
     end: Partial<TopicStep>
+    completed_at: Date | null
+    status: session_status | null
+    assigned_at: Date | null // NOTE: status가 없으면 assinged_at이 null이다
 }
 type GroupedTopic = {
     title: string
@@ -117,15 +122,21 @@ const groupSessionsByTopic = (sessionArray: ExtendedSession[]) => {
             id: session.id,
             status:
                 "assignedSessionClassrooms" in session
-                    ? session.assignedSessionClassrooms[0]?.status
+                    ? (session.assignedSessionClassrooms[0]?.status ?? null)
                     : "assignedSessionStudents" in session
-                      ? session.assignedSessionStudents[0]?.status
+                      ? (session.assignedSessionStudents[0]?.status ?? null)
                       : null,
             completed_at:
                 "completedSessionClassrooms" in session
-                    ? session.completedSessionClassrooms[0]?.completed_at
+                    ? (session.completedSessionClassrooms[0]?.completed_at ?? null)
                     : "completedSessionStudents" in session
-                      ? session.completedSessionStudents[0]?.completed_at
+                      ? (session.completedSessionStudents[0]?.completed_at ?? null)
+                      : null,
+            assigned_at:
+                "assignedSessionClassrooms" in session
+                    ? (session.assignedSessionClassrooms[0]?.assigned_at ?? null)
+                    : "assignedSessionStudents" in session
+                      ? (session.assignedSessionStudents[0]?.assigned_at ?? null)
                       : null,
         }
     })
