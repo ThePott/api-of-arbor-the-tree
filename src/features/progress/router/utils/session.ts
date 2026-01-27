@@ -71,7 +71,7 @@ const extractUnqueTopicStepArray = (session: ExtendedSession): TopicStep[] => {
     })
     return topicStepArray
 }
-const condenseTopicStepArray = (topicStepArray: TopicStep[]): Omit<ConciseSession, "id"> => {
+const condenseTopicStepArray = (topicStepArray: TopicStep[]): Pick<ConciseSession, "start" | "end"> => {
     const start = topicStepArray[0]
     const end = topicStepArray[topicStepArray.length - 1]
     if (!start) throw ApiError.Internal("묶음 이름을 정리하는 데에 문제가 생겼어요")
