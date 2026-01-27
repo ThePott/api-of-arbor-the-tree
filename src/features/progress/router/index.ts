@@ -2,6 +2,7 @@ import { Router } from "express"
 import {
     dbProgressAssignSession,
     dbProgressCreateSyllabus,
+    dbProgressDeleteAssignedSession,
     dbProgressDeleteSyllabus,
     dbProgressFindManySyllabus,
     dbProgressFindManySyllabusAssigned,
@@ -12,6 +13,7 @@ import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import type { session_status } from "@/generated/prisma/enums.js"
 import groupSessionsByTopic from "./utils/session.js"
+import { checkClassroomStudentExclusiveness } from "../utils/classroomStudentErrors.js"
 
 const progressRouter = Router()
 
@@ -87,7 +89,7 @@ progressRouter.get("/session", async (req, res) => {
     res.status(200).json(serializable)
 })
 
-progressRouter.post("/session", async (req, res) => {
+progressRouter.post("/session/assigned", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const body = req.body
     const session_id = BigInt(body.session_id)
@@ -101,6 +103,19 @@ progressRouter.post("/session", async (req, res) => {
     }
 
     const result = await dbProgressAssignSession({ session_id, session_status, user_id, classroom_id, student_id })
+    const serializable = makeSerializable(result)
+
+    res.status(200).json(serializable)
+})
+
+progressRouter.delete("/session/assigned/:session_id", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
+    const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
+    const session_id = BigInt(req.params.session_id)
+
+    checkClassroomStudentExclusiveness({ classroom_id, student_id })
+    const result = await dbProgressDeleteAssignedSession({ user_id, classroom_id, student_id, session_id })
     const serializable = makeSerializable(result)
 
     res.status(200).json(serializable)

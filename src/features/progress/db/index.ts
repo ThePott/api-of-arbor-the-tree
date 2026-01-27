@@ -1,6 +1,10 @@
 import type { session_status } from "@/generated/prisma/enums.js"
 import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
+import {
+    checkClassroomStudentExclusiveness,
+    ClassroomStudentExclusivenessError,
+} from "../utils/classroomStudentErrors.js"
 
 export type ProgressBase = {
     classroom_id: bigint | null
@@ -204,6 +208,38 @@ export const dbProgressAssignSession = async ({
         where: { session_id_student_id: { session_id, student_id }, session: { syllabus: { user_id } } },
         create: { session_id, student_id, status: session_status },
         update: { status: session_status },
+    })
+    return result
+}
+
+type DbProgressDeleteAssignedSessionProps = ProgressBase & {
+    session_id: bigint
+}
+export const dbProgressDeleteAssignedSession = async ({
+    user_id,
+    session_id,
+    classroom_id,
+    student_id,
+}: DbProgressDeleteAssignedSessionProps) => {
+    checkClassroomStudentExclusiveness({ classroom_id, student_id })
+
+    if (classroom_id) {
+        const result = await prismaClient.assigned_session_classroom.delete({
+            where: {
+                session_id_classroom_id: { session_id, classroom_id },
+                classroom: { hagwon: { principal: { user_id } } },
+            },
+        })
+        return result
+    }
+
+    if (!student_id) throw ClassroomStudentExclusivenessError
+
+    const result = await prismaClient.assigned_session_student.delete({
+        where: {
+            session_id_student_id: { session_id, student_id },
+            student: { hagwon: { principal: { user_id } } },
+        },
     })
     return result
 }
