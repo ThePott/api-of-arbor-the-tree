@@ -168,14 +168,15 @@ model syllabus {
 }
 
 model session {
-    id                        BigInt                       @id @default(autoincrement())
-    order                     Int
-    syllabus_id               BigInt
-    syllabus                  syllabus                     @relation(fields: [syllabus_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    sessionQuestions          session_question[]
-    assignedSessionClassrooms assigned_session_classroom[]
-    assignedSessionStudents   assigned_session_student[]
-    completedSessionStudents  completed_session_student[]
+    id                         BigInt                        @id @default(autoincrement())
+    order                      Int
+    syllabus_id                BigInt
+    syllabus                   syllabus                      @relation(fields: [syllabus_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    sessionQuestions           session_question[]
+    assignedSessionClassrooms  assigned_session_classroom[]
+    assignedSessionStudents    assigned_session_student[]
+    completedSessionStudents   completed_session_student[]
+    completedSessionClassrooms completed_session_classroom[]
 
     @@unique([order, syllabus_id])
 }
@@ -191,13 +192,14 @@ model session_question {
 }
 
 model classroom {
-    id                        BigInt                       @id @default(autoincrement())
-    name                      String                       @db.VarChar(255)
-    hagwon_id                 BigInt
-    hagwon                    hagwon                       @relation(fields: [hagwon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    classroomStudents         classroom_student[]
-    classroomSyllabuses       classroom_syllabus[]
-    assignedSessionClassrooms assigned_session_classroom[]
+    id                         BigInt                        @id @default(autoincrement())
+    name                       String                        @db.VarChar(255)
+    hagwon_id                  BigInt
+    hagwon                     hagwon                        @relation(fields: [hagwon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    classroomStudents          classroom_student[]
+    classroomSyllabuses        classroom_syllabus[]
+    assignedSessionClassrooms  assigned_session_classroom[]
+    completedSessionClassrooms completed_session_classroom[]
 
     @@unique([name, hagwon_id])
 }
@@ -266,6 +268,20 @@ model assigned_session_student {
     @@unique([session_id, student_id])
 }
 
+// NOTE: 반 진도 완료 용으로만 사용 (반의 학생한테는 적용 안 됨)
+model completed_session_classroom {
+    id           BigInt   @id @default(autoincrement())
+    session_id   BigInt
+    classroom_id BigInt
+    completed_at DateTime @default(now())
+
+    session   session   @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    classroom classroom @relation(fields: [classroom_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+    @@unique([session_id, classroom_id])
+}
+
+// NOTE: 학생이 실제로 완료했는지를 기록하는 데에 사용. 개별, 반 진도의 학생 모두 이걸 사용
 model completed_session_student {
     id           BigInt   @id @default(autoincrement())
     session_id   BigInt

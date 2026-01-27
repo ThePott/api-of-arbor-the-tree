@@ -121,4 +121,8 @@ progressRouter.delete("/session/assigned/:session_id", async (req, res) => {
     res.status(200).json(serializable)
 })
 
+progressRouter.post("/session/completed", async (req, res) => {
+    res.status(200).send("-----good")
+})
+
 export default progressRouter
