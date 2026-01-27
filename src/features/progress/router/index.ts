@@ -87,6 +87,7 @@ progressRouter.get("/session", async (req, res) => {
     }))
 
     const serializable = makeSerializable(conciseSyllabusArray)
+    // const serializable = makeSerializable(syllabusArray)
     res.status(200).json(serializable)
 })
 

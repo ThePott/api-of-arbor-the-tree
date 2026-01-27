@@ -24,10 +24,16 @@ type WithAssignedSessionClassrooms = {
     assignedSessionClassrooms: {
         status: session_status
     }[]
+    completedSessionClassrooms: {
+        completed_at: Date
+    }[]
 }
 type WithAssignedSessionStudents = {
     assignedSessionStudents: {
         status: session_status
+    }[]
+    completedSessionStudents: {
+        completed_at: Date
     }[]
 }
 type ExtendedSession =
@@ -114,6 +120,12 @@ const groupSessionsByTopic = (sessionArray: ExtendedSession[]) => {
                     ? session.assignedSessionClassrooms[0]?.status
                     : "assignedSessionStudents" in session
                       ? session.assignedSessionStudents[0]?.status
+                      : null,
+            completed_at:
+                "completedSessionClassrooms" in session
+                    ? session.completedSessionClassrooms[0]?.completed_at
+                    : "completedSessionStudents" in session
+                      ? session.completedSessionStudents[0]?.completed_at
                       : null,
         }
     })

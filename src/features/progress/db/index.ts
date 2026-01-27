@@ -153,6 +153,10 @@ export const dbProgressFindManySyllabusWithSession = async (props: ProgressOptio
                                 classroom_id,
                             },
                         },
+                        completedSessionClassrooms: {
+                            select: { completed_at: true },
+                            where: { classroom_id },
+                        },
                     },
                 },
             },
@@ -173,6 +177,10 @@ export const dbProgressFindManySyllabusWithSession = async (props: ProgressOptio
                         where: {
                             student_id,
                         },
+                    },
+                    completedSessionStudents: {
+                        select: { completed_at: true },
+                        where: { student_id },
                     },
                 },
             },
