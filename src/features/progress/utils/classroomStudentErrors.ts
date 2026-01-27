@@ -11,3 +11,5 @@ export const checkClassroomStudentExclusiveness = ({
 }: CheckClassroomStudentExclusivenessProps) => {
     if (Boolean(classroom_id) === Boolean(student_id)) throw ClassroomStudentExclusivenessError
 }
+
+export const ClassroomStudentAuthorizationError = ApiError.Forbidden("학원 내의 학생과 반만 관리할 수 있어요")

@@ -3,6 +3,7 @@ import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import {
     checkClassroomStudentExclusiveness,
+    ClassroomStudentAuthorizationError,
     ClassroomStudentExclusivenessError,
 } from "../utils/classroomStudentErrors.js"
 
@@ -31,7 +32,7 @@ export const dbProgressCreateSyllabus = async ({
                 hagwon: { principal: { user_id } },
             },
         })
-        if (!student) throw ApiError.Forbidden("학원 내의 학생만 관리할 수 있어요")
+        if (!student) throw ClassroomStudentAuthorizationError
 
         const result = await prismaClient.student_syllabus.create({ data: { syllabus_id, student_id } })
         return result
@@ -45,7 +46,7 @@ export const dbProgressCreateSyllabus = async ({
             },
         })
 
-        if (!classroom) throw ApiError.Forbidden("학원 내의 학생만 관리할 수 있어요")
+        if (!classroom) throw ClassroomStudentAuthorizationError
         const result = await prismaClient.classroom_syllabus.create({ data: { syllabus_id, classroom_id } })
         return result
     }
@@ -240,6 +241,40 @@ export const dbProgressDeleteAssignedSession = async ({
             session_id_student_id: { session_id, student_id },
             student: { hagwon: { principal: { user_id } } },
         },
+    })
+    return result
+}
+
+type DbProgressCompleteSessionProps = ProgressBase & { session_id: bigint }
+export const dbProgressCompleteSession = async ({
+    classroom_id,
+    session_id,
+    user_id,
+    student_id,
+}: DbProgressCompleteSessionProps) => {
+    // NOTE: MUST early return for STUDENT FIRST
+    console.log(classroom_id, "/", student_id)
+    if (student_id) {
+        const studentResult = await prismaClient.student.findUnique({
+            where: { id: student_id, hagwon: { principal: { user_id } } },
+        })
+        if (!studentResult) throw ClassroomStudentAuthorizationError
+
+        const result = await prismaClient.completed_session_student.create({
+            data: { session_id, student_id },
+        })
+        return result
+    }
+
+    // NOTE: 배타적이어서 던지는 게 아니라 그냥 없어서 던지는 거기는 하다
+    if (!classroom_id) throw ClassroomStudentExclusivenessError
+    const classroomResult = await prismaClient.classroom.findUnique({
+        where: { id: classroom_id, hagwon: { principal: { user_id } } },
+    })
+    if (!classroomResult) throw ClassroomStudentAuthorizationError
+
+    const result = await prismaClient.completed_session_classroom.create({
+        data: { session_id, classroom_id },
     })
     return result
 }

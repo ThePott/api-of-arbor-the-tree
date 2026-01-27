@@ -1,6 +1,7 @@
 import { Router } from "express"
 import {
     dbProgressAssignSession,
+    dbProgressCompleteSession,
     dbProgressCreateSyllabus,
     dbProgressDeleteAssignedSession,
     dbProgressDeleteSyllabus,
@@ -121,8 +122,16 @@ progressRouter.delete("/session/assigned/:session_id", async (req, res) => {
     res.status(200).json(serializable)
 })
 
-progressRouter.post("/session/completed", async (req, res) => {
-    res.status(200).send("-----good")
+progressRouter.post("/session/completed/:session_id", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
+    const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
+    const session_id = BigInt(req.params.session_id)
+
+    const result = await dbProgressCompleteSession({ student_id, classroom_id, session_id, user_id })
+    const serializable = makeSerializable(result)
+
+    res.status(200).json(serializable)
 })
 
 export default progressRouter
