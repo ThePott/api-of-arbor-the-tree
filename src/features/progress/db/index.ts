@@ -254,14 +254,13 @@ export const dbProgressDeleteAssignedSession = async ({
 }
 
 type DbProgressCompleteSessionProps = ProgressBase & { session_id: bigint }
-export const dbProgressCompleteSession = async ({
+export const dbProgressCreateCompleteSession = async ({
     classroom_id,
     session_id,
     user_id,
     student_id,
 }: DbProgressCompleteSessionProps) => {
     // NOTE: MUST early return for STUDENT FIRST
-    console.log(classroom_id, "/", student_id)
     if (student_id) {
         const studentResult = await prismaClient.student.findUnique({
             where: { id: student_id, hagwon: { principal: { user_id } } },
@@ -283,6 +282,37 @@ export const dbProgressCompleteSession = async ({
 
     const result = await prismaClient.completed_session_classroom.create({
         data: { session_id, classroom_id },
+    })
+    return result
+}
+export const dbProgressDeleteCompleteSession = async ({
+    classroom_id,
+    session_id,
+    user_id,
+    student_id,
+}: DbProgressCompleteSessionProps) => {
+    // NOTE: MUST early return for STUDENT FIRST
+    if (student_id) {
+        const studentResult = await prismaClient.student.findUnique({
+            where: { id: student_id, hagwon: { principal: { user_id } } },
+        })
+        if (!studentResult) throw ClassroomStudentAuthorizationError
+
+        const result = await prismaClient.completed_session_student.delete({
+            where: { session_id_student_id: { session_id, student_id } },
+        })
+        return result
+    }
+
+    // NOTE: 배타적이어서 던지는 게 아니라 그냥 없어서 던지는 거기는 하다
+    if (!classroom_id) throw ClassroomStudentExclusivenessError
+    const classroomResult = await prismaClient.classroom.findUnique({
+        where: { id: classroom_id, hagwon: { principal: { user_id } } },
+    })
+    if (!classroomResult) throw ClassroomStudentAuthorizationError
+
+    const result = await prismaClient.completed_session_classroom.delete({
+        where: { session_id_classroom_id: { session_id, classroom_id } },
     })
     return result
 }

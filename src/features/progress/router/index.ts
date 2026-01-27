@@ -1,9 +1,10 @@
 import { Router } from "express"
 import {
     dbProgressAssignSession,
-    dbProgressCompleteSession,
+    dbProgressCreateCompleteSession,
     dbProgressCreateSyllabus,
     dbProgressDeleteAssignedSession,
+    dbProgressDeleteCompleteSession,
     dbProgressDeleteSyllabus,
     dbProgressFindManySyllabus,
     dbProgressFindManySyllabusAssigned,
@@ -87,7 +88,6 @@ progressRouter.get("/session", async (req, res) => {
     }))
 
     const serializable = makeSerializable(conciseSyllabusArray)
-    // const serializable = makeSerializable(syllabusArray)
     res.status(200).json(serializable)
 })
 
@@ -129,10 +129,22 @@ progressRouter.post("/session/completed/:session_id", async (req, res) => {
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
     const session_id = BigInt(req.params.session_id)
 
-    const result = await dbProgressCompleteSession({ student_id, classroom_id, session_id, user_id })
+    const result = await dbProgressCreateCompleteSession({ student_id, classroom_id, session_id, user_id })
     const serializable = makeSerializable(result)
 
     res.status(200).json(serializable)
+})
+
+progressRouter.delete("/session/completed/:session_id", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
+    const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
+    const session_id = BigInt(req.params.session_id)
+
+    const result = await dbProgressDeleteCompleteSession({ classroom_id, session_id, student_id, user_id })
+    const serialiazable = makeSerializable(result)
+
+    res.status(200).json(serialiazable)
 })
 
 export default progressRouter
