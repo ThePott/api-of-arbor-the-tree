@@ -12,6 +12,7 @@ import { makeSerializable } from "@/src/utils/makeSerializable.js"
 const manageRouter = Router()
 
 manageRouter.get("/student", async (req, res) => {
+    // NOTE: 나중에 by=classroom, by=student에 대응해야
     const { userIdInString } = decodeAccessToken(req.headers)
     const user_id = BigInt(userIdInString)
     const result = await dbFindManyByClassroom(user_id)

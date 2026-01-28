@@ -10,6 +10,7 @@ import errorRequestHandler from "./errors/errorRequestHandler.js"
 import { CLIENT_ORIGIN } from "./config/env.js"
 import cookieParser from "cookie-parser"
 import manageRouter from "./features/manage/route/index.js"
+import progressRouter from "./features/progress/router/index.js"
 
 const app = express()
 
@@ -29,6 +30,7 @@ app.use("/hagwon", hagwonRouter)
 app.use("/book", bookRouter)
 app.use("/manage", manageRouter)
 app.use("/", checkHealthRouter)
+app.use("/progress", progressRouter)
 
 app.use(errorRequestHandler)
 
