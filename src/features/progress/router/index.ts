@@ -68,6 +68,7 @@ progressRouter.delete("/syllabus/assigned/:syllabus_id", async (req, res) => {
     res.status(200).json(serializable)
 })
 
+// TODO: rename route to `syllabus-with-sessions`
 progressRouter.get("/session", async (req, res) => {
     const syllabus_id = req.query.syllabus_id ? BigInt(String(req.query.syllabus_id)) : null
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
@@ -88,6 +89,7 @@ progressRouter.get("/session", async (req, res) => {
     }))
 
     const serializable = makeSerializable(conciseSyllabusArray)
+    // const serializable = makeSerializable(syllabusArray)
     res.status(200).json(serializable)
 })
 
