@@ -137,7 +137,7 @@ const makeWhereForSyllabusWithSession = ({
     return { user_id, studentSyllabuses: { some: { student_id } } }
 }
 // NOTE: THIS RETURNS DUPLICATED DATA. NEED TO DEDUPLICATE
-export const dbProgressFindManySyllabusWithSession = async (props: ProgressOptionalSyllabusRelated) => {
+export const dbProgressFindManySyllabusWithSessions = async (props: ProgressOptionalSyllabusRelated) => {
     const { student_id, classroom_id } = props
     const result = await prismaClient.syllabus.findMany({
         where: makeWhereForSyllabusWithSession(props),

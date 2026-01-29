@@ -8,7 +8,7 @@ import {
     dbProgressDeleteSyllabus,
     dbProgressFindManySyllabus,
     dbProgressFindManySyllabusAssigned,
-    dbProgressFindManySyllabusWithSession,
+    dbProgressFindManySyllabusWithSessions,
 } from "../db/index.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
@@ -69,13 +69,13 @@ progressRouter.delete("/syllabus/assigned/:syllabus_id", async (req, res) => {
 })
 
 // TODO: rename route to `syllabus-with-sessions`
-progressRouter.get("/session", async (req, res) => {
+progressRouter.get("/syllabus-with-sessions", async (req, res) => {
     const syllabus_id = req.query.syllabus_id ? BigInt(String(req.query.syllabus_id)) : null
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
 
     const user_id = extractUserId(req.headers)
-    const syllabusArray = await dbProgressFindManySyllabusWithSession({
+    const syllabusArray = await dbProgressFindManySyllabusWithSessions({
         classroom_id,
         syllabus_id,
         student_id,
