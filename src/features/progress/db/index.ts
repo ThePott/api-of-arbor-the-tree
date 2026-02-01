@@ -137,34 +137,8 @@ const makeWhereForSyllabusWithSession = ({
     return { user_id, studentSyllabuses: { some: { student_id } } }
 }
 // NOTE: THIS RETURNS DUPLICATED DATA. NEED TO DEDUPLICATE
-export const dbProgressFindManySyllabusWithSession = async (props: ProgressOptionalSyllabusRelated) => {
+export const dbProgressFindManySyllabusWithSessions = async (props: ProgressOptionalSyllabusRelated) => {
     const { student_id, classroom_id } = props
-    if (classroom_id) {
-        const result = await prismaClient.syllabus.findMany({
-            where: makeWhereForSyllabusWithSession(props),
-            select: {
-                ...baseSelect,
-                sessions: {
-                    select: {
-                        ...baseSelect.sessions.select,
-                        assignedSessionClassrooms: {
-                            select: { status: true, assigned_at: true },
-                            where: {
-                                classroom_id,
-                            },
-                        },
-                        completedSessionClassrooms: {
-                            select: { completed_at: true },
-                            where: { classroom_id },
-                        },
-                    },
-                },
-            },
-        })
-        return result
-    }
-
-    if (!student_id) throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
     const result = await prismaClient.syllabus.findMany({
         where: makeWhereForSyllabusWithSession(props),
         select: {
@@ -172,16 +146,36 @@ export const dbProgressFindManySyllabusWithSession = async (props: ProgressOptio
             sessions: {
                 select: {
                     ...baseSelect.sessions.select,
-                    assignedSessionStudents: {
-                        select: { status: true, assigned_at: true },
-                        where: {
-                            student_id,
+                    ...(classroom_id && {
+                        assignedSessionClassrooms: {
+                            select: { status: true, assigned_at: true },
+                            where: {
+                                classroom_id,
+                            },
                         },
-                    },
-                    completedSessionStudents: {
-                        select: { completed_at: true },
-                        where: { student_id },
-                    },
+                    }),
+                    ...(classroom_id &&
+                        !student_id && {
+                            completedSessionClassrooms: {
+                                select: { completed_at: true },
+                                where: { classroom_id },
+                            },
+                        }),
+                    ...(student_id &&
+                        !classroom_id && {
+                            assignedSessionStudents: {
+                                select: { status: true, assigned_at: true },
+                                where: {
+                                    student_id,
+                                },
+                            },
+                        }),
+                    ...(student_id && {
+                        completedSessionStudents: {
+                            select: { completed_at: true },
+                            where: { student_id },
+                        },
+                    }),
                 },
             },
         },
