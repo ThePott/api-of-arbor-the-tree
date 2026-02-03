@@ -54,6 +54,7 @@ model student {
     studentSyllabuses        student_syllabus[]
     assignedSessionStudents  assigned_session_student[]
     completedSessionStudents completed_session_student[]
+    reviewAssignments        review_assignment[]
 
     @@index([user_id], map: "idx_student_user_id")
 }
@@ -149,6 +150,7 @@ model question {
     sub_question     question?          @relation("SubQuestion", fields: [sub_question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
     super_question   question[]         @relation("SubQuestion")
     sessionQuestions session_question[]
+    reviewChecks     review_check[]
 
     @@unique([name, step_id])
     @@unique([order, step_id])
@@ -264,8 +266,9 @@ model assigned_session_student {
     status      session_status
     assigned_at DateTime       @updatedAt
 
-    session session @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    student student @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    session      session        @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    student      student        @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    reviewChecks review_check[]
 
     @@unique([session_id, student_id])
 }
@@ -294,4 +297,41 @@ model completed_session_student {
     student student @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
     @@unique([session_id, student_id])
+}
+
+enum review_check_status {
+    CORRECT
+    WRONG
+}
+
+model review_check {
+    id                          BigInt              @id @default(autoincrement())
+    assigned_session_student_id BigInt
+    question_id                 BigInt
+    status                      review_check_status
+
+    assigned_session_student  assigned_session_student     @relation(fields: [assigned_session_student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    question                  question                     @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    reviewAssignmentQuestions review_assignment_question[]
+}
+
+model review_assignment {
+    id           BigInt    @id @default(autoincrement())
+    student_id   BigInt
+    assigned_at  DateTime  @default(now())
+    completed_at DateTime? @updatedAt
+
+    student                   student                      @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    reviewAssignmentQuestions review_assignment_question[]
+}
+
+model review_assignment_question {
+    id                   BigInt               @id @default(autoincrement())
+    review_assignment_id BigInt
+    review_check_id      BigInt
+    status               review_check_status?
+    completed_at         DateTime             @updatedAt
+
+    review_assignment review_assignment @relation(fields: [review_assignment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    review_check      review_check      @relation(fields: [review_check_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
