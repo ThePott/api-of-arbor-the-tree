@@ -1,4 +1,5 @@
 import prismaClient from "@/src/db/prismaClient.js"
+import { ApiError } from "@/src/errors/appError/AppError.js"
 
 type DbReviewCheckFindManyProps = {
     user_id: bigint
@@ -13,13 +14,31 @@ export const dbReviewCheckFindMany = async ({
     syllabus_id,
     review_assignment_id,
 }: DbReviewCheckFindManyProps) => {
-    const reviewCheckResult = await prismaClient.review_check.findMany({
+    if (review_assignment_id) throw ApiError.Internal("---- CURRENTLY NOT HANDLING CHECKING ASSIGNMENT")
+
+    const reviewCheckPromise = prismaClient.review_check.findMany({
         where: {
             assigned_session_student: {
                 session: { syllabus: { studentSyllabuses: { some: { student_id, syllabus_id } } } },
+                student: { hagwon: { principal: { user_id } } },
             },
         },
     })
 
-    return reviewCheckResult
+    const bookPromise = prismaClient.book.findFirst({
+        where: { syllabi: { some: { id: syllabus_id } } },
+        select: {
+            title: true,
+            topics: {
+                select: {
+                    title: true,
+                    steps: { select: { title: true, questions: { select: { id: true, name: true, page: true } } } },
+                },
+            },
+        },
+    })
+
+    const [reviewCheckResult, bookResult] = await Promise.all([reviewCheckPromise, bookPromise])
+
+    return { reviewCheckResult, bookResult }
 }
