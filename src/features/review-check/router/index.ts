@@ -6,7 +6,7 @@ import { makeSerializable } from "@/src/utils/makeSerializable.js"
 
 const reviewCheckRouter = Router()
 
-reviewCheckRouter.get("/", async (req, res) => {
+reviewCheckRouter.get("/create", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
     const syllabus_id = req.query.syllabus_id ? BigInt(String(req.query.syllabus_id)) : null
@@ -15,6 +15,10 @@ reviewCheckRouter.get("/", async (req, res) => {
     const result = await dbReviewCheckFindMany({ user_id, student_id, syllabus_id, review_assignment_id })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
+})
+
+reviewCheckRouter.post("/create", async (req, res) => {
+    res.status(200).send("---- good")
 })
 
 export default reviewCheckRouter

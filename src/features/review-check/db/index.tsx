@@ -1,3 +1,4 @@
+import type { review_check_status } from "@/generated/prisma/enums.js"
 import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 
@@ -41,4 +42,21 @@ export const dbReviewCheckFindMany = async ({
     const [reviewCheckResult, bookResult] = await Promise.all([reviewCheckPromise, bookPromise])
 
     return { reviewCheckResult, bookResult }
+}
+
+type DbReviewCheckUpsertProps = {
+    user_id: bigint
+    student_id: bigint
+    session_id: bigint
+    question_id: bigint
+    status: review_check_status | null
+}
+export const dbReviewCheckUpsert = async ({
+    user_id,
+    student_id,
+    session_id,
+    question_id,
+    status,
+}: DbReviewCheckUpsertProps) => {
+    const result = await prismaClient.review_check.upsert({ where: {} })
 }
