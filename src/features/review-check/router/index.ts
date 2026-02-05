@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { dbReviewCheckCreate, dbReviewCheckFindMany, dbReviewCheckUpdate } from "../db/index.js"
+import { dbReviewCheckCreate, dbReviewCheckDelete, dbReviewCheckFindMany, dbReviewCheckUpdate } from "../db/index.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
@@ -14,11 +14,18 @@ const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany
                 type JoinedQuestion = Omit<typeof question, "reviewChecks" | "sessionQuestions"> & {
                     status: review_check_status | null
                     session_status: session_status | null
+                    review_check_id: bigint | null
                 }
                 const { reviewChecks, sessionQuestions, ...rest } = question
-                const joinedQuestion: JoinedQuestion = { ...rest, status: null, session_status: null }
+                const joinedQuestion: JoinedQuestion = {
+                    ...rest,
+                    status: null,
+                    session_status: null,
+                    review_check_id: null,
+                }
                 joinedQuestion.status = reviewChecks[0]?.status ?? null
                 joinedQuestion.session_status = sessionQuestions[0]?.session.assignedSessionStudents[0]?.status ?? null
+                joinedQuestion.review_check_id = reviewChecks[0]?.id ?? null
                 return joinedQuestion
             })
             return { ...step, questions }
@@ -59,6 +66,14 @@ reviewCheckRouter.patch("/create/:review_check_id", async (req, res) => {
     const review_check_id = BigInt(req.params.review_check_id)
     const status = req.body.status as review_check_status
     const result = await dbReviewCheckUpdate({ user_id, status, review_check_id })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+
+reviewCheckRouter.delete("/create/:review_check_id", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const review_check_id = BigInt(req.params.review_check_id)
+    const result = await dbReviewCheckDelete({ user_id, review_check_id })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })

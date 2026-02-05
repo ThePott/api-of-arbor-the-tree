@@ -114,3 +114,14 @@ export const dbReviewCheckUpdate = async ({ user_id, review_check_id, status }: 
 
     return result
 }
+
+type DbReviewCheckDeleteProp = {
+    user_id: bigint
+    review_check_id: bigint
+}
+export const dbReviewCheckDelete = async ({ user_id, review_check_id }: DbReviewCheckDeleteProp) => {
+    const result = await prismaClient.review_check.delete({
+        where: { id: review_check_id, assigned_session_student: { student: { hagwon: { principal: { user_id } } } } },
+    })
+    return result
+}
