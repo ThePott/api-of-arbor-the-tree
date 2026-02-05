@@ -338,3 +338,6 @@ model review_assignment_question {
     review_assignment review_assignment @relation(fields: [review_assignment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
     review_check      review_check      @relation(fields: [review_check_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
+
+// TODO: syllabus review check, assignment review check 이렇게 나눠야 할까?
+// NOTE: 하지만 그 부분은 review_assignemnt_question.status로 해결이 된다

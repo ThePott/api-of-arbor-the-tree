@@ -33,7 +33,26 @@ export const dbReviewCheckFindMany = async ({
             topics: {
                 select: {
                     title: true,
-                    steps: { select: { title: true, questions: { select: { id: true, name: true, page: true } } } },
+                    steps: {
+                        select: {
+                            title: true,
+                            questions: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    page: true,
+                                    reviewChecks: {
+                                        where: {
+                                            assigned_session_student: {
+                                                student_id,
+                                                session: { syllabus_id },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
                 },
             },
         },
