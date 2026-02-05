@@ -3,7 +3,7 @@ import { dbReviewCheckCreate, dbReviewCheckFindMany, dbReviewCheckUpdate } from 
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
-import type { review_check_status } from "@/generated/prisma/enums.js"
+import type { review_check_status, session_status } from "@/generated/prisma/enums.js"
 
 const reviewCheckRouter = Router()
 
@@ -11,10 +11,14 @@ const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany
     const topics = result.bookResult?.topics.map((topic) => {
         const steps = topic.steps.map((step) => {
             const questions = step.questions.map((question) => {
-                type JoinedQuestion = Omit<typeof question, "reviewChecks"> & { status: review_check_status | null }
-                const { reviewChecks, ...rest } = question
-                const joinedQuestion: JoinedQuestion = { ...rest, status: null }
+                type JoinedQuestion = Omit<typeof question, "reviewChecks" | "sessionQuestions"> & {
+                    status: review_check_status | null
+                    session_status: session_status | null
+                }
+                const { reviewChecks, sessionQuestions, ...rest } = question
+                const joinedQuestion: JoinedQuestion = { ...rest, status: null, session_status: null }
                 joinedQuestion.status = reviewChecks[0]?.status ?? null
+                joinedQuestion.session_status = sessionQuestions[0]?.session.assignedSessionStudents[0]?.status ?? null
                 return joinedQuestion
             })
             return { ...step, questions }

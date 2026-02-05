@@ -49,6 +49,20 @@ export const dbReviewCheckFindMany = async ({
                                             },
                                         },
                                     },
+                                    sessionQuestions: {
+                                        where: {
+                                            session: {
+                                                syllabus_id,
+                                            },
+                                        },
+                                        select: {
+                                            session: {
+                                                select: {
+                                                    assignedSessionStudents: true,
+                                                },
+                                            },
+                                        },
+                                    },
                                 },
                             },
                         },
