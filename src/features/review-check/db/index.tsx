@@ -32,12 +32,15 @@ export const dbReviewCheckFindMany = async ({
             title: true,
             topics: {
                 select: {
+                    order: true,
                     title: true,
                     steps: {
                         select: {
+                            order: true,
                             title: true,
                             questions: {
                                 select: {
+                                    order: true,
                                     id: true,
                                     name: true,
                                     page: true,
