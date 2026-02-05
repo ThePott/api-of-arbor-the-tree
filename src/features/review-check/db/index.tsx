@@ -44,19 +44,40 @@ export const dbReviewCheckFindMany = async ({
     return { reviewCheckResult, bookResult }
 }
 
-type DbReviewCheckUpsertProps = {
+type DbReviewCheckCreateProps = {
     user_id: bigint
     student_id: bigint
-    session_id: bigint
+    syllabus_id: bigint
     question_id: bigint
-    status: review_check_status | null
+    status: review_check_status
 }
-export const dbReviewCheckUpsert = async ({
+export const dbReviewCheckCreate = async ({
     user_id,
     student_id,
-    session_id,
+    syllabus_id,
     question_id,
     status,
-}: DbReviewCheckUpsertProps) => {
-    const result = await prismaClient.review_check.upsert({ where: {} })
+}: DbReviewCheckCreateProps) => {
+    const assignedSessionStudentResult = await prismaClient.assigned_session_student.findFirstOrThrow({
+        where: { student_id, session: { syllabus_id }, student: { hagwon: { principal: { user_id } } } },
+    })
+    const result = await prismaClient.review_check.create({
+        data: { status, question_id, assigned_session_student_id: assignedSessionStudentResult.id },
+    })
+
+    return result
+}
+
+type DbReviewCheckUpdateProps = {
+    user_id: bigint
+    review_check_id: bigint
+    status: review_check_status
+}
+export const dbReviewCheckUpdate = async ({ user_id, review_check_id, status }: DbReviewCheckUpdateProps) => {
+    const result = await prismaClient.review_check.update({
+        where: { id: review_check_id, assigned_session_student: { student: { hagwon: { principal: { user_id } } } } },
+        data: { status },
+    })
+
+    return result
 }

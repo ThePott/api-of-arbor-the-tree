@@ -1,8 +1,9 @@
 import { Router } from "express"
-import { dbReviewCheckFindMany } from "../db/index.js"
+import { dbReviewCheckCreate, dbReviewCheckFindMany, dbReviewCheckUpdate } from "../db/index.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
+import type { review_check_status } from "@/generated/prisma/enums.js"
 
 const reviewCheckRouter = Router()
 
@@ -18,7 +19,23 @@ reviewCheckRouter.get("/create", async (req, res) => {
 })
 
 reviewCheckRouter.post("/create", async (req, res) => {
-    res.status(200).send("---- good")
+    const user_id = extractUserId(req.headers)
+    const student_id = BigInt(req.body.student_id)
+    const syllabus_id = BigInt(req.body.syllabus_id)
+    const question_id = BigInt(req.body.question_id)
+    const status = req.body.status as review_check_status
+    const result = await dbReviewCheckCreate({ user_id, status, student_id, syllabus_id, question_id })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+
+reviewCheckRouter.patch("/create/:review_check_id", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const review_check_id = BigInt(req.params.review_check_id)
+    const status = req.body.status as review_check_status
+    const result = await dbReviewCheckUpdate({ user_id, status, review_check_id })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
 })
 
 export default reviewCheckRouter
