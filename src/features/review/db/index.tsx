@@ -128,3 +128,39 @@ export const dbReviewCheckDelete = async ({ user_id, review_check_id }: DbReview
     })
     return result
 }
+
+export type QuestionIdToInfo = Record<
+    string, // NOTE: question_id
+    {
+        status: review_check_status | null // NOTE: use to delete if null
+        review_check_id: bigint | null
+        assigned_session_student_id: bigint
+    }
+>
+type DbReviewCheckBulkWriteProps = {
+    user_id: bigint
+    changedReviewChecks: QuestionIdToInfo
+}
+export const dbReviewCheckBulkWrite = async ({ user_id, changedReviewChecks }: DbReviewCheckBulkWriteProps) => {
+    const entryArray = Object.entries(changedReviewChecks)
+    const entryArrayForCreate = entryArray.filter(([_, { status, review_check_id }]) => !review_check_id && status)
+    const entryArrayForUpdate = entryArray.filter(([_, { status, review_check_id }]) => review_check_id && status)
+    const entryArrayForDelete = entryArray.filter(([_, { status, review_check_id }]) => review_check_id && !status)
+
+    // TODO
+    // TODO: validate assigned_session_student is from user_id's hagwon as principal
+    // TODO
+    const createData = Object.entries(changedReviewChecks).map(
+        ([question_id, { status, assigned_session_student_id }]) => {
+            if (!status) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
+            return {
+                assigned_session_student_id,
+                status,
+                question_id: BigInt(question_id),
+            }
+        }
+    )
+    const createPromise = await prismaClient.review_check.createMany({
+        data: createData,
+    })
+}

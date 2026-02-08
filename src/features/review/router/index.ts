@@ -1,5 +1,12 @@
 import { Router } from "express"
-import { dbReviewCheckCreate, dbReviewCheckDelete, dbReviewCheckFindMany, dbReviewCheckUpdate } from "../db/index.js"
+import {
+    dbReviewCheckBulkWrite,
+    dbReviewCheckCreate,
+    dbReviewCheckDelete,
+    dbReviewCheckFindMany,
+    dbReviewCheckUpdate,
+    type QuestionIdToInfo,
+} from "../db/index.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
@@ -15,6 +22,7 @@ const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany
                     status: review_check_status | null
                     session_status: session_status | null
                     review_check_id: bigint | null
+                    assigned_session_student_id: bigint | null
                 }
                 const { reviewChecks, sessionQuestions, ...rest } = question
                 const joinedQuestion: JoinedQuestion = {
@@ -22,9 +30,12 @@ const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany
                     status: null,
                     session_status: null,
                     review_check_id: null,
+                    assigned_session_student_id: null,
                 }
                 joinedQuestion.status = reviewChecks[0]?.status ?? null
                 joinedQuestion.session_status = sessionQuestions[0]?.session.assignedSessionStudents[0]?.status ?? null
+                joinedQuestion.assigned_session_student_id =
+                    sessionQuestions[0]?.session.assignedSessionStudents[0]?.id ?? null
                 joinedQuestion.review_check_id = reviewChecks[0]?.id ?? null
                 return joinedQuestion
             })
@@ -50,14 +61,36 @@ reviewCheckRouter.get("/check", async (req, res) => {
     res.status(200).json(serializable)
 })
 
+type QuestionIdToInfoFromClient = Record<
+    string, // NOTE: question_id
+    {
+        status: review_check_status | null // NOTE: use to delete if null
+        review_check_id: string | null
+        question_id: string
+        assigned_session_student_id: string // NOTE: 오답 체크는 부여된 묶음에서만 가능함
+    }
+>
+// NOTE: bulk update
 reviewCheckRouter.post("/check", async (req, res) => {
-    // NOTE: bulk update
     const user_id = extractUserId(req.headers)
-    const student_id = BigInt(req.body.student_id)
-    const syllabus_id = BigInt(req.body.syllabus_id)
-    const changedReviewChecks = req.body.changedReviewChecks // TODO: need to assert type
+    const changedReviewChecksFromClient = req.body.changedReviewChecks as QuestionIdToInfoFromClient
 
-    res.status(200).send("---- good")
+    const changedReviewChecks: QuestionIdToInfo = Object.fromEntries(
+        Object.entries(changedReviewChecksFromClient).map(
+            ([key, { status, review_check_id, assigned_session_student_id }]) => [
+                key,
+                {
+                    status,
+                    review_check_id: review_check_id ? BigInt(review_check_id) : null,
+                    assigned_session_student_id: BigInt(assigned_session_student_id),
+                },
+            ]
+        )
+    )
+
+    const result = await dbReviewCheckBulkWrite({ user_id, changedReviewChecks })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
 })
 
 // reviewCheckRouter.post("/check", async (req, res) => {
