@@ -37,7 +37,7 @@ const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany
 
     return joinedBookResult
 }
-reviewCheckRouter.get("/create", async (req, res) => {
+reviewCheckRouter.get("/check", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
     const syllabus_id = req.query.syllabus_id ? BigInt(String(req.query.syllabus_id)) : null
@@ -50,32 +50,42 @@ reviewCheckRouter.get("/create", async (req, res) => {
     res.status(200).json(serializable)
 })
 
-reviewCheckRouter.post("/create", async (req, res) => {
+reviewCheckRouter.post("/check", async (req, res) => {
+    // NOTE: bulk update
     const user_id = extractUserId(req.headers)
     const student_id = BigInt(req.body.student_id)
     const syllabus_id = BigInt(req.body.syllabus_id)
-    const question_id = BigInt(req.body.question_id)
-    const status = req.body.status as review_check_status
-    const result = await dbReviewCheckCreate({ user_id, status, student_id, syllabus_id, question_id })
-    const serializable = makeSerializable(result)
-    res.status(200).json(serializable)
+    const changedReviewChecks = req.body.changedReviewChecks // TODO: need to assert type
+
+    res.status(200).send("---- good")
 })
 
-reviewCheckRouter.patch("/create/:review_check_id", async (req, res) => {
-    const user_id = extractUserId(req.headers)
-    const review_check_id = BigInt(req.params.review_check_id)
-    const status = req.body.status as review_check_status
-    const result = await dbReviewCheckUpdate({ user_id, status, review_check_id })
-    const serializable = makeSerializable(result)
-    res.status(200).json(serializable)
-})
+// reviewCheckRouter.post("/check", async (req, res) => {
+//     const user_id = extractUserId(req.headers)
+//     const student_id = BigInt(req.body.student_id)
+//     const syllabus_id = BigInt(req.body.syllabus_id)
+//     const question_id = BigInt(req.body.question_id)
+//     const status = req.body.status as review_check_status
+//     const result = await dbReviewCheckCreate({ user_id, status, student_id, syllabus_id, question_id })
+//     const serializable = makeSerializable(result)
+//     res.status(200).json(serializable)
+// })
 
-reviewCheckRouter.delete("/create/:review_check_id", async (req, res) => {
-    const user_id = extractUserId(req.headers)
-    const review_check_id = BigInt(req.params.review_check_id)
-    const result = await dbReviewCheckDelete({ user_id, review_check_id })
-    const serializable = makeSerializable(result)
-    res.status(200).json(serializable)
-})
+// reviewCheckRouter.patch("/create/:review_check_id", async (req, res) => {
+//     const user_id = extractUserId(req.headers)
+//     const review_check_id = BigInt(req.params.review_check_id)
+//     const status = req.body.status as review_check_status
+//     const result = await dbReviewCheckUpdate({ user_id, status, review_check_id })
+//     const serializable = makeSerializable(result)
+//     res.status(200).json(serializable)
+// })
+//
+// reviewCheckRouter.delete("/create/:review_check_id", async (req, res) => {
+//     const user_id = extractUserId(req.headers)
+//     const review_check_id = BigInt(req.params.review_check_id)
+//     const result = await dbReviewCheckDelete({ user_id, review_check_id })
+//     const serializable = makeSerializable(result)
+//     res.status(200).json(serializable)
+// })
 
 export default reviewCheckRouter
