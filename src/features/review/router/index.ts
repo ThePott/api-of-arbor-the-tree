@@ -12,20 +12,20 @@ const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany
         const steps = topic.steps.map((step) => {
             const questions = step.questions.map((question) => {
                 type JoinedQuestion = Omit<typeof question, "reviewChecks" | "sessionQuestions"> & {
-                    status: review_check_status | null
                     session_status: session_status | null
+                    review_check_status: review_check_status | null
                     review_check_id: bigint | null
                     assigned_session_student_id: bigint | null
                 }
                 const { reviewChecks, sessionQuestions, ...rest } = question
                 const joinedQuestion: JoinedQuestion = {
                     ...rest,
-                    status: null,
+                    review_check_status: null,
                     session_status: null,
                     review_check_id: null,
                     assigned_session_student_id: null,
                 }
-                joinedQuestion.status = reviewChecks[0]?.status ?? null
+                joinedQuestion.review_check_status = reviewChecks[0]?.status ?? null
                 joinedQuestion.session_status = sessionQuestions[0]?.session.assignedSessionStudents[0]?.status ?? null
                 joinedQuestion.assigned_session_student_id =
                     sessionQuestions[0]?.session.assignedSessionStudents[0]?.id ?? null

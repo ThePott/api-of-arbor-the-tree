@@ -163,7 +163,10 @@ type DbReviewCheckBulkWriteProps = {
     user_id: bigint
     changedReviewChecks: QuestionIdToInfo
 }
-export const dbReviewCheckBulkWrite = async ({ user_id, changedReviewChecks }: DbReviewCheckBulkWriteProps) => {
+export const dbReviewCheckBulkWrite = async ({
+    user_id: _user_id,
+    changedReviewChecks,
+}: DbReviewCheckBulkWriteProps) => {
     const entryArray = Object.entries(changedReviewChecks)
     const entryArrayForCreate = entryArray.filter(([_, { status, review_check_id }]) => !review_check_id && status)
     const entryArrayForUpdate = entryArray.filter(([_, { status, review_check_id }]) => review_check_id && status)
