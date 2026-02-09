@@ -20,7 +20,11 @@ export const dbReviewCheckFindMany = async ({
     const reviewCheckPromise = prismaClient.review_check.findMany({
         where: {
             assigned_session_student: {
-                session: { syllabus: { studentSyllabuses: { some: { student_id, syllabus_id } } } },
+                session: {
+                    syllabus: {
+                        studentSyllabuses: { some: { student_id, syllabus_id } },
+                    },
+                },
                 student: { hagwon: { principal: { user_id } } },
             },
         },
@@ -95,10 +99,18 @@ export const dbReviewCheckCreate = async ({
     status,
 }: DbReviewCheckCreateProps) => {
     const assignedSessionStudentResult = await prismaClient.assigned_session_student.findFirstOrThrow({
-        where: { student_id, session: { syllabus_id }, student: { hagwon: { principal: { user_id } } } },
+        where: {
+            student_id,
+            session: { syllabus_id },
+            student: { hagwon: { principal: { user_id } } },
+        },
     })
     const result = await prismaClient.review_check.create({
-        data: { status, question_id, assigned_session_student_id: assignedSessionStudentResult.id },
+        data: {
+            status,
+            question_id,
+            assigned_session_student_id: assignedSessionStudentResult.id,
+        },
     })
 
     return result
@@ -111,7 +123,12 @@ type DbReviewCheckUpdateProps = {
 }
 export const dbReviewCheckUpdate = async ({ user_id, review_check_id, status }: DbReviewCheckUpdateProps) => {
     const result = await prismaClient.review_check.update({
-        where: { id: review_check_id, assigned_session_student: { student: { hagwon: { principal: { user_id } } } } },
+        where: {
+            id: review_check_id,
+            assigned_session_student: {
+                student: { hagwon: { principal: { user_id } } },
+            },
+        },
         data: { status },
     })
 
@@ -124,7 +141,12 @@ type DbReviewCheckDeleteProp = {
 }
 export const dbReviewCheckDelete = async ({ user_id, review_check_id }: DbReviewCheckDeleteProp) => {
     const result = await prismaClient.review_check.delete({
-        where: { id: review_check_id, assigned_session_student: { student: { hagwon: { principal: { user_id } } } } },
+        where: {
+            id: review_check_id,
+            assigned_session_student: {
+                student: { hagwon: { principal: { user_id } } },
+            },
+        },
     })
     return result
 }
@@ -150,17 +172,30 @@ export const dbReviewCheckBulkWrite = async ({ user_id, changedReviewChecks }: D
     // TODO
     // TODO: validate assigned_session_student is from user_id's hagwon as principal
     // TODO
-    const createData = Object.entries(changedReviewChecks).map(
-        ([question_id, { status, assigned_session_student_id }]) => {
-            if (!status) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
-            return {
-                assigned_session_student_id,
-                status,
-                question_id: BigInt(question_id),
-            }
+    const createData = entryArrayForCreate.map(([question_id, { status, assigned_session_student_id }]) => {
+        if (!status) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
+        return {
+            assigned_session_student_id,
+            status,
+            question_id: BigInt(question_id),
         }
-    )
-    const createPromise = await prismaClient.review_check.createMany({
+    })
+    const createManyPromise = prismaClient.review_check.createMany({
         data: createData,
     })
+    const updatePromiseArray = entryArrayForUpdate.map(([_, { status, review_check_id }]) => {
+        if (!review_check_id || !status) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
+        return prismaClient.review_check.update({
+            where: { id: review_check_id },
+            data: { status },
+        })
+    })
+    const deletePromiseArray = entryArrayForDelete.map(([_, { review_check_id }]) => {
+        if (!review_check_id) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
+        return prismaClient.review_check.delete({
+            where: { id: review_check_id },
+        })
+    })
+    const result = await Promise.all([createManyPromise, ...updatePromiseArray, ...deletePromiseArray])
+    return result
 }
