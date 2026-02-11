@@ -1,6 +1,7 @@
 import type { review_check_status } from "@/generated/prisma/enums.js"
 import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
+import type { QuestionIdToInfo } from "../types/index.js"
 
 type DbReviewCheckFindManyProps = {
     user_id: bigint
@@ -151,14 +152,6 @@ export const dbReviewCheckDelete = async ({ user_id, review_check_id }: DbReview
     return result
 }
 
-export type QuestionIdToInfo = Record<
-    string, // NOTE: question_id
-    {
-        status: review_check_status | null // NOTE: use to delete if null
-        review_check_id: bigint | null
-        assigned_session_student_id: bigint
-    }
->
 type DbReviewCheckBulkWriteProps = {
     user_id: bigint
     changedReviewChecks: QuestionIdToInfo
@@ -168,29 +161,27 @@ export const dbReviewCheckBulkWrite = async ({
     changedReviewChecks,
 }: DbReviewCheckBulkWriteProps) => {
     const entryArray = Object.entries(changedReviewChecks)
-    const entryArrayForCreate = entryArray.filter(([_, { status, review_check_id }]) => !review_check_id && status)
-    const entryArrayForUpdate = entryArray.filter(([_, { status, review_check_id }]) => review_check_id && status)
+    const entryArrayForUpsert = entryArray.filter(([_, { status }]) => status)
     const entryArrayForDelete = entryArray.filter(([_, { status, review_check_id }]) => review_check_id && !status)
 
     // TODO
     // TODO: validate assigned_session_student is from user_id's hagwon as principal
     // TODO
-    const createData = entryArrayForCreate.map(([question_id, { status, assigned_session_student_id }]) => {
+    const upsertPromiseArray = entryArrayForUpsert.map(([question_id, { status, assigned_session_student_id }]) => {
         if (!status) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
-        return {
-            assigned_session_student_id,
-            status,
-            question_id: BigInt(question_id),
-        }
-    })
-    const createManyPromise = prismaClient.review_check.createMany({
-        data: createData,
-    })
-    const updatePromiseArray = entryArrayForUpdate.map(([_, { status, review_check_id }]) => {
-        if (!review_check_id || !status) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
-        return prismaClient.review_check.update({
-            where: { id: review_check_id },
-            data: { status },
+        return prismaClient.review_check.upsert({
+            where: {
+                assigned_session_student_id_question_id: {
+                    question_id: BigInt(question_id),
+                    assigned_session_student_id,
+                },
+            },
+            update: { status },
+            create: {
+                assigned_session_student_id,
+                status,
+                question_id: BigInt(question_id),
+            },
         })
     })
     const deletePromiseArray = entryArrayForDelete.map(([_, { review_check_id }]) => {
@@ -199,6 +190,6 @@ export const dbReviewCheckBulkWrite = async ({
             where: { id: review_check_id },
         })
     })
-    const result = await Promise.all([createManyPromise, ...updatePromiseArray, ...deletePromiseArray])
+    const result = await Promise.all([...upsertPromiseArray, ...deletePromiseArray])
     return result
 }
