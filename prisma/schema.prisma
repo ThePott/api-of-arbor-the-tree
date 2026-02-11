@@ -30,6 +30,7 @@ model app_user {
     parent       parent?
     resume       resume?
     syllabi      syllabus[]
+    books        book[]
 }
 
 model principal {
@@ -108,11 +109,15 @@ enum role {
 }
 
 model book {
-    id             BigInt     @id @default(autoincrement())
-    title          String     @unique @db.VarChar(255)
+    id             BigInt @id @default(autoincrement())
+    title          String @unique @db.VarChar(255)
     published_year Int
-    topics         topic[]
-    syllabi        syllabus[]
+    user_id        BigInt
+
+    user app_user @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+    topics  topic[]
+    syllabi syllabus[]
 }
 
 model topic {
