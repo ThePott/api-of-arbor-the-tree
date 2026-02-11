@@ -55,6 +55,7 @@ model student {
     assignedSessionStudents  assigned_session_student[]
     completedSessionStudents completed_session_student[]
     reviewAssignments        review_assignment[]
+    reviewChecks             review_check[]
 
     @@index([user_id], map: "idx_student_user_id")
 }
@@ -179,6 +180,7 @@ model session {
     assignedSessionStudents    assigned_session_student[]
     completedSessionStudents   completed_session_student[]
     completedSessionClassrooms completed_session_classroom[]
+    reviewChecks               review_check[]
 
     @@unique([order, syllabus_id])
 }
@@ -266,9 +268,8 @@ model assigned_session_student {
     status      session_status
     assigned_at DateTime       @updatedAt
 
-    session      session        @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    student      student        @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    reviewChecks review_check[]
+    session session @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    student student @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
     // TODO: 한 학생은 한 묶음을 한 번만 풀 수 있다??? 같은 문제집을 여러번 풀면 같은 묶음도 여러번 풀게 되는데...
     @@unique([session_id, student_id])
@@ -306,16 +307,19 @@ enum review_check_status {
 }
 
 model review_check {
-    id                          BigInt              @id @default(autoincrement())
-    assigned_session_student_id BigInt
-    question_id                 BigInt
-    status                      review_check_status
+    id          BigInt              @id @default(autoincrement())
+    session_id  BigInt
+    student_id  BigInt
+    question_id BigInt
+    status      review_check_status
 
-    assigned_session_student  assigned_session_student     @relation(fields: [assigned_session_student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    question                  question                     @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    session  session  @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    student  student  @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    question question @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
     reviewAssignmentQuestions review_assignment_question[]
 
-    @@unique([assigned_session_student_id, question_id])
+    @@unique([session_id, student_id, question_id])
 }
 
 model review_assignment {

@@ -47,14 +47,16 @@ const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany
 }
 reviewCheckRouter.get("/check", async (req, res) => {
     const user_id = extractUserId(req.headers)
+    const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
     const syllabus_id = req.query.syllabus_id ? BigInt(String(req.query.syllabus_id)) : null
     const review_assignment_id = req.query.review_assignment_id ? BigInt(String(req.query.review_assignment_id)) : null
     if (!student_id || !syllabus_id) throw ApiError.BadRequest("학생과 문제집을 선택해주세요")
-    const result = await dbReviewCheckFindMany({ user_id, student_id, syllabus_id, review_assignment_id })
+    const result = await dbReviewCheckFindMany({ user_id, classroom_id, student_id, syllabus_id, review_assignment_id })
     const joinedResult = addStatusToBook(result)
 
     const serializable = makeSerializable(joinedResult)
+    // const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
 

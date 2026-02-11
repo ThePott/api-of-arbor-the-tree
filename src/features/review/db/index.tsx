@@ -5,6 +5,7 @@ import type { QuestionIdToInfo } from "../types/index.js"
 
 type DbReviewCheckFindManyProps = {
     user_id: bigint
+    classroom_id: bigint | null
     student_id: bigint
     syllabus_id: bigint
     review_assignment_id: bigint | null
@@ -12,6 +13,7 @@ type DbReviewCheckFindManyProps = {
 // NOTE: 그 문제집의 오답과제를 가져와야 함
 export const dbReviewCheckFindMany = async ({
     user_id,
+    classroom_id,
     student_id,
     syllabus_id,
     review_assignment_id,
@@ -51,6 +53,10 @@ export const dbReviewCheckFindMany = async ({
                                     page: true,
                                     reviewChecks: {
                                         where: {
+                                            ...(classroom_id &&
+                                                {
+                                                    // TODO: review_check에 연결된 게 assigned_session_student일 수도, classroom일 수도
+                                                }),
                                             assigned_session_student: {
                                                 student_id,
                                                 session: { syllabus_id },
