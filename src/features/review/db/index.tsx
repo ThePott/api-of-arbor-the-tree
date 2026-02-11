@@ -17,7 +17,7 @@ export const dbReviewCheckFindMany = async ({
 }: DbReviewCheckFindManyProps) => {
     if (review_assignment_id) throw ApiError.Internal("---- CURRENTLY NOT HANDLING CHECKING ASSIGNMENT")
 
-    const bookPromise = prismaClient.book.findFirst({
+    const result = await prismaClient.book.findFirst({
         where: { syllabi: { some: { id: syllabus_id, user_id } } },
         select: {
             title: true,
@@ -50,6 +50,7 @@ export const dbReviewCheckFindMany = async ({
                                         select: {
                                             session: {
                                                 select: {
+                                                    id: true,
                                                     assignedSessionStudents: true,
                                                 },
                                             },
@@ -64,9 +65,7 @@ export const dbReviewCheckFindMany = async ({
         },
     })
 
-    const [bookResult] = await Promise.all([bookPromise])
-
-    return { bookResult }
+    return result
 }
 
 type DbReviewCheckBulkWriteProps = {
@@ -83,6 +82,7 @@ export const dbReviewCheckBulkWrite = async ({
     const entryArrayForUpsert = entryArray.filter(([_, { status }]) => status)
     const entryArrayForDelete = entryArray.filter(([_, { status }]) => !status)
 
+    debugger
     // TODO
     // TODO: validate assigned_session_student is from user_id's hagwon as principal
     // TODO

@@ -5,20 +5,24 @@ import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import type { QuestionIdToInfoForApi, QuestionIdToInfoFromClient } from "../types/index.js"
 import { dbReviewCheckFindMany, dbReviewCheckBulkWrite } from "../db/index.js"
+import { convertToBigIntOrThrow } from "@/src/utils/convertToBigIntOrThrow.js"
 
 const reviewCheckRouter = Router()
 
+type AdditionalPropsForJoinedQuestion = {
+    session_status: session_status | null
+    session_id: bigint | null
+    review_check_status: review_check_status | null
+    review_check_status_visual: review_check_status | null
+    review_check_id: bigint | null
+}
+
 const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany>>) => {
-    const topics = result.bookResult?.topics.map((topic) => {
+    const topics = result?.topics.map((topic) => {
         const steps = topic.steps.map((step) => {
             const questions = step.questions.map((question) => {
-                type JoinedQuestion = Omit<typeof question, "reviewChecks" | "sessionQuestions"> & {
-                    session_status: session_status | null
-                    review_check_status: review_check_status | null
-                    review_check_status_visual: review_check_status | null
-                    review_check_id: bigint | null
-                    assigned_session_student_id: bigint | null
-                }
+                type JoinedQuestion = Omit<typeof question, "reviewChecks" | "sessionQuestions"> &
+                    AdditionalPropsForJoinedQuestion
                 const { reviewChecks, sessionQuestions, ...rest } = question
                 const joinedQuestion: JoinedQuestion = {
                     ...rest,
@@ -26,13 +30,12 @@ const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany
                     review_check_id: null,
                     review_check_status: null,
                     review_check_status_visual: null,
-                    assigned_session_student_id: null,
+                    session_id: null,
                 }
                 joinedQuestion.review_check_status = reviewChecks[0]?.status ?? null
                 joinedQuestion.review_check_status_visual = reviewChecks[0]?.status ?? null
                 joinedQuestion.session_status = sessionQuestions[0]?.session.assignedSessionStudents[0]?.status ?? null
-                joinedQuestion.assigned_session_student_id =
-                    sessionQuestions[0]?.session.assignedSessionStudents[0]?.id ?? null
+                joinedQuestion.session_id = sessionQuestions[0]?.session.id ?? null
                 joinedQuestion.review_check_id = reviewChecks[0]?.id ?? null
                 return joinedQuestion
             })
@@ -41,7 +44,7 @@ const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany
         return { ...topic, steps }
     })
 
-    const joinedBookResult = { ...result.bookResult, topics }
+    const joinedBookResult = { ...result, topics }
 
     return joinedBookResult
 }
@@ -64,14 +67,14 @@ reviewCheckRouter.get("/check", async (req, res) => {
 reviewCheckRouter.post("/check", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const changedReviewChecksFromClient = req.body.changedReviewChecks as QuestionIdToInfoFromClient
-    const student_id = BigInt(req.body.student_id)
+    const student_id = convertToBigIntOrThrow(req.body.student_id)
 
     const changedReviewChecks: QuestionIdToInfoForApi = Object.fromEntries(
         Object.entries(changedReviewChecksFromClient).map(([key, { status, session_id }]) => [
             key,
             {
                 status,
-                session_id: BigInt(session_id),
+                session_id: convertToBigIntOrThrow(session_id),
             },
         ])
     )
