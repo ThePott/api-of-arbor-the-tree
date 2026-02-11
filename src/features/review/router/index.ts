@@ -3,8 +3,8 @@ import type { review_check_status, session_status } from "@/generated/prisma/enu
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
-import { dbReviewCheckBulkWrite, dbReviewCheckFindMany, type QuestionIdToInfo } from "../db/index.js"
-import type { QuestionIdToInfoFromClient } from "../types/index.js"
+import type { QuestionIdToInfo, QuestionIdToInfoFromClient } from "../types/index.js"
+import { dbReviewCheckFindMany, dbReviewCheckBulkWrite } from "../db/index.js"
 
 const reviewCheckRouter = Router()
 
