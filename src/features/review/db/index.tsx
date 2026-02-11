@@ -117,5 +117,56 @@ export const dbReviewCheckBulkWrite = async ({
         })
     })
     const [upserted, deleted] = await Promise.all([Promise.all(upsertPromiseArray), Promise.all(deletePromiseArray)])
-    return { upserted, deleted }
+
+    const sessionIdSet = new Set(entryArray.map(([_, { session_id }]) => session_id))
+    const sessionIdArray = [...sessionIdSet]
+    const sessionResult = await prismaClient.session.findMany({
+        where: {
+            id: { in: sessionIdArray },
+        },
+        select: {
+            id: true,
+            reviewChecks: {
+                where: { student_id },
+                select: { id: true },
+            },
+            sessionQuestions: {
+                select: {
+                    question_id: true,
+                },
+            },
+        },
+    })
+    const completedSessionIdArray = sessionResult
+        .filter((session) => {
+            if (session.sessionQuestions.length === 0) return false
+            return session.reviewChecks.length === session.sessionQuestions.length
+        })
+        .map((session) => session.id)
+    const uncompletedSessionIdArray = sessionResult
+        .filter((session) => {
+            if (session.sessionQuestions.length === 0) return false
+            return session.reviewChecks.length < session.sessionQuestions.length
+        })
+        .map((session) => session.id)
+    const completedPromise = prismaClient.completed_session_student.createManyAndReturn({
+        data: completedSessionIdArray.map((session_id) => ({ session_id, student_id })),
+    })
+    const uncompletedPromise = prismaClient.completed_session_student.deleteMany({
+        where: {
+            student_id,
+            session_id: { in: uncompletedSessionIdArray },
+        },
+    })
+    const [completed, uncompleted] = await Promise.all([completedPromise, uncompletedPromise])
+
+    return {
+        upserted,
+        deleted,
+        completed,
+        uncompleted,
+        sessionIdArray,
+        completedSessionIdArray,
+        uncompletedSessionIdArray,
+    }
 }
