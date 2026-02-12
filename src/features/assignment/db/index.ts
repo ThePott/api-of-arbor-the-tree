@@ -1,4 +1,6 @@
 import prismaClient from "@/src/db/prismaClient.js"
+import type { CondensedBookWithReviewChecksFromClient } from "../router/index.js"
+import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
 
 type DbAssignmentFindManyCanditateProps = {
     user_id: bigint
@@ -60,5 +62,33 @@ export const dbAssignmentFindManyBookWithReviewChecks = async ({
         },
     })
 
+    return result
+}
+
+type DbAssignmentCreateAssignmentProps = {
+    user_id: bigint
+    student_id: bigint
+    condensedBookArray: CondensedBookWithReviewChecksFromClient[]
+}
+export const dbAssignmentCreateAssignment = async ({
+    user_id: _user_id,
+    student_id,
+    condensedBookArray,
+}: DbAssignmentCreateAssignmentProps) => {
+    // TODO
+    // TODO: NEED TO VALIDATE with user_id
+    // TODO
+    const result = await prismaClient.review_assignment.create({
+        data: {
+            student_id,
+            reviewAssignmentQuestions: {
+                create: condensedBookArray
+                    .flatMap((book) => book.reviewChecks)
+                    .map((reviewCheck) => ({
+                        review_check_id: convertToBigIntOrThrow(reviewCheck.id),
+                    })),
+            },
+        },
+    })
     return result
 }
