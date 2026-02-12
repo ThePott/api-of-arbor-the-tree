@@ -5,7 +5,7 @@ import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import type { QuestionIdToInfoForApi, QuestionIdToInfoFromClient } from "../types/index.js"
 import { dbReviewCheckFindMany, dbReviewCheckBulkWrite } from "../db/index.js"
-import { convertToBigIntOrThrow } from "@/src/utils/convertToBigIntOrThrow.js"
+import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
 
 const reviewCheckRouter = Router()
 
