@@ -52,6 +52,7 @@ export const dbReviewCheckFindMany = async ({
                                                 select: {
                                                     id: true,
                                                     assignedSessionStudents: true,
+                                                    assignedSessionClassrooms: true,
                                                 },
                                             },
                                         },

@@ -34,7 +34,11 @@ const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany
                 }
                 joinedQuestion.review_check_status = reviewChecks[0]?.status ?? null
                 joinedQuestion.review_check_status_visual = reviewChecks[0]?.status ?? null
-                joinedQuestion.session_status = sessionQuestions[0]?.session.assignedSessionStudents[0]?.status ?? null
+
+                const session = sessionQuestions[0]?.session
+                joinedQuestion.session_status =
+                    session?.assignedSessionClassrooms[0]?.status ?? session?.assignedSessionStudents[0]?.status ?? null
+
                 joinedQuestion.session_id = sessionQuestions[0]?.session.id ?? null
                 joinedQuestion.review_check_id = reviewChecks[0]?.id ?? null
                 return joinedQuestion
@@ -59,7 +63,6 @@ reviewCheckRouter.get("/check", async (req, res) => {
     const joinedResult = addStatusToBook(result)
 
     const serializable = makeSerializable(joinedResult)
-    // const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
 
