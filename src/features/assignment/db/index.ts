@@ -1,6 +1,51 @@
 import prismaClient from "@/src/db/prismaClient.js"
-import type { CondensedBookWithReviewChecksFromClient } from "../router/index.js"
+import type { BookWithReviewChecksFromClient } from "../router/index.js"
 import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
+
+type DbAssignmentFindManyAssignmentProps = {
+    user_id: bigint
+    classroom_id: bigint | null
+    student_id: bigint
+}
+export const dbAssignmentFindManyAssignment = async ({
+    user_id,
+    classroom_id,
+    student_id,
+}: DbAssignmentFindManyAssignmentProps) => {
+    // TODO: 반을 어떻게 적용하지? 이리저리 하면 될 것 같긴 하다
+    const result = await prismaClient.review_assignment.findMany({
+        where: {
+            student_id,
+            reviewAssignmentQuestions: {
+                some: {
+                    review_check: {
+                        session: {
+                            ...(classroom_id && { assignedSessionClassrooms: { some: { classroom_id } } }),
+                            ...(!classroom_id && { assignedSessionStudents: { some: { student_id } } }),
+                            syllabus: { user_id },
+                        },
+                    },
+                },
+            },
+        },
+        include: {
+            reviewAssignmentQuestions: {
+                include: {
+                    review_check: {
+                        select: {
+                            question: {
+                                select: {
+                                    step: { select: { topic: { select: { book: { select: { title: true } } } } } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    })
+    return result
+}
 
 type DbAssignmentFindManyCanditateProps = {
     user_id: bigint
@@ -68,12 +113,12 @@ export const dbAssignmentFindManyBookWithReviewChecks = async ({
 type DbAssignmentCreateAssignmentProps = {
     user_id: bigint
     student_id: bigint
-    condensedBookArray: CondensedBookWithReviewChecksFromClient[]
+    bookWithReviewChecksArray: BookWithReviewChecksFromClient[]
 }
 export const dbAssignmentCreateAssignment = async ({
     user_id: _user_id,
     student_id,
-    condensedBookArray,
+    bookWithReviewChecksArray,
 }: DbAssignmentCreateAssignmentProps) => {
     // TODO
     // TODO: NEED TO VALIDATE with user_id
@@ -82,7 +127,7 @@ export const dbAssignmentCreateAssignment = async ({
         data: {
             student_id,
             reviewAssignmentQuestions: {
-                create: condensedBookArray
+                create: bookWithReviewChecksArray
                     .flatMap((book) => book.reviewChecks)
                     .map((reviewCheck) => ({
                         review_check_id: convertToBigIntOrThrow(reviewCheck.id),
