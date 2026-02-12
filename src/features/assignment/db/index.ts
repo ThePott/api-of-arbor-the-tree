@@ -5,7 +5,7 @@ type DbAssignmentFindManyCanditateProps = {
     classroom_id: bigint | null
     student_id: bigint
 }
-export const dbAssignmentFindManyCanditateReviewCheck = async ({
+export const dbAssignmentFindManyBookWithReviewChecks = async ({
     user_id,
     classroom_id,
     student_id,
