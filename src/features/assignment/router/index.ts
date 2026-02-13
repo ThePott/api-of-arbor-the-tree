@@ -8,13 +8,14 @@ import {
     OLD_dbAssignmentFindManyAssignment,
 } from "../db/index.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
-import type { review_check, review_check_status } from "@/generated/prisma/client.js"
+import type { review_assignment, review_check, review_check_status } from "@/generated/prisma/client.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 
 const assignmentRouter = Router()
 
+// TODO: delete following code. it is dead.
 type OLD_ReviewAssignmentArrayVerbose = Awaited<ReturnType<typeof OLD_dbAssignmentFindManyAssignment>>
-const OLD_organizeReviewAssignment = (result: OLD_ReviewAssignmentArrayVerbose) => {
+const _OLD_organizeReviewAssignment = (result: OLD_ReviewAssignmentArrayVerbose) => {
     const extendedReviewAssignmentArray = result.map((verboseAssignment) => {
         const { reviewAssignmentQuestions: reviewAssignmentQuestionArray, ...assignment } = verboseAssignment
         const flatQuestionArray = reviewAssignmentQuestionArray.map((question) => {
@@ -35,16 +36,15 @@ const OLD_organizeReviewAssignment = (result: OLD_ReviewAssignmentArrayVerbose) 
     })
     return extendedReviewAssignmentArray
 }
+// TODO: delete above code. it is dead.
 
 type ReviewAssignmentArrayVerbose = Awaited<ReturnType<typeof dbAssignmentFindManyAssignment>>
-type ConciseAssignmentMetaInfo = {
-    assigned_at: Date
-    completed_at: Date | null
+type AssignmentMetaInfo = review_assignment & {
     bookTitleArray: string[]
     questionCount: number
 }
-const condenseAssignmentMetaInfo = (result: ReviewAssignmentArrayVerbose): ConciseAssignmentMetaInfo[] => {
-    const assignmentMetaInfoArray: ConciseAssignmentMetaInfo[] = result.map((verboseAssignment) => {
+const condenseAssignmentMetaInfo = (result: ReviewAssignmentArrayVerbose): AssignmentMetaInfo[] => {
+    const assignmentMetaInfoArray: AssignmentMetaInfo[] = result.map((verboseAssignment) => {
         const bookTitleSet = new Set<string>()
         verboseAssignment.reviewAssignmentQuestions.forEach((reviewAssignmentQuestion) => {
             const bookTitle = reviewAssignmentQuestion.review_check.question.step?.topic?.book?.title
@@ -52,7 +52,9 @@ const condenseAssignmentMetaInfo = (result: ReviewAssignmentArrayVerbose): Conci
             bookTitleSet.add(bookTitle)
         })
         const questionCount = verboseAssignment.reviewAssignmentQuestions.length
-        const metaInfo: ConciseAssignmentMetaInfo = {
+        const metaInfo: AssignmentMetaInfo = {
+            id: verboseAssignment.id,
+            student_id: verboseAssignment.student_id,
             assigned_at: verboseAssignment.assigned_at,
             completed_at: verboseAssignment.completed_at,
             bookTitleArray: Array.from(bookTitleSet),
