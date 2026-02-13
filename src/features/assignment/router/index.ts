@@ -5,6 +5,7 @@ import {
     dbAssignmentCreateAssignment,
     dbAssignmentFindManyAssignment,
     dbAssignmentFindManyBookWithReviewChecks,
+    OLD_dbAssignmentFindManyAssignment,
 } from "../db/index.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import type { review_check, review_check_status } from "@/generated/prisma/client.js"
@@ -12,11 +13,10 @@ import { ApiError } from "@/src/errors/appError/AppError.js"
 
 const assignmentRouter = Router()
 
-type ReviewAssignmentArrayVerbose = Awaited<ReturnType<typeof dbAssignmentFindManyAssignment>>
-const organizeReviewAssignment = (result: ReviewAssignmentArrayVerbose) => {
+type OLD_ReviewAssignmentArrayVerbose = Awaited<ReturnType<typeof OLD_dbAssignmentFindManyAssignment>>
+const OLD_organizeReviewAssignment = (result: OLD_ReviewAssignmentArrayVerbose) => {
     const extendedReviewAssignmentArray = result.map((verboseAssignment) => {
-        const { reviewAssignmentQuestions: _, ...assignment } = verboseAssignment
-        const reviewAssignmentQuestionArray = verboseAssignment.reviewAssignmentQuestions
+        const { reviewAssignmentQuestions: reviewAssignmentQuestionArray, ...assignment } = verboseAssignment
         const flatQuestionArray = reviewAssignmentQuestionArray.map((question) => {
             const { review_check, ...rest } = question
             const bookWithReviewAssignmentQuestions = { ...rest, title: review_check.question.step?.topic?.book?.title }
@@ -35,13 +35,40 @@ const organizeReviewAssignment = (result: ReviewAssignmentArrayVerbose) => {
     })
     return extendedReviewAssignmentArray
 }
+
+type ReviewAssignmentArrayVerbose = Awaited<ReturnType<typeof dbAssignmentFindManyAssignment>>
+type ConciseAssignmentMetaInfo = {
+    assigned_at: Date
+    completed_at: Date | null
+    bookTitleArray: string[]
+    questionCount: number
+}
+const condenseAssignmentMetaInfo = (result: ReviewAssignmentArrayVerbose): ConciseAssignmentMetaInfo[] => {
+    const assignmentMetaInfoArray: ConciseAssignmentMetaInfo[] = result.map((verboseAssignment) => {
+        const bookTitleSet = new Set<string>()
+        verboseAssignment.reviewAssignmentQuestions.forEach((reviewAssignmentQuestion) => {
+            const bookTitle = reviewAssignmentQuestion.review_check.question.step?.topic?.book?.title
+            if (!bookTitle) throw ApiError.Internal("오답 과제 목록을 정리하던 중 오류가 발생했어요")
+            bookTitleSet.add(bookTitle)
+        })
+        const questionCount = verboseAssignment.reviewAssignmentQuestions.length
+        const metaInfo: ConciseAssignmentMetaInfo = {
+            assigned_at: verboseAssignment.assigned_at,
+            completed_at: verboseAssignment.completed_at,
+            bookTitleArray: Array.from(bookTitleSet),
+            questionCount,
+        }
+        return metaInfo
+    })
+    return assignmentMetaInfoArray
+}
 assignmentRouter.get("/", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const student_id = convertToBigIntOrThrow(req.query.student_id)
     const result = await dbAssignmentFindManyAssignment({ user_id, classroom_id, student_id })
-    const extended = organizeReviewAssignment(result)
-    const serializable = makeSerializable(extended)
+    const condensed = condenseAssignmentMetaInfo(result)
+    const serializable = makeSerializable(condensed)
     res.status(200).json(serializable)
 })
 
