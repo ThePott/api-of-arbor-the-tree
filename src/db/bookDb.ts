@@ -55,6 +55,7 @@ export const dbCreateBook = async ({ title, published_year, data, user_id }: Boo
         console.time("dbCreateBook: tx.book.create")
         const bookResult = await tx.book.create({
             data: {
+                user_id,
                 title: bookPayload.title,
                 published_year: bookPayload.published_year,
                 topics: {
