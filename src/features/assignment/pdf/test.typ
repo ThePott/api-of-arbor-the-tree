@@ -1,8 +1,13 @@
-= Introduction
-In this report, we will explore the
-various factors that influence _fluid
-dynamics_ in glaciers and how they
-contribute to the formation and
-behaviour of these natural structures.
+#import "./typst-template/page-setting.typ": page-setting
+#import "./typst-template/header.typ": header
 
-== 한글 아무렇게나
+#show: page-setting
+
+
+#header(
+  "일품 중등 수학 3(상)",
+  "[I] 1 제곱근과 실수",
+  "개념 & 핵심 기출",
+  "20230118",
+  "홍길동",
+)
