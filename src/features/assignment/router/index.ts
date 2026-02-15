@@ -10,6 +10,7 @@ import {
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import type { review_assignment, review_check, review_check_status } from "@/generated/prisma/client.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
+import { convertTypstToPdf } from "../pdf/index.js"
 
 const assignmentRouter = Router()
 
@@ -122,6 +123,12 @@ assignmentRouter.post("/create", async (req, res) => {
     })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
+})
+
+assignmentRouter.get("/dev/pdf-check", async (req, res) => {
+    const pdf = convertTypstToPdf()
+    res.contentType("application/pdf")
+    res.status(200).send(pdf)
 })
 
 export default assignmentRouter

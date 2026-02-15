@@ -1,7 +1,18 @@
 // 여기서 해야 하는 게 뭔가
-// 1. typst cli setup
-// 2. typst sample page for review assignment
-// 1. create typst file from node
-// 2. typst compile to pdf then save it to debug in node << how can I run system command in node?
-// 3. create blob from pdf
-// 4. can I create pdf and convert into blob without saving it?
+// 1. test.typ compile without writing
+// 2. pdf to blob
+
+import { fileURLToPath } from "url"
+import { dirname } from "path"
+import { execSync } from "child_process"
+import fs from "fs"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+export const convertTypstToPdf = () => {
+    const testTypstPath = `${__dirname}/test.typ`
+    execSync(`typst compile ${testTypstPath}`)
+    const pdf = fs.readFileSync(`${__dirname}/test.pdf`)
+    return pdf
+}
