@@ -20,22 +20,25 @@
   content,
 )
 
+#let header-data = (
+  book-string: "",
+  topic-string: "",
+  step-string: "",
+  date-string: "",
+  name-string: "",
+)
 #let header(
-  book-string,
-  topic-string,
-  step-string,
-  date-string,
-  name-string,
+  header-data,
 ) = grid(
   columns: (1fr, auto),
   align: (left, right),
   [
-    #book-title(book-string) \
-    #topic-title(topic-string) \
-    #step-title(step-string)
+    #book-title(header-data.book-string) \
+    #topic-title(header-data.topic-string) \
+    #step-title(header-data.step-string)
   ],
   [
-    #assigned-date(date-string) \
-    #student-name(name-string)
+    #assigned-date(header-data.date-string) \
+    #student-name(header-data.name-string)
   ],
 )

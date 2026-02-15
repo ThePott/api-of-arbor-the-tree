@@ -1,22 +1,30 @@
-#let index-text(value) = text(
+#let index-text(content) = text(
   weight: "semibold",
-  value,
+  content,
 )
-#let question-box(index, page, question-name, solution-page) = {
+
+#let question-data = (
+  index: 1,
+  page: 1,
+  question-name: "",
+  solution-page: 0,
+)
+
+#let question-box(question-data) = {
   grid(
     columns: (auto, auto, 1fr),
-    [#index-text(index)],
+    [#index-text(str(question-data.index))],
     [
       #h(16pt)
-      #text(page)
+      #text(str(question-data.page))
       쪽
-      #text(question-name)
+      #text(question-data.question-name)
       번
     ],
     [
       #h(1fr)
       (답지
-      #text(solution-page)
+      #text(str(question-data.solution-page))
       쪽)
     ],
   )

@@ -6,24 +6,24 @@
 #show: page-setting
 
 #let sample-page = assignment-page(
-  (
-    "일품 중등 수학 3(상)",
-    "[I] 1 제곱근과 실수",
-    "개념 & 핵심 기출",
-    "20230118",
-    "홍길동",
+  header-data: (
+    book-string: "일품 중등 수학 3(상)",
+    topic-string: "[I] 1 제곱근과 실수",
+    step-string: "개념 & 핵심 기출",
+    date-string: "20230118",
+    name-string: "홍길동",
   ),
-  (
-    "1",
-    "8",
-    "30",
-    "0",
+  first-question-data: (
+    index: 1,
+    page: 8,
+    question-name: "30",
+    solution-page: 0,
   ),
   second-question-data: (
-    "2",
-    "8",
-    "30",
-    "0",
+    index: 1,
+    page: 8,
+    question-name: "30",
+    solution-page: 0,
   ),
 )
 
