@@ -1,23 +1,23 @@
-#let book(value) = text(
+#let book-title(content) = text(
   size: 12pt,
-  value,
+  content,
 )
-#let topic(value) = text(
+#let topic-title(content) = text(
   size: 16pt,
-  value,
+  content,
 )
-#let step(value) = text(
+#let step-title(content) = text(
   size: 18pt,
   weight: "semibold",
-  value,
+  content,
 )
-#let date(value) = text(
+#let assigned-date(content) = text(
   size: 12pt,
-  value,
+  content,
 )
-#let name(value) = text(
+#let student-name(content) = text(
   size: 14pt,
-  value,
+  content,
 )
 
 #let header(
@@ -30,12 +30,12 @@
   columns: (1fr, auto),
   align: (left, right),
   [
-    #book(book-string) \
-    #topic(topic-string) \
-    #step(step-string)
+    #book-title(book-string) \
+    #topic-title(topic-string) \
+    #step-title(step-string)
   ],
   [
-    #date(date-string) \
-    #name(name-string)
+    #assigned-date(date-string) \
+    #student-name(name-string)
   ],
 )
