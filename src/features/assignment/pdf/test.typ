@@ -4,267 +4,14 @@
 #import "./typst-template/assignment-page.typ": (
   assignment-page, handout-per-topic,
 )
+#import "./typst-template/utils/create-dummies.typ": create-dummy-book-data
 
 #show: page-setting
 
-// #let header-data = (
-//   book-string: "일품 중등 수학 3(상)",
-//   topic-string: "[I] 1 제곱근과 실수",
-//   date-string: "20230118",
-//   name-string: "홍길동",
-// )
-//
-// #handout-per-topic(
-//   header-data: header-data,
-//   question-data-array: (
-//     (
-//       page: 8,
-//       question-name: "30",
-//       solution-page: 0,
-//     ),
-//     (
-//       page: 8,
-//       question-name: "31",
-//       solution-page: 0,
-//     ),
-//     (
-//       page: 8,
-//       question-name: "32",
-//       solution-page: 0,
-//     ),
-//   ),
-// )
-
-#let book-data = (
-  title: "일품 중등 수학 3(상)",
-  topics: (
-    (
-      title: "[I] 제곱근과 실수",
-      questions: (
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-      ),
-    ),
-    (
-      title: "[II] 제곱근과 실수",
-      questions: (
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-      ),
-    ),
-    (
-      title: "[III] 제곱근과 실수",
-      questions: (
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-      ),
-    ),
-    (
-      title: "[IV] 제곱근과 실수",
-      questions: (
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-        (
-          page: 8,
-          name: "30",
-          solution-page: 0,
-        ),
-      ),
-    ),
-  ),
-)
-
 #let handout-per-book(
-  book-data: book-data,
-  student-name: "홍길동",
-  date-string: "2023-01-18",
+  student-name: "",
+  date-string: "",
+  book-data: (),
 ) = {
   let book-title = book-data.title
   for (topic-data) in book-data.topics {
@@ -281,8 +28,25 @@
   }
 }
 
-#handout-per-book(
-  book-data: book-data,
+#let handout-per-student(
+  student-name: "",
+  date-string: "",
+  book-data-array: (),
+) = {
+  for book-data in book-data-array {
+    handout-per-book(
+      student-name: student-name,
+      date-string: date-string,
+      book-data: book-data,
+    )
+  }
+}
+
+#handout-per-student(
   student-name: "홍길동",
-  date-string: "2023-01-18",
+  date-string: "2025-02-16",
+  book-data-array: (
+    create-dummy-book-data(title: "일품 중등 수학 3(상)"),
+    create-dummy-book-data(title: "쎈 중등 수학 3(상)"),
+  ),
 )
