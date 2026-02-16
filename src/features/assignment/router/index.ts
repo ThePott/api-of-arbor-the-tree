@@ -6,39 +6,13 @@ import {
     dbAssignmentFindBookForPdf,
     dbAssignmentFindManyAssignment,
     dbAssignmentFindManyBookWithReviewChecks,
-    OLD_dbAssignmentFindManyAssignment,
 } from "../db/index.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import type { review_assignment, review_check, review_check_status } from "@/generated/prisma/client.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
-import { convertTypstToPdf } from "../pdf/index.js"
+import makeAssignmentPdf from "../pdf/index.js"
 
 const assignmentRouter = Router()
-
-// TODO: delete following code. it is dead.
-type OLD_ReviewAssignmentArrayVerbose = Awaited<ReturnType<typeof OLD_dbAssignmentFindManyAssignment>>
-const _OLD_organizeReviewAssignment = (result: OLD_ReviewAssignmentArrayVerbose) => {
-    const extendedReviewAssignmentArray = result.map((verboseAssignment) => {
-        const { reviewAssignmentQuestions: reviewAssignmentQuestionArray, ...assignment } = verboseAssignment
-        const flatQuestionArray = reviewAssignmentQuestionArray.map((question) => {
-            const { review_check, ...rest } = question
-            const bookWithReviewAssignmentQuestions = { ...rest, title: review_check.question.step?.topic?.book?.title }
-            return bookWithReviewAssignmentQuestions
-        })
-        const grouped = Object.groupBy(flatQuestionArray, ({ title }) => {
-            if (!title) throw ApiError.Internal("오답 과제 목록을 정리하던 중 오류가 발생했어요")
-            return title
-        })
-        const entryArray = Object.entries(grouped)
-        const organized = entryArray.map(([title, reviewAssignmentQuestions]) => ({
-            title,
-            reviewAssignmentQuestions,
-        }))
-        return { ...assignment, books: organized }
-    })
-    return extendedReviewAssignmentArray
-}
-// TODO: delete above code. it is dead.
 
 type ReviewAssignmentArrayVerbose = Awaited<ReturnType<typeof dbAssignmentFindManyAssignment>>
 type AssignmentMetaInfo = review_assignment & {
@@ -98,7 +72,6 @@ assignmentRouter.get("/create", async (req, res) => {
     const result = await dbAssignmentFindManyBookWithReviewChecks({ user_id, classroom_id, student_id })
     const condensedResult = condenseBookWithReviewChecksArray(result)
     const serializable = makeSerializable(condensedResult)
-    // const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
 
@@ -126,13 +99,7 @@ assignmentRouter.post("/create", async (req, res) => {
     res.status(200).json(serializable)
 })
 
-assignmentRouter.get("/dev/pdf-check", async (req, res) => {
-    const pdf = convertTypstToPdf()
-    res.contentType("application/pdf")
-    res.status(200).send(pdf)
-})
-
-const condenseBookForPdf = (bookArray: Awaited<ReturnType<typeof dbAssignmentFindBookForPdf>>) => {
+export const condenseBookForPdf = (bookArray: Awaited<ReturnType<typeof dbAssignmentFindBookForPdf>>) => {
     const newBookArray = bookArray.map((book) => {
         const topics = book.topics.map((topic) => {
             const questions = topic.steps.flatMap(({ questions }) => questions)
@@ -148,8 +115,15 @@ assignmentRouter.get("/:assignment_id/pdf", async (req, res) => {
     const assignment_id = convertToBigIntOrThrow(req.params.assignment_id)
     const result = await dbAssignmentFindBookForPdf({ user_id, assignment_id })
     const condensed = condenseBookForPdf(result)
-    const serializable = makeSerializable(condensed)
-    res.status(200).json(serializable)
+    console.log("----here")
+    const pdf = makeAssignmentPdf({
+        studentName: "홍길동",
+        assigned_at: new Date(),
+        bookForPdfArray: condensed,
+    })
+    console.log("----pdf done")
+    res.contentType("application/pdf")
+    res.status(200).send(pdf)
 })
 
 export default assignmentRouter

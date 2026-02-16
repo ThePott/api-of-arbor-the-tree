@@ -7,9 +7,8 @@
   index: 1,
   page: 1,
   name: "",
-  solution-page: 0,
+  solution_page: 0,
 )
-
 #let question-box(question-data) = {
   grid(
     columns: (auto, auto, 1fr),
@@ -24,7 +23,7 @@
     [
       #h(1fr)
       (답지
-      #text(str(question-data.solution-page))
+      #text(str(question-data.solution_page))
       쪽)
     ],
   )
