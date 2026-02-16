@@ -11,6 +11,37 @@
   if second-question-data != none {
     question-box(second-question-data) // NOTE: this is optional
   }
+  pagebreak(weak: true)
+}
 
-  pagebreak(to: "odd") // NOTE: this should be called only when book has been changed
+// 생각을 해보자
+// 어떻게 문제가 묶여서 와야 하지?
+// step 단위로 잘라서 줘야 한다
+// book, topic << step은 무시한다. topic이 바뀔 때마다 페이지를 바꾼다
+
+#let topic-handout(
+  header-data: header-data,
+  question-data-array: (),
+) = {
+  let page-length = calc.ceil(question-data-array.len() / 2)
+  for grouped-index in range(page-length) {
+    let first-question-data = (
+      ..question-data-array.at(grouped-index * 2),
+      index: grouped-index * 2 + 1,
+    )
+    let second-data = question-data-array.at(
+      grouped-index * 2 + 1,
+      default: none,
+    )
+    let second-question-data = if second-data == none { none } else {
+      (..(second-data), index: grouped-index * 2 + 2)
+    }
+
+    assignment-page(
+      header-data: header-data,
+      first-question-data: first-question-data,
+      second-question-data: second-question-data,
+    )
+  }
+  pagebreak(to: "odd", weak: true)
 }

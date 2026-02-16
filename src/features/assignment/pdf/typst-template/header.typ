@@ -4,10 +4,6 @@
 )
 #let topic-title(content) = text(
   size: 16pt,
-  content,
-)
-#let step-title(content) = text(
-  size: 18pt,
   weight: "semibold",
   content,
 )
@@ -23,7 +19,6 @@
 #let header-data = (
   book-string: "",
   topic-string: "",
-  step-string: "",
   date-string: "",
   name-string: "",
 )
@@ -35,7 +30,6 @@
   [
     #book-title(header-data.book-string) \
     #topic-title(header-data.topic-string) \
-    #step-title(header-data.step-string)
   ],
   [
     #assigned-date(header-data.date-string) \
