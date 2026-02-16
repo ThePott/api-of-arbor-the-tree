@@ -14,12 +14,7 @@
   pagebreak(weak: true)
 }
 
-// 생각을 해보자
-// 어떻게 문제가 묶여서 와야 하지?
-// step 단위로 잘라서 줘야 한다
-// book, topic << step은 무시한다. topic이 바뀔 때마다 페이지를 바꾼다
-
-#let topic-handout(
+#let handout-per-topic(
   header-data: header-data,
   question-data-array: (),
 ) = {
@@ -45,3 +40,4 @@
   }
   pagebreak(to: "odd", weak: true)
 }
+

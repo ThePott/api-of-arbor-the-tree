@@ -6,7 +6,7 @@
 #let question-data = (
   index: 1,
   page: 1,
-  question-name: "",
+  name: "",
   solution-page: 0,
 )
 
@@ -18,7 +18,7 @@
       #h(16pt)
       #text(str(question-data.page))
       쪽
-      #text(question-data.question-name)
+      #text(question-data.name)
       번
     ],
     [
