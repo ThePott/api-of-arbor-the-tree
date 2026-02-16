@@ -3,6 +3,7 @@ import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { Router } from "express"
 import {
     dbAssignmentCreateAssignment,
+    dbAssignmentFindBookForPdf,
     dbAssignmentFindManyAssignment,
     dbAssignmentFindManyBookWithReviewChecks,
     OLD_dbAssignmentFindManyAssignment,
@@ -11,6 +12,7 @@ import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import type { review_assignment, review_check, review_check_status } from "@/generated/prisma/client.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import { convertTypstToPdf } from "../pdf/index.js"
+import prismaClient from "@/src/db/prismaClient.js"
 
 const assignmentRouter = Router()
 
@@ -129,6 +131,46 @@ assignmentRouter.get("/dev/pdf-check", async (req, res) => {
     const pdf = convertTypstToPdf()
     res.contentType("application/pdf")
     res.status(200).send(pdf)
+})
+
+assignmentRouter.get("/:assignment_id/pdf", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const assignment_id = convertToBigIntOrThrow(req.params.assignment_id)
+    const result = await dbAssignmentFindBookForPdf({ user_id, assignment_id })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+
+assignmentRouter.get("/:assignment_id/pdf/debug", async (req, res) => {
+    const assignment_id = convertToBigIntOrThrow(req.params.assignment_id)
+    const result = await prismaClient.review_assignment.findUniqueOrThrow({
+        where: {
+            id: assignment_id,
+        },
+        select: {
+            reviewAssignmentQuestions: {
+                select: {
+                    review_check: {
+                        include: {
+                            question: {
+                                include: {
+                                    step: {
+                                        include: {
+                                            topic: {
+                                                include: { book: true },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
 })
 
 export default assignmentRouter
