@@ -44,6 +44,8 @@ export const dbAssignmentFindManyAssignment = async ({
                     },
                 },
             },
+            assignedReviewAssignment: true,
+            completedReviewAssignment: true,
         },
     })
     return result
