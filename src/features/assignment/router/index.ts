@@ -21,6 +21,7 @@ type ReviewAssignmentArrayVerbose = Awaited<ReturnType<typeof dbAssignmentFindMa
 type AssignmentMetaInfo = {
     id: bigint
     student_id: bigint
+    created_at: Date
     assigned_at: Date | null
     status: session_status | null
     bookTitleArray: string[]
@@ -38,6 +39,7 @@ const condenseAssignmentMetaInfo = (result: ReviewAssignmentArrayVerbose): Assig
         const metaInfo: AssignmentMetaInfo = {
             id: verboseAssignment.id,
             student_id: verboseAssignment.student_id,
+            created_at: verboseAssignment.created_at,
             assigned_at: verboseAssignment.assignedReviewAssignment?.assigned_at ?? null,
             status: verboseAssignment.assignedReviewAssignment?.status ?? null,
             bookTitleArray: Array.from(bookTitleSet),
