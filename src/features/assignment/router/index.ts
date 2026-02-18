@@ -9,8 +9,6 @@ import {
     dbAssignmentFindBookForPdf,
     dbAssignmentFindManyAssignment,
     dbAssignmentFindManyBookWithReviewChecks,
-    dbCompletedAssignmentCreate,
-    dbCompletedAssignmentDelete,
 } from "../db/index.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import type { review_assignment, review_check, review_check_status, session_status } from "@/generated/prisma/client.js"
@@ -21,6 +19,9 @@ const assignmentRouter = Router()
 
 type ReviewAssignmentArrayVerbose = Awaited<ReturnType<typeof dbAssignmentFindManyAssignment>>
 type AssignmentMetaInfo = review_assignment & {
+    assigned_at: Date | undefined
+    status: session_status | null
+    completed_at: Date | undefined
     bookTitleArray: string[]
     questionCount: number
 }
@@ -36,8 +37,8 @@ const condenseAssignmentMetaInfo = (result: ReviewAssignmentArrayVerbose): Assig
         const metaInfo: AssignmentMetaInfo = {
             id: verboseAssignment.id,
             student_id: verboseAssignment.student_id,
-            assigned_at: verboseAssignment.assigned_at,
-            completed_at: verboseAssignment.completed_at,
+            created_at: verboseAssignment.created_at,
+            completed_at: verboseAssignment.completedReviewAssignment?.completed_at,
             bookTitleArray: Array.from(bookTitleSet),
             questionCount,
         }
@@ -151,21 +152,6 @@ assignmentRouter.delete("/:assignment_id/assigned", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const assignment_id = convertToBigIntOrThrow(req.body.assignment_id)
     const result = dbAssignedAssignmentDelete({ user_id, assignment_id })
-    const serializable = makeSerializable(result)
-    res.status(200).json(serializable)
-})
-
-assignmentRouter.post("/:assignment_id/completed", async (req, res) => {
-    const user_id = extractUserId(req.headers)
-    const assignment_id = convertToBigIntOrThrow(req.body.assignment_id)
-    const result = dbCompletedAssignmentCreate({ user_id, assignment_id })
-    const serializable = makeSerializable(result)
-    res.status(200).json(serializable)
-})
-assignmentRouter.delete("/:assignment_id/completed", async (req, res) => {
-    const user_id = extractUserId(req.headers)
-    const assignment_id = convertToBigIntOrThrow(req.body.assignment_id)
-    const result = dbCompletedAssignmentDelete({ user_id, assignment_id })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })

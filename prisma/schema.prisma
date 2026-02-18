@@ -336,7 +336,6 @@ model review_assignment {
     student                   student                      @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
     reviewAssignmentQuestions review_assignment_question[]
     assignedReviewAssignment  assigned_review_assignment?
-    completedReviewAssignment completed_review_assignment?
 }
 
 model review_assignment_question {
@@ -355,14 +354,6 @@ model assigned_review_assignment {
     review_assignment_id BigInt         @unique
     status               session_status
     assigned_at          DateTime       @default(now())
-
-    review_assignment review_assignment @relation(fields: [review_assignment_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-}
-
-model completed_review_assignment {
-    id                   BigInt   @id @default(autoincrement())
-    review_assignment_id BigInt   @unique
-    completed_at         DateTime @default(now())
 
     review_assignment review_assignment @relation(fields: [review_assignment_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
