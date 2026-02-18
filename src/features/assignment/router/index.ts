@@ -2,13 +2,18 @@ import { convertToBigIntOrNull, convertToBigIntOrThrow } from "@/src/utils/conve
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { Router } from "express"
 import {
+    DbAssignedAssignmentCreate,
+    dbAssignedAssignmentDelete,
+    dbAssignedAssignmentUpdate,
     dbAssignmentCreateAssignment,
     dbAssignmentFindBookForPdf,
     dbAssignmentFindManyAssignment,
     dbAssignmentFindManyBookWithReviewChecks,
+    dbCompletedAssignmentCreate,
+    dbCompletedAssignmentDelete,
 } from "../db/index.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
-import type { review_assignment, review_check, review_check_status } from "@/generated/prisma/client.js"
+import type { review_assignment, review_check, review_check_status, session_status } from "@/generated/prisma/client.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import makeAssignmentPdf from "../pdf/index.js"
 
@@ -124,6 +129,45 @@ assignmentRouter.get("/:assignment_id/pdf", async (req, res) => {
     console.log("----pdf done")
     res.contentType("application/pdf")
     res.status(200).send(pdf)
+})
+
+assignmentRouter.post("/:assignment_id/assigned", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const assignment_id = convertToBigIntOrThrow(req.body.assignment_id)
+    const status = req.body.status as session_status
+    const result = DbAssignedAssignmentCreate({ user_id, assignment_id, status })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+assignmentRouter.patch("/:assignment_id/assigned", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const assignment_id = convertToBigIntOrThrow(req.body.assignment_id)
+    const status = req.body.status as session_status
+    const result = dbAssignedAssignmentUpdate({ user_id, assignment_id, status })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+assignmentRouter.delete("/:assignment_id/assigned", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const assignment_id = convertToBigIntOrThrow(req.body.assignment_id)
+    const result = dbAssignedAssignmentDelete({ user_id, assignment_id })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+
+assignmentRouter.post("/:assignment_id/completed", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const assignment_id = convertToBigIntOrThrow(req.body.assignment_id)
+    const result = dbCompletedAssignmentCreate({ user_id, assignment_id })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+assignmentRouter.delete("/:assignment_id/completed", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const assignment_id = convertToBigIntOrThrow(req.body.assignment_id)
+    const result = dbCompletedAssignmentDelete({ user_id, assignment_id })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
 })
 
 export default assignmentRouter
