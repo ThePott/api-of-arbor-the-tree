@@ -335,6 +335,8 @@ model review_assignment {
 
     student                   student                      @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
     reviewAssignmentQuestions review_assignment_question[]
+    assignedReviewAssignment  assigned_review_assignment?
+    completedReviewAssignment completed_review_assignment?
 }
 
 model review_assignment_question {
@@ -346,6 +348,23 @@ model review_assignment_question {
 
     review_assignment review_assignment @relation(fields: [review_assignment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
     review_check      review_check      @relation(fields: [review_check_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model assigned_review_assignment {
+    id                   BigInt         @id @default(autoincrement())
+    review_assignment_id BigInt         @unique
+    status               session_status
+    assigned_at          DateTime       @default(now())
+
+    review_assignment review_assignment @relation(fields: [review_assignment_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+}
+
+model completed_review_assignment {
+    id                   BigInt   @id @default(autoincrement())
+    review_assignment_id BigInt   @unique
+    completed_at         DateTime @default(now())
+
+    review_assignment review_assignment @relation(fields: [review_assignment_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 // TODO: syllabus review check, assignment review check 이렇게 나눠야 할까?
