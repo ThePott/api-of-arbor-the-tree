@@ -217,7 +217,7 @@ type DbAssignedAssignmentCreateProps = {
     assignment_id: bigint
     status: session_status
 }
-export const DbAssignedAssignmentCreate = async ({
+export const dbAssignedAssignmentCreate = async ({
     user_id,
     assignment_id,
     status,
