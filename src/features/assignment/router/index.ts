@@ -11,17 +11,18 @@ import {
     dbAssignmentFindManyBookWithReviewChecks,
 } from "../db/index.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
-import type { review_assignment, review_check, review_check_status, session_status } from "@/generated/prisma/client.js"
+import type { review_check, review_check_status, session_status } from "@/generated/prisma/client.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import makeAssignmentPdf from "../pdf/index.js"
 
 const assignmentRouter = Router()
 
 type ReviewAssignmentArrayVerbose = Awaited<ReturnType<typeof dbAssignmentFindManyAssignment>>
-type AssignmentMetaInfo = review_assignment & {
+type AssignmentMetaInfo = {
+    id: bigint
+    student_id: bigint
     assigned_at: Date | undefined
     status: session_status | null
-    completed_at: Date | undefined
     bookTitleArray: string[]
     questionCount: number
 }
@@ -37,8 +38,8 @@ const condenseAssignmentMetaInfo = (result: ReviewAssignmentArrayVerbose): Assig
         const metaInfo: AssignmentMetaInfo = {
             id: verboseAssignment.id,
             student_id: verboseAssignment.student_id,
-            created_at: verboseAssignment.created_at,
-            completed_at: verboseAssignment.completedReviewAssignment?.completed_at,
+            assigned_at: verboseAssignment.assignedReviewAssignment?.assigned_at,
+            status: verboseAssignment.assignedReviewAssignment?.status || null,
             bookTitleArray: Array.from(bookTitleSet),
             questionCount,
         }
