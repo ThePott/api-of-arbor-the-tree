@@ -2,9 +2,8 @@ import { convertToBigIntOrNull, convertToBigIntOrThrow } from "@/src/utils/conve
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { Router } from "express"
 import {
-    dbAssignedAssignmentCreate,
+    dbAssignedAssignmentUpsert,
     dbAssignedAssignmentDelete,
-    dbAssignedAssignmentUpdate,
     dbAssignmentCreateAssignment,
     dbAssignmentFindBookForPdf,
     dbAssignmentFindManyAssignment,
@@ -138,27 +137,17 @@ assignmentRouter.get("/:assignment_id/pdf", async (req, res) => {
 
 assignmentRouter.post("/:assignment_id/assigned", async (req, res) => {
     const user_id = extractUserId(req.headers)
-    const assignment_id = convertToBigIntOrThrow(req.body.assignment_id)
+    const assignment_id = convertToBigIntOrThrow(req.params.assignment_id)
     const status = req.body.status as session_status
-    validateBody({ assignment_id, status })
+    validateBody({ status })
 
-    const result = await dbAssignedAssignmentCreate({ user_id, assignment_id, status })
-    const serializable = makeSerializable(result)
-    res.status(200).json(serializable)
-})
-assignmentRouter.patch("/:assignment_id/assigned", async (req, res) => {
-    const user_id = extractUserId(req.headers)
-    const assignment_id = convertToBigIntOrThrow(req.body.assignment_id)
-    const status = req.body.status as session_status
-    validateBody({ assignment_id, status })
-
-    const result = await dbAssignedAssignmentUpdate({ user_id, assignment_id, status })
+    const result = await dbAssignedAssignmentUpsert({ user_id, assignment_id, status })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
 assignmentRouter.delete("/:assignment_id/assigned", async (req, res) => {
     const user_id = extractUserId(req.headers)
-    const assignment_id = convertToBigIntOrThrow(req.body.assignment_id)
+    const assignment_id = convertToBigIntOrThrow(req.params.assignment_id)
     const result = await dbAssignedAssignmentDelete({ user_id, assignment_id })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)

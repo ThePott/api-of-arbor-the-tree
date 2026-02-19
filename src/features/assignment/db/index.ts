@@ -217,41 +217,24 @@ type DbAssignedAssignmentCreateProps = {
     assignment_id: bigint
     status: session_status
 }
-export const dbAssignedAssignmentCreate = async ({
+export const dbAssignedAssignmentUpsert = async ({
     user_id,
     assignment_id,
     status,
 }: DbAssignedAssignmentCreateProps) => {
     await prismaClient.review_assignment.findUniqueOrThrow({
-        where: { id: assignment_id, student: { hagwon: { principal: { user_id } } } },
-    })
-    const result = await prismaClient.assigned_review_assignment.create({
-        data: {
-            review_assignment_id: assignment_id,
-            status,
-        },
-    })
-    return result
-}
-
-type DbAssignedAssignmentUpdateProps = {
-    user_id: bigint
-    assignment_id: bigint
-    status: session_status
-}
-export const dbAssignedAssignmentUpdate = async ({
-    user_id,
-    assignment_id,
-    status,
-}: DbAssignedAssignmentUpdateProps) => {
-    const result = await prismaClient.assigned_review_assignment.update({
         where: {
-            review_assignment_id: assignment_id,
-            review_assignment: { student: { hagwon: { principal: { user_id } } } },
+            id: assignment_id,
+            student: { hagwon: { principal: { user_id } } },
         },
-        data: {
+    })
+    const result = await prismaClient.assigned_review_assignment.upsert({
+        where: { review_assignment_id: assignment_id },
+        create: {
+            review_assignment_id: assignment_id,
             status,
         },
+        update: { status },
     })
     return result
 }
@@ -269,36 +252,3 @@ export const dbAssignedAssignmentDelete = async ({ user_id, assignment_id }: DbA
     })
     return result
 }
-
-// type DbCompletedAssignmentCreateProps = {
-//     user_id: bigint
-//     assignment_id: bigint
-// }
-// export const dbCompletedAssignmentCreate = async ({ user_id, assignment_id }: DbCompletedAssignmentCreateProps) => {
-//     await prismaClient.review_assignment.findUniqueOrThrow({
-//         where: {
-//             id: assignment_id,
-//             student: { hagwon: { principal: { user_id } } },
-//         },
-//     })
-//
-//     const result = prismaClient.completed_review_assignment.create({
-//         data: {
-//             review_assignment_id: assignment_id,
-//         },
-//     })
-//     return result
-// }
-// type DbCompletedAssignmentDeleteProps = {
-//     user_id: bigint
-//     assignment_id: bigint
-// }
-// export const dbCompletedAssignmentDelete = async ({ user_id, assignment_id }: DbCompletedAssignmentDeleteProps) => {
-//     const result = await prismaClient.completed_review_assignment.delete({
-//         where: {
-//             review_assignment_id: assignment_id,
-//             review_assignment: { student: { hagwon: { principal: { user_id } } } },
-//         },
-//     })
-//     return result
-// }
