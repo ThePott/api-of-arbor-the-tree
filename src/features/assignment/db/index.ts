@@ -91,7 +91,9 @@ export const dbAssignmentFindManyBookWithReviewChecks = async ({
                         select: {
                             questions: {
                                 select: {
-                                    reviewChecks: true,
+                                    reviewChecks: {
+                                        where: { student_id },
+                                    },
                                 },
                             },
                         },
