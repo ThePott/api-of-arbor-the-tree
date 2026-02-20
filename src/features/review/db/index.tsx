@@ -71,11 +71,13 @@ export const dbReviewCheckFindMany = async ({
 
 type DbReviewCheckBulkWriteProps = {
     user_id: bigint
+    classroom_id: bigint | null
     student_id: bigint
     changedReviewChecks: QuestionIdToInfoForApi // NOTE: already converted to bigint except for question_id(key)
 }
 export const dbReviewCheckBulkWrite = async ({
     user_id: _user_id,
+    classroom_id,
     student_id,
     changedReviewChecks,
 }: DbReviewCheckBulkWriteProps) => {
@@ -151,11 +153,12 @@ export const dbReviewCheckBulkWrite = async ({
         })
         .map((session) => session.id)
     const completedPromise = prismaClient.completed_session_student.createManyAndReturn({
-        data: completedSessionIdArray.map((session_id) => ({ session_id, student_id })),
+        data: completedSessionIdArray.map((session_id) => ({ session_id, student_id, classroom_id })),
     })
     const uncompletedPromise = prismaClient.completed_session_student.deleteMany({
         where: {
             student_id,
+            classroom_id,
             session_id: { in: uncompletedSessionIdArray },
         },
     })
