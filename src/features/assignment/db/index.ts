@@ -21,38 +21,24 @@ export const dbAssignmentFindManyAssignment = async ({
             reviewAssignmentQuestions: {
                 some: {
                     review_check: {
-                        session: {
-                            ...(classroom_id && { assignedSessionClassrooms: { some: { classroom_id } } }),
-                            ...(!classroom_id && { assignedSessionStudents: { some: { student_id } } }),
-                            syllabus: { user_id },
-                        },
+                        classroom_id,
+                        session: { syllabus: { user_id } },
                     },
                 },
             },
         },
         include: {
+            assignedReviewAssignment: true,
             reviewAssignmentQuestions: {
                 include: {
                     review_check: {
-                        include: {
+                        select: {
                             question: {
                                 select: {
                                     step: { select: { topic: { select: { book: { select: { title: true } } } } } },
                                 },
                             },
-                            session: {
-                                include: {
-                                    assignedSessionClassrooms: true,
-                                },
-                            },
                         },
-                        // select: {
-                        //     question: {
-                        //         select: {
-                        //             step: { select: { topic: { select: { book: { select: { title: true } } } } } },
-                        //         },
-                        //     },
-                        // },
                     },
                 },
             },
