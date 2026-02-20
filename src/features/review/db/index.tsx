@@ -4,7 +4,6 @@ import type { QuestionIdToInfoForApi } from "../types/index.js"
 
 type DbReviewCheckFindManyProps = {
     user_id: bigint
-    classroom_id: bigint | null
     student_id: bigint
     syllabus_id: bigint
     review_assignment_id: bigint | null
@@ -12,7 +11,6 @@ type DbReviewCheckFindManyProps = {
 // NOTE: 그 문제집의 오답과제를 가져와야 함
 export const dbReviewCheckFindMany = async ({
     user_id,
-    classroom_id,
     student_id,
     syllabus_id,
     review_assignment_id,
@@ -40,7 +38,6 @@ export const dbReviewCheckFindMany = async ({
                                     reviewChecks: {
                                         where: {
                                             student_id,
-                                            classroom_id,
                                             session: { syllabus_id },
                                         },
                                     },
@@ -96,21 +93,16 @@ export const dbReviewCheckBulkWrite = async ({
         if (!status) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
         return prismaClient.review_check.upsert({
             where: {
-                ...(classroom_id && {
-                    session_id_classroom_id_student_id_question_id: {
-                        student_id,
-                        classroom_id,
-                        question_id: BigInt(question_id),
-                        session_id,
-                    },
-                }),
-                ...(!classroom_id && {}),
+                session_id_student_id_question_id: {
+                    student_id,
+                    question_id: BigInt(question_id),
+                    session_id,
+                },
             },
             update: { status },
             create: {
                 session_id,
                 student_id,
-                classroom_id,
                 status,
                 question_id: BigInt(question_id),
             },
@@ -119,9 +111,8 @@ export const dbReviewCheckBulkWrite = async ({
     const deletePromiseArray = entryArrayForDelete.map(([question_id, { session_id }]) => {
         return prismaClient.review_check.delete({
             where: {
-                session_id_classroom_id_student_id_question_id: {
+                session_id_student_id_question_id: {
                     student_id,
-                    classroom_id,
                     question_id: BigInt(question_id),
                     session_id,
                 },
@@ -167,7 +158,6 @@ export const dbReviewCheckBulkWrite = async ({
     const uncompletedPromise = prismaClient.completed_session_student.deleteMany({
         where: {
             student_id,
-            classroom_id,
             session_id: { in: uncompletedSessionIdArray },
         },
     })

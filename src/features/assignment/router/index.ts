@@ -51,9 +51,8 @@ const condenseAssignmentMetaInfo = (result: ReviewAssignmentArrayVerbose): Assig
 }
 assignmentRouter.get("/", async (req, res) => {
     const user_id = extractUserId(req.headers)
-    const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const student_id = convertToBigIntOrThrow(req.query.student_id)
-    const result = await dbAssignmentFindManyAssignment({ user_id, classroom_id, student_id })
+    const result = await dbAssignmentFindManyAssignment({ user_id, student_id })
     const condensed = condenseAssignmentMetaInfo(result)
     const serializable = makeSerializable(condensed)
     // const serializable = makeSerializable(result)

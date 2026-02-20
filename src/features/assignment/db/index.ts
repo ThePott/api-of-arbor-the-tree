@@ -6,14 +6,9 @@ import type { session_status } from "@/generated/prisma/enums.js"
 
 type DbAssignmentFindManyAssignmentProps = {
     user_id: bigint
-    classroom_id: bigint | null
     student_id: bigint
 }
-export const dbAssignmentFindManyAssignment = async ({
-    user_id,
-    classroom_id,
-    student_id,
-}: DbAssignmentFindManyAssignmentProps) => {
+export const dbAssignmentFindManyAssignment = async ({ user_id, student_id }: DbAssignmentFindManyAssignmentProps) => {
     // TODO: 반을 어떻게 적용하지? 이리저리 하면 될 것 같긴 하다
     const result = await prismaClient.review_assignment.findMany({
         where: {
@@ -21,7 +16,6 @@ export const dbAssignmentFindManyAssignment = async ({
             reviewAssignmentQuestions: {
                 some: {
                     review_check: {
-                        classroom_id,
                         session: { syllabus: { user_id } },
                     },
                 },
