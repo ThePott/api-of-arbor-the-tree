@@ -4,11 +4,17 @@ import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
 import type { bookWhereInput, questionWhereInput, stepWhereInput, topicWhereInput } from "@/generated/prisma/models.js"
 import type { session_status } from "@/generated/prisma/enums.js"
 
+// NOTE: AssignmentMetaInfo 만드는 데에 사용됨
 type DbAssignmentFindManyAssignmentProps = {
     user_id: bigint
+    classroom_id: bigint | null
     student_id: bigint
 }
-export const dbAssignmentFindManyAssignment = async ({ user_id, student_id }: DbAssignmentFindManyAssignmentProps) => {
+export const dbAssignmentFindManyAssignment = async ({
+    user_id,
+    classroom_id,
+    student_id,
+}: DbAssignmentFindManyAssignmentProps) => {
     // TODO: 반을 어떻게 적용하지? 이리저리 하면 될 것 같긴 하다
     const result = await prismaClient.review_assignment.findMany({
         where: {
@@ -16,7 +22,11 @@ export const dbAssignmentFindManyAssignment = async ({ user_id, student_id }: Db
             reviewAssignmentQuestions: {
                 some: {
                     review_check: {
-                        session: { syllabus: { user_id } },
+                        session: {
+                            syllabus: { user_id },
+                            ...(classroom_id && { assignedSessionClassrooms: { some: { classroom_id } } }),
+                            ...(!classroom_id && { assignedSessionStudents: { some: { student_id } } }),
+                        },
                     },
                 },
             },
