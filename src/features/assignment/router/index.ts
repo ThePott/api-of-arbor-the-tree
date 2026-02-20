@@ -59,6 +59,8 @@ assignmentRouter.get("/", async (req, res) => {
     res.status(200).json(serializable)
 })
 
+// NOTE: 얘는 오답과제를 만들려고 하는데 거기에 들어갈 문제들이 무엇인지 보여주는 용도(틀린 문제들 종합한 결과 정리해서 보여준다)
+// NOTE: 지금까지의 모든 체크를 보려면 get check를 봐야 한다
 type BookWithReviewChecksArrayVerbose = Awaited<ReturnType<typeof dbAssignmentFindManyBookWithReviewChecks>>
 const condenseBookWithReviewChecksArray = (bookWithReviewChecksArray: BookWithReviewChecksArrayVerbose) => {
     const newData = bookWithReviewChecksArray.map((book) => {

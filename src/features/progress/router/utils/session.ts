@@ -106,12 +106,19 @@ const groupConciseSessionsByTopic = (conciseSessionArray: ConciseSession[]) => {
             current.conciseSessionArray.push(session)
             return
         }
+
+        // NOTE: 새로운 게 생겼으면 지금까지의 current를 result에 합치고
         result.push(current)
+        // NOTE: 새 current를 만들어 여기에 쌓기 시작한다
         current = {
             title: session.start.topic,
             conciseSessionArray: [session],
         }
     })
+    // NOTE: 그리고 다 끝나면 마지막으로 쌓인 current도 result에 합친다
+    if (current) {
+        result.push(current)
+    }
     return result
 }
 const groupSessionsByTopic = (sessionArray: ExtendedSession[]) => {
