@@ -56,6 +56,7 @@ assignmentRouter.get("/", async (req, res) => {
     const result = await dbAssignmentFindManyAssignment({ user_id, classroom_id, student_id })
     const condensed = condenseAssignmentMetaInfo(result)
     const serializable = makeSerializable(condensed)
+    // const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
 
