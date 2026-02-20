@@ -96,11 +96,15 @@ export const dbReviewCheckBulkWrite = async ({
         if (!status) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
         return prismaClient.review_check.upsert({
             where: {
-                session_id_student_id_question_id: {
-                    student_id,
-                    question_id: BigInt(question_id),
-                    session_id,
-                },
+                ...(classroom_id && {
+                    session_id_classroom_id_student_id_question_id: {
+                        student_id,
+                        classroom_id,
+                        question_id: BigInt(question_id),
+                        session_id,
+                    },
+                }),
+                ...(!classroom_id && {}),
             },
             update: { status },
             create: {
@@ -115,8 +119,9 @@ export const dbReviewCheckBulkWrite = async ({
     const deletePromiseArray = entryArrayForDelete.map(([question_id, { session_id }]) => {
         return prismaClient.review_check.delete({
             where: {
-                session_id_student_id_question_id: {
+                session_id_classroom_id_student_id_question_id: {
                     student_id,
+                    classroom_id,
                     question_id: BigInt(question_id),
                     session_id,
                 },

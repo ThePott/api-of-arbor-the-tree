@@ -209,7 +209,6 @@ model classroom {
     classroomSyllabuses        classroom_syllabus[]
     assignedSessionClassrooms  assigned_session_classroom[]
     completedSessionClassrooms completed_session_classroom[]
-    reviewChecks               review_check[]
     completedSessionStudents   completed_session_student[]
 
     @@unique([name, hagwon_id])
@@ -316,21 +315,19 @@ enum review_check_status {
 }
 
 model review_check {
-    id           BigInt              @id @default(autoincrement())
-    session_id   BigInt
-    classroom_id BigInt?
-    student_id   BigInt
-    question_id  BigInt
-    status       review_check_status
+    id          BigInt              @id @default(autoincrement())
+    session_id  BigInt
+    student_id  BigInt
+    question_id BigInt
+    status      review_check_status
 
-    session   session    @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    classroom classroom? @relation(fields: [classroom_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    student   student    @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    question  question   @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    session  session  @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    student  student  @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    question question @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
     reviewAssignmentQuestions review_assignment_question[]
 
-    @@unique([session_id, classroom_id, student_id, question_id])
+    @@unique([session_id, student_id, question_id])
 }
 
 model review_assignment {
