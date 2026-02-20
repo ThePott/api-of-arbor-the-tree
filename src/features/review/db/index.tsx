@@ -4,6 +4,7 @@ import type { QuestionIdToInfoForApi } from "../types/index.js"
 
 type DbReviewCheckFindManyProps = {
     user_id: bigint
+    classroom_id: bigint | null
     student_id: bigint
     syllabus_id: bigint
     review_assignment_id: bigint | null
@@ -11,6 +12,7 @@ type DbReviewCheckFindManyProps = {
 // NOTE: 그 문제집의 오답과제를 가져와야 함
 export const dbReviewCheckFindMany = async ({
     user_id,
+    classroom_id,
     student_id,
     syllabus_id,
     review_assignment_id,
@@ -38,6 +40,7 @@ export const dbReviewCheckFindMany = async ({
                                     reviewChecks: {
                                         where: {
                                             student_id,
+                                            classroom_id,
                                             session: { syllabus_id },
                                         },
                                     },
@@ -103,6 +106,7 @@ export const dbReviewCheckBulkWrite = async ({
             create: {
                 session_id,
                 student_id,
+                classroom_id,
                 status,
                 question_id: BigInt(question_id),
             },

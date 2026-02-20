@@ -330,7 +330,7 @@ model review_check {
 
     reviewAssignmentQuestions review_assignment_question[]
 
-    @@unique([session_id, student_id, question_id])
+    @@unique([session_id, classroom_id, student_id, question_id])
 }
 
 model review_assignment {
