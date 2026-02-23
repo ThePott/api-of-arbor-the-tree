@@ -67,13 +67,13 @@ reviewCheckRouter.get("/check", async (req, res) => {
     res.status(200).json(serializable)
 })
 
-// // NOTE: review assignment에서 반이 고려되어야 하는데... 그거는 어떻게 알게 되지??
-// reviewCheckRouter.get("/check/assignment", async (req, res) => {
-//     const user_id = extractUserId(req.headers)
-//     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
-//     const syllabus_id = req.query.syllabus_id ? BigInt(String(req.query.syllabus_id)) : null
-//     res.status(200).send("---- good")
-// })
+// NOTE: review assignment에서 반이 고려되어야 하는데... 그거는 어떻게 알게 되지??
+reviewCheckRouter.get("/check/assignment", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
+    const syllabus_id = req.query.syllabus_id ? BigInt(String(req.query.syllabus_id)) : null
+    res.status(200).send("---- good")
+})
 
 // NOTE: bulk update
 reviewCheckRouter.post("/check", async (req, res) => {

@@ -118,11 +118,13 @@ export const dbAssignmentFindManyBookWithReviewChecks = async ({
 
 type DbAssignmentCreateAssignmentProps = {
     user_id: bigint
+    classroom_id: bigint | null
     student_id: bigint
     bookWithReviewChecksArray: BookWithReviewChecksFromClient[]
 }
 export const dbAssignmentCreateAssignment = async ({
     user_id: _user_id,
+    classroom_id,
     student_id,
     bookWithReviewChecksArray,
 }: DbAssignmentCreateAssignmentProps) => {
@@ -132,6 +134,7 @@ export const dbAssignmentCreateAssignment = async ({
     const result = await prismaClient.review_assignment.create({
         data: {
             student_id,
+            classroom_id,
             reviewAssignmentQuestions: {
                 create: bookWithReviewChecksArray
                     .flatMap((book) => book.reviewChecks)

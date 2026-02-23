@@ -100,11 +100,13 @@ export type BookWithReviewChecksFromClient = {
 assignmentRouter.post("/create", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const student_id = convertToBigIntOrThrow(req.body.student_id)
+    const classroom_id = convertToBigIntOrNull(req.body.classroom_id)
     const bookWithReviewChecksArray = req.body.bookWithReviewChecksArray as BookWithReviewChecksFromClient[]
 
     const result = await dbAssignmentCreateAssignment({
         user_id,
         bookWithReviewChecksArray,
+        classroom_id,
         student_id,
     })
     const serializable = makeSerializable(result)

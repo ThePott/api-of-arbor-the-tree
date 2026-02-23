@@ -85,7 +85,6 @@ export const dbReviewCheckBulkWrite = async ({
     const entryArrayForUpsert = entryArray.filter(([_, { status }]) => status)
     const entryArrayForDelete = entryArray.filter(([_, { status }]) => !status)
 
-    debugger
     // TODO
     // TODO: validate assigned_session_student is from user_id's hagwon as principal
     // TODO
@@ -172,4 +171,24 @@ export const dbReviewCheckBulkWrite = async ({
         completedSessionIdArray,
         uncompletedSessionIdArray,
     }
+}
+
+type DbReviewCheckForAssignmentFindManyProps = {
+    user_id: bigint
+    student_id: bigint
+    classroom_id: bigint | null
+}
+export const dbReviewCheckForAssignmentFindMany = async ({
+    user_id,
+    student_id,
+    classroom_id,
+}: DbReviewCheckForAssignmentFindManyProps) => {
+    const result = await prismaClient.review_assignment.findMany({
+        where: {
+            student_id,
+            student: { hagwon: { principal: { user_id } } },
+            completed_at: { not: {} },
+            assignedReviewAssignment: {},
+        },
+    })
 }
