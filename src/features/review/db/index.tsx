@@ -189,7 +189,6 @@ export const dbReviewCheckForAssignmentFindMany = async ({
             classroom_id,
             student: { hagwon: { principal: { user_id } } },
             completed_at: { not: {} },
-            assignedReviewAssignment: {},
         },
     })
     return result

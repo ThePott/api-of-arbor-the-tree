@@ -71,7 +71,7 @@ reviewCheckRouter.get("/check", async (req, res) => {
 reviewCheckRouter.get("/check/assignment", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const student_id = convertToBigIntOrThrow(req.query.student_id)
-    const classroom_id = convertToBigIntOrNull(req.query.syllabus_id)
+    const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const result = await dbReviewCheckForAssignmentFindMany({ user_id, student_id, classroom_id })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
