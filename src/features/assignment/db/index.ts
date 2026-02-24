@@ -202,17 +202,23 @@ export const dbAssignmentFindBookForPdf = async ({ user_id, assignment_id }: DbA
         include: {
             topics: {
                 where: filterByAssignment({ forWhat: "steps", assignment_id }),
+                orderBy: { order: "asc" },
                 include: {
                     steps: {
                         where: filterByAssignment({ forWhat: "questions", assignment_id }),
+                        orderBy: { order: "asc" },
                         include: {
                             questions: {
                                 where: filterByAssignment({ forWhat: "reviewChecks", assignment_id }),
+                                orderBy: { order: "asc" },
                             },
                         },
                     },
                 },
             },
+        },
+        orderBy: {
+            title: "asc",
         },
     })
     return result
