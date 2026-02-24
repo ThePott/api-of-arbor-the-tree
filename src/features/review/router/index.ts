@@ -67,7 +67,6 @@ reviewCheckRouter.get("/check", async (req, res) => {
     res.status(200).json(serializable)
 })
 
-// NOTE: review assignment에서 반이 고려되어야 하는데... 그거는 어떻게 알게 되지??
 reviewCheckRouter.get("/check/assignment", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const student_id = convertToBigIntOrThrow(req.query.student_id)

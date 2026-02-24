@@ -345,6 +345,7 @@ model review_assignment_question {
     id                   BigInt               @id @default(autoincrement())
     review_assignment_id BigInt
     review_check_id      BigInt
+    order                Int
     status               review_check_status?
     completed_at         DateTime?
 
