@@ -77,7 +77,7 @@ const condenseAssignmentWithQuestions = (
             return bookTitle
         })
         const entryArray = Object.entries(grouped)
-        const assignmentWithBooks = entryArray.map(([bookTitle, reviewAssignmentQuestions]) => {
+        const bookArray = entryArray.map(([bookTitle, reviewAssignmentQuestions]) => {
             if (!reviewAssignmentQuestions) throw ApiError.Internal("오답 과제를 정리하는 도중에 오류가 발생했어요")
             const condensedAssignmentQuestions = reviewAssignmentQuestions.map((assignmentQuestion) => {
                 const { review_check: _, ...rest } = assignmentQuestion
@@ -85,7 +85,14 @@ const condenseAssignmentWithQuestions = (
             })
             return { bookTitle: bookTitle, reviewAssignmentQuestions: condensedAssignmentQuestions }
         })
-        return assignmentWithBooks
+        return {
+            id: assignment.id,
+            student_id: assignment.student_id,
+            classroom_id: assignment.classroom_id,
+            created_at: assignment.created_at,
+            completed_at: assignment.completed_at, // NOTE: 여기까지가 review_assignment
+            books: bookArray,
+        }
     })
     return condensed
 }
