@@ -1,5 +1,5 @@
 import prismaClient from "@/src/db/prismaClient.js"
-import type { BookWithReviewChecksFromClient } from "../router/index.js"
+import type { BookWithExtendedReviewChecksFromClient } from "../router/index.js"
 import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
 import type { bookWhereInput, questionWhereInput, stepWhereInput, topicWhereInput } from "@/generated/prisma/models.js"
 import type { session_status } from "@/generated/prisma/enums.js"
@@ -97,10 +97,13 @@ export const dbAssignmentFindManyBookWithReviewChecks = async ({
             title: true,
             topics: {
                 select: {
+                    order: true,
                     steps: {
                         select: {
+                            order: true,
                             questions: {
                                 select: {
+                                    order: true,
                                     reviewChecks: {
                                         where: { student_id },
                                     },
@@ -120,13 +123,13 @@ type DbAssignmentCreateAssignmentProps = {
     user_id: bigint
     classroom_id: bigint | null
     student_id: bigint
-    bookWithReviewChecksArray: BookWithReviewChecksFromClient[]
+    bookWithExtendedReviewChecksArray: BookWithExtendedReviewChecksFromClient[]
 }
 export const dbAssignmentCreateAssignment = async ({
     user_id: _user_id,
     classroom_id,
     student_id,
-    bookWithReviewChecksArray,
+    bookWithExtendedReviewChecksArray,
 }: DbAssignmentCreateAssignmentProps) => {
     // TODO
     // TODO: NEED TO VALIDATE with user_id
@@ -136,10 +139,18 @@ export const dbAssignmentCreateAssignment = async ({
             student_id,
             classroom_id,
             reviewAssignmentQuestions: {
-                create: bookWithReviewChecksArray
-                    .flatMap((book) => book.reviewChecks)
-                    .map((reviewCheck) => ({
+                create: bookWithExtendedReviewChecksArray
+                    .sort((a, b) => a.title.localeCompare(b.title))
+                    .flatMap((book) =>
+                        book.extendedReviewChecks.sort((a, b) => {
+                            if (a.topic_order !== b.topic_order) return a.topic_order - b.topic_order
+                            if (a.step_order !== b.step_order) return a.step_order - b.step_order
+                            return a.question_order - b.question_order
+                        })
+                    )
+                    .map((reviewCheck, index) => ({
                         review_check_id: convertToBigIntOrThrow(reviewCheck.id),
+                        order: index + 1,
                     })),
             },
         },

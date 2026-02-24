@@ -62,18 +62,32 @@ assignmentRouter.get("/", async (req, res) => {
 
 // NOTE: 얘는 오답과제를 만들려고 하는데 거기에 들어갈 문제들이 무엇인지 보여주는 용도(틀린 문제들 종합한 결과 정리해서 보여준다)
 // NOTE: 지금까지의 모든 체크를 보려면 get check를 봐야 한다
+type ExtendedReviewCheck = review_check & {
+    topic_order: number
+    step_order: number
+    question_order: number
+}
 type BookWithReviewChecksArrayVerbose = Awaited<ReturnType<typeof dbAssignmentFindManyBookWithReviewChecks>>
 const condenseBookWithReviewChecksArray = (bookWithReviewChecksArray: BookWithReviewChecksArrayVerbose) => {
     const newData = bookWithReviewChecksArray.map((book) => {
-        const reviewChecks: review_check[] = []
+        const extendedReviewChecks: ExtendedReviewCheck[] = []
         book.topics.forEach((topic) => {
+            const topic_order = topic.order
             topic.steps.forEach((step) => {
+                const step_order = step.order
                 step.questions.forEach((question) => {
-                    reviewChecks.push(...question.reviewChecks)
+                    const question_order = question.order
+                    const extendedArray: ExtendedReviewCheck[] = question.reviewChecks.map((review_check) => ({
+                        ...review_check,
+                        topic_order,
+                        step_order,
+                        question_order,
+                    }))
+                    extendedReviewChecks.push(...extendedArray)
                 })
             })
         })
-        return { title: book.title, reviewChecks }
+        return { title: book.title, extendedReviewChecks }
     })
     return newData
 }
@@ -87,30 +101,40 @@ assignmentRouter.get("/create", async (req, res) => {
     res.status(200).json(serializable)
 })
 
-export type BookWithReviewChecksFromClient = {
+export type BookWithExtendedReviewChecksFromClient = {
     title: string
-    reviewChecks: {
+    extendedReviewChecks: {
         student_id: string
         id: string
         session_id: string
         question_id: string
         status: review_check_status
+        topic_order: number
+        step_order: number
+        question_order: number
     }[]
 }
 assignmentRouter.post("/create", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const student_id = convertToBigIntOrThrow(req.body.student_id)
     const classroom_id = convertToBigIntOrNull(req.body.classroom_id)
-    const bookWithReviewChecksArray = req.body.bookWithReviewChecksArray as BookWithReviewChecksFromClient[]
+    const bookWithExtendedReviewChecksArray = req.body
+        .bookWithExtendedReviewChecksArray as BookWithExtendedReviewChecksFromClient[]
+    validateBody({ student_id, bookWithExtendedReviewChecksArray })
 
-    const result = await dbAssignmentCreateAssignment({
-        user_id,
-        bookWithReviewChecksArray,
-        classroom_id,
-        student_id,
-    })
-    const serializable = makeSerializable(result)
-    res.status(200).json(serializable)
+    try {
+        const result = await dbAssignmentCreateAssignment({
+            user_id,
+            bookWithExtendedReviewChecksArray,
+            classroom_id,
+            student_id,
+        })
+        const serializable = makeSerializable(result)
+        res.status(200).json(serializable)
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "...debugging..." })
+    }
 })
 
 export const condenseBookForPdf = (bookArray: Awaited<ReturnType<typeof dbAssignmentFindBookForPdf>>) => {
