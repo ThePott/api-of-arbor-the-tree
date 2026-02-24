@@ -72,7 +72,19 @@ reviewCheckRouter.get("/check/assignment", async (req, res) => {
     const student_id = convertToBigIntOrThrow(req.query.student_id)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const result = await dbReviewCheckForAssignmentFindMany({ user_id, student_id, classroom_id })
-    const serializable = makeSerializable(result)
+    const condensed = result.map((assignment) => {
+        const bookTitleSet = new Set<string>()
+        const condensedAssignmentQuestionArray = assignment.reviewAssignmentQuestions.map((assignmentQuestion) => {
+            const { review_check, ...rest } = assignmentQuestion
+            const bookTitle = review_check.question.step?.topic?.book?.title
+            if (!bookTitle) throw ApiError.Internal("오답 과제를 정리하는 도중에 오류가 발생했어요")
+            bookTitleSet.add(bookTitle)
+            return rest
+        })
+        const bookTitleArray = Array.from(bookTitleSet).sort()
+        return { ...assignment, reviewAssignmentQuestions: condensedAssignmentQuestionArray, bookTitleArray }
+    })
+    const serializable = makeSerializable(condensed)
     res.status(200).json(serializable)
 })
 

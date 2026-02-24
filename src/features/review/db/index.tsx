@@ -184,13 +184,7 @@ export const dbReviewCheckForAssignmentFindMany = async ({
     student_id,
     classroom_id,
 }: DbReviewCheckForAssignmentFindManyProps) => {
-    // TODO: 나 오답 체크 할 거야
-    // TODO: 어떤 오답? -> 생성일, 배부일(다르다면, include 하면 됨), 문항 수(include, length하면 됨), 문제집-> 죄다 include, 정리하면 됨 << 그런데 각 문제를 너무 깊게 join 해야 하나?
-    // TODO: 그 안의 문제들은 생성 당시의 order에 맞게 있어야 함 <<< 그 보장이 없는 것 같은데
-    // TODO: 아니야 이렇게 되어선 안 돼. 이러면 다른 오답과제들이어도 하나의 문제집으로 묶인다.
-    // TODO: 오답과제를 문제집 별로 정렬해야 하는 거지, 그 반대가 되어선 안 된다
-    //
-    // assignment를 만들 때 pdf에 맞춰 order 부여 <<< 이걸로 하자
+    // TODO: 문제집 이름 넣어서 줘야
     const result = await prismaClient.review_assignment.findMany({
         where: {
             classroom_id,
@@ -199,106 +193,20 @@ export const dbReviewCheckForAssignmentFindMany = async ({
         },
         include: {
             reviewAssignmentQuestions: {
-                orderBy: {},
+                orderBy: { order: "asc" },
+                include: {
+                    review_check: {
+                        select: {
+                            question: {
+                                select: {
+                                    step: { select: { topic: { select: { book: { select: { title: true } } } } } },
+                                },
+                            },
+                        },
+                    },
+                },
             },
         },
     })
     return result
 }
-
-// type FilterForAssignmentProps = {
-//     source: "topic" | "step" | "question" | "book"
-//     student_id: bigint
-//     classroom_id: bigint | null
-// }
-// function filterForAssignment(props: { source: "book"; student_id: bigint; classroom_id: bigint | null }): bookWhereInput
-// function filterForAssignment(props: {
-//     source: "topic"
-//     student_id: bigint
-//     classroom_id: bigint | null
-// }): topicWhereInput
-// function filterForAssignment(props: { source: "step"; student_id: bigint; classroom_id: bigint | null }): stepWhereInput
-// function filterForAssignment(props: {
-//     source: "question"
-//     student_id: bigint
-//     classroom_id: bigint | null
-// }): questionWhereInput
-// function filterForAssignment({ source, student_id, classroom_id }: FilterForAssignmentProps) {
-//     const questionFilter: questionWhereInput = {
-//         reviewChecks: {
-//             some: {
-//                 reviewAssignmentQuestions: {
-//                     some: {
-//                         review_assignment: {
-//                             student_id,
-//                             classroom_id,
-//                         },
-//                     },
-//                 },
-//             },
-//         },
-//     }
-//     if (source === "question") return questionFilter
-//
-//     const stepFilter: stepWhereInput = { questions: { some: { ...questionFilter } } }
-//     if (source === "step") return stepFilter
-//
-//     const topicFilter: topicWhereInput = { steps: { some: { ...stepFilter } } }
-//     if (source === "topic") return topicFilter
-//
-//     const bookFilter: bookWhereInput = { topics: { some: { ...topicFilter } } }
-//     return bookFilter
-// }
-// const result = await prismaClient.book.findMany({
-//     where: {
-//         ...filterForAssignment({ source: "book", classroom_id, student_id }),
-//         user_id,
-//     },
-//     include: {
-//         topics: {
-//             where: {
-//                 ...filterForAssignment({ source: "topic", classroom_id, student_id }),
-//             },
-//             include: {
-//                 steps: {
-//                     where: {
-//                         ...filterForAssignment({ source: "step", classroom_id, student_id }),
-//                     },
-//                     include: {
-//                         questions: {
-//                             where: {
-//                                 ...filterForAssignment({ source: "question", classroom_id, student_id }),
-//                             },
-//                             select: {
-//                                 reviewChecks: {
-//                                     where: {
-//                                         reviewAssignmentQuestions: {
-//                                             some: {
-//                                                 review_assignment: {
-//                                                     classroom_id,
-//                                                     student_id,
-//                                                     completed_at: { not: {} },
-//                                                 },
-//                                             },
-//                                         },
-//                                     },
-//                                     include: {
-//                                         reviewAssignmentQuestions: {
-//                                             where: {
-//                                                 review_assignment: {
-//                                                     classroom_id,
-//                                                     student_id,
-//                                                     completed_at: { not: {} },
-//                                                 },
-//                                             },
-//                                         },
-//                                     },
-//                                 },
-//                             },
-//                         },
-//                     },
-//                 },
-//             },
-//         },
-//     },
-// })
