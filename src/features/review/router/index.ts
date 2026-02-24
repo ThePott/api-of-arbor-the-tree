@@ -4,7 +4,7 @@ import { ApiError } from "@/src/errors/appError/AppError.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import type { QuestionIdToInfoForApi, QuestionIdToInfoFromClient } from "../types/index.js"
-import { dbReviewCheckFindMany, dbReviewCheckBulkWrite } from "../db/index.js"
+import { dbReviewCheckFindMany, dbReviewCheckBulkWrite, dbReviewCheckForAssignmentFindMany } from "../db/index.js"
 import { convertToBigIntOrNull, convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
 
 const reviewCheckRouter = Router()
@@ -70,9 +70,11 @@ reviewCheckRouter.get("/check", async (req, res) => {
 // NOTE: review assignment에서 반이 고려되어야 하는데... 그거는 어떻게 알게 되지??
 reviewCheckRouter.get("/check/assignment", async (req, res) => {
     const user_id = extractUserId(req.headers)
-    const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
-    const syllabus_id = req.query.syllabus_id ? BigInt(String(req.query.syllabus_id)) : null
-    res.status(200).send("---- good")
+    const student_id = convertToBigIntOrThrow(req.query.student_id)
+    const classroom_id = convertToBigIntOrNull(req.query.syllabus_id)
+    const result = await dbReviewCheckForAssignmentFindMany({ user_id, student_id, classroom_id })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
 })
 
 // NOTE: bulk update

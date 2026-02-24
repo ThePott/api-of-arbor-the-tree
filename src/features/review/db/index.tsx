@@ -186,9 +186,11 @@ export const dbReviewCheckForAssignmentFindMany = async ({
     const result = await prismaClient.review_assignment.findMany({
         where: {
             student_id,
+            classroom_id,
             student: { hagwon: { principal: { user_id } } },
             completed_at: { not: {} },
             assignedReviewAssignment: {},
         },
     })
+    return result
 }
