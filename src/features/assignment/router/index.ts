@@ -153,13 +153,11 @@ assignmentRouter.get("/:assignment_id/pdf", async (req, res) => {
     const assignment_id = convertToBigIntOrThrow(req.params.assignment_id)
     const result = await dbAssignmentFindBookForPdf({ user_id, assignment_id })
     const condensed = condenseBookForPdf(result)
-    console.log("----here")
     const pdf = makeAssignmentPdf({
         studentName: "홍길동",
         assigned_at: new Date(),
         bookForPdfArray: condensed,
     })
-    console.log("----pdf done")
     res.contentType("application/pdf")
     res.status(200).send(pdf)
 })

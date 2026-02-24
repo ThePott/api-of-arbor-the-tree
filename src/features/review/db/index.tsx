@@ -206,6 +206,7 @@ export const dbReviewCheckForAssignmentFindMany = async ({
                     },
                 },
             },
+            assignedReviewAssignment: true,
         },
     })
     return result
