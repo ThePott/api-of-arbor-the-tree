@@ -1,7 +1,6 @@
 import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import type { QuestionIdToInfoForApi } from "../types/index.js"
-import type { bookWhereInput, questionWhereInput, stepWhereInput, topicWhereInput } from "@/generated/prisma/models.js"
 
 type DbReviewCheckFindManyProps = {
     user_id: bigint

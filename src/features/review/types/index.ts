@@ -4,7 +4,7 @@ export type QuestionIdToInfoForApi = Record<
     string, // NOTE: question_id
     {
         status: review_check_status | null // NOTE: use to delete if null
-        session_id: bigint
+        session_id: bigint // NOTE: session id array -> set -> session result -> 문제 수 === review check 수 로 완료 여부 판단
     }
 >
 
