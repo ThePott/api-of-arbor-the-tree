@@ -6,6 +6,7 @@ import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import type { QuestionIdToInfoForApi, QuestionIdToInfoFromClient } from "../types/index.js"
 import { dbReviewCheckFindMany, dbReviewCheckBulkWrite, dbReviewCheckForAssignmentFindMany } from "../db/index.js"
 import { convertToBigIntOrNull, convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
+import { validateBody } from "@/src/utils/validateBody.js"
 
 const reviewCheckRouter = Router()
 
@@ -117,8 +118,8 @@ reviewCheckRouter.get("/check/assignment", async (req, res) => {
 reviewCheckRouter.post("/check", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const changedReviewChecksFromClient = req.body.changedReviewChecks as QuestionIdToInfoFromClient
-    const classroom_id = convertToBigIntOrNull(req.body.classroom_id)
     const student_id = convertToBigIntOrThrow(req.body.student_id)
+    validateBody({ changedReviewChecksFromClient, student_id })
 
     const changedReviewChecks: QuestionIdToInfoForApi = Object.fromEntries(
         Object.entries(changedReviewChecksFromClient).map(([key, { status, session_id }]) => [
@@ -130,7 +131,7 @@ reviewCheckRouter.post("/check", async (req, res) => {
         ])
     )
 
-    const result = await dbReviewCheckBulkWrite({ user_id, student_id, changedReviewChecks, classroom_id })
+    const result = await dbReviewCheckBulkWrite({ user_id, student_id, changedReviewChecks })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })

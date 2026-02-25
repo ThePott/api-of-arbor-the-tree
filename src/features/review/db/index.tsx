@@ -71,13 +71,11 @@ export const dbReviewCheckFindMany = async ({
 
 type DbReviewCheckBulkWriteProps = {
     user_id: bigint
-    classroom_id: bigint | null
     student_id: bigint
     changedReviewChecks: QuestionIdToInfoForApi // NOTE: already converted to bigint except for question_id(key)
 }
 export const dbReviewCheckBulkWrite = async ({
     user_id: _user_id,
-    classroom_id,
     student_id,
     changedReviewChecks,
 }: DbReviewCheckBulkWriteProps) => {
@@ -137,12 +135,19 @@ export const dbReviewCheckBulkWrite = async ({
                     question_id: true,
                 },
             },
+            completedSessionStudents: {
+                where: { student_id },
+            },
         },
     })
+    // NOTE: 이미 완료가 되었다면 또 만들어선 안 된다 << unique constraint에 걸림
     const completedSessionIdArray = sessionResult
         .filter((session) => {
             if (session.sessionQuestions.length === 0) return false
-            return session.reviewChecks.length === session.sessionQuestions.length
+            return (
+                session.reviewChecks.length === session.sessionQuestions.length &&
+                session.completedSessionStudents.length === 0
+            )
         })
         .map((session) => session.id)
     const uncompletedSessionIdArray = sessionResult
@@ -151,8 +156,9 @@ export const dbReviewCheckBulkWrite = async ({
             return session.reviewChecks.length < session.sessionQuestions.length
         })
         .map((session) => session.id)
+
     const completedPromise = prismaClient.completed_session_student.createManyAndReturn({
-        data: completedSessionIdArray.map((session_id) => ({ session_id, student_id, classroom_id })),
+        data: completedSessionIdArray.map((session_id) => ({ session_id, student_id })),
     })
     const uncompletedPromise = prismaClient.completed_session_student.deleteMany({
         where: {
