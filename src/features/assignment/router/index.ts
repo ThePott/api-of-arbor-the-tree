@@ -22,6 +22,7 @@ type AssignmentMetaInfo = {
     id: bigint
     student_id: bigint
     created_at: Date
+    completed_at: Date | null
     assigned_at: Date | null
     status: session_status | null
     bookTitleArray: string[]
@@ -40,6 +41,7 @@ const condenseAssignmentMetaInfo = (result: ReviewAssignmentArrayVerbose): Assig
             id: verboseAssignment.id,
             student_id: verboseAssignment.student_id,
             created_at: verboseAssignment.created_at,
+            completed_at: verboseAssignment.completed_at ?? null,
             assigned_at: verboseAssignment.assignedReviewAssignment?.assigned_at ?? null,
             status: verboseAssignment.assignedReviewAssignment?.status ?? null,
             bookTitleArray: Array.from(bookTitleSet),
