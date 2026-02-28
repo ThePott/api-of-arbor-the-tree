@@ -143,7 +143,7 @@ reviewCheckRouter.post("/check", async (req, res) => {
 
 reviewCheckRouter.post("/check/assignment", async (req, res) => {
     const user_id = extractUserId(req.headers)
-    const idToChangedInfoFromClient = req.body.idToChangedInfoFromClient as IdToChangedInfo<"client", "assignment">
+    const idToChangedInfoFromClient = req.body.idToChangedInfo as IdToChangedInfo<"client", "assignment">
     const student_id = convertToBigIntOrThrow(req.body.student_id)
     validateBody({ idToChangedInfoFromClient, student_id })
 

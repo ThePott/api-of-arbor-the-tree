@@ -190,7 +190,6 @@ export const dbReviewCheckForAssignmentFindMany = async ({
     student_id,
     classroom_id,
 }: DbReviewCheckForAssignmentFindManyProps) => {
-    // TODO: 문제집 이름 넣어서 줘야
     const result = await prismaClient.review_assignment.findMany({
         where: {
             classroom_id,
@@ -229,14 +228,11 @@ export const dbReviewCheckAssignmentBulkWrite = async ({
     idToChangedInfo,
 }: DbReviewCheckAssignmentBulkWriteProps) => {
     const entryArray = Object.entries(idToChangedInfo)
-    const entryArrayForUpdate = entryArray.filter(([_, { status }]) => status)
-    const entryArrayForDelete = entryArray.filter(([_, { status }]) => !status)
 
     // NOTE: review_assignment_question은 이미 만들어져있다
     // NOTE: 언제나 update or delete만 한다. 이미 만들어져있기 때문에 assignment_id는 불필요하다 << result에서 추출도 바로 가능하니 더더욱 불필요하다
     // TODO: review_check_id가 필요하다
-    const upsertPromiseArray = entryArrayForUpdate.map(([review_assignment_question_id, { status }]) => {
-        if (!status) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
+    const updatePromiseArray = entryArray.map(([review_assignment_question_id, { status }]) => {
         return prismaClient.review_assignment_question.update({
             where: {
                 id: convertToBigIntOrThrow(review_assignment_question_id),
@@ -245,18 +241,9 @@ export const dbReviewCheckAssignmentBulkWrite = async ({
             data: { status },
         })
     })
-    const deletePromiseArray = entryArrayForDelete.map(([review_assignment_question_id, _]) => {
-        return prismaClient.review_assignment_question.delete({
-            where: {
-                id: convertToBigIntOrThrow(review_assignment_question_id),
-                review_assignment: { student: { id: student_id, hagwon: { principal: { user_id } } } },
-            },
-        })
-    })
-    const [updated, deleted] = await Promise.all([Promise.all(upsertPromiseArray), Promise.all(deletePromiseArray)])
-    const updatedDeleted = [...updated, ...deleted]
+    const updateResult = await Promise.all(updatePromiseArray)
 
-    const assignmentIdSet = new Set(updatedDeleted.map(({ review_assignment_id }) => review_assignment_id))
+    const assignmentIdSet = new Set(updateResult.map(({ review_assignment_id }) => review_assignment_id))
     const assignmentIdArray = [...assignmentIdSet]
     const assignmentResult = await prismaClient.review_assignment.findMany({
         where: {
@@ -305,8 +292,7 @@ export const dbReviewCheckAssignmentBulkWrite = async ({
     const [completed, uncompleted] = await Promise.all([completedPromise, uncompletedPromise])
 
     return {
-        updated,
-        deleted,
+        updateResult,
         completed,
         uncompleted,
         assignmentIdArray,
