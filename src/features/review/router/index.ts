@@ -136,4 +136,8 @@ reviewCheckRouter.post("/check", async (req, res) => {
     res.status(200).json(serializable)
 })
 
+reviewCheckRouter.post("/check/assignment", async (req, res) => {
+    res.status(200).send("---- good")
+})
+
 export default reviewCheckRouter
