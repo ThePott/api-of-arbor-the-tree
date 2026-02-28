@@ -14,7 +14,6 @@ export type ForWhatToReviewCheckChangedInfo<TSource extends keyof SourceToIdType
     assignment: {
         forWhat: "assignment"
         status: review_check_status | null
-        assignment_id: SourceToIdType[TSource]
     }
 }
 

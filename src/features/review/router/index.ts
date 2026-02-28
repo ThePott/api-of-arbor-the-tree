@@ -150,12 +150,11 @@ reviewCheckRouter.post("/check/assignment", async (req, res) => {
     const idToChangedInfo: IdToChangedInfo<"api", "assignment"> = Object.fromEntries(
         Object.entries(idToChangedInfoFromClient)
             .filter(([_, { forWhat }]) => forWhat === "assignment") // NOTE: defence error for accessing assignment_id at below
-            .map(([key, { status, assignment_id }]) => [
+            .map(([key, { status }]) => [
                 key,
                 {
                     forWhat: "assignment",
                     status: status,
-                    assignment_id: convertToBigIntOrThrow(assignment_id), // NOTE: should not be thrown because I have filtered it
                 },
             ])
     )
