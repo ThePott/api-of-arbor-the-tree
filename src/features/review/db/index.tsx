@@ -1,6 +1,7 @@
 import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
-import type { QuestionIdToInfoForApi } from "../types/index.js"
+import type { IdToChangedInfo } from "../types/index.js"
+import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
 
 type DbReviewCheckFindManyProps = {
     user_id: bigint
@@ -72,7 +73,7 @@ export const dbReviewCheckFindMany = async ({
 type DbReviewCheckBulkWriteProps = {
     user_id: bigint
     student_id: bigint
-    changedReviewChecks: QuestionIdToInfoForApi // NOTE: already converted to bigint except for question_id(key)
+    changedReviewChecks: IdToChangedInfo<"api", "syllabus"> // NOTE: already converted to bigint except for question_id(key)
 }
 export const dbReviewCheckBulkWrite = async ({
     user_id: _user_id,
@@ -215,4 +216,101 @@ export const dbReviewCheckForAssignmentFindMany = async ({
         },
     })
     return result
+}
+
+type DbReviewCheckAssignmentBulkWriteProps = {
+    user_id: bigint
+    student_id: bigint
+    idToChangedInfo: IdToChangedInfo<"api", "assignment"> // NOTE: already converted to bigint except for question_id(key)
+}
+export const dbReviewCheckAssignmentBulkWrite = async ({
+    user_id, // TODO: need to validate using it
+    student_id,
+    idToChangedInfo,
+}: DbReviewCheckAssignmentBulkWriteProps) => {
+    const entryArray = Object.entries(idToChangedInfo)
+    const entryArrayForUpdate = entryArray.filter(([_, { status }]) => status)
+    const entryArrayForDelete = entryArray.filter(([_, { status }]) => !status)
+
+    // NOTE: review_assignment_question은 이미 만들어져있다
+    // NOTE: 언제나 update or delete만 한다. 이미 만들어져있기 때문에 assignment_id는 불필요하다 << result에서 추출도 바로 가능하니 더더욱 불필요하다
+    // TODO: review_check_id가 필요하다
+    const upsertPromiseArray = entryArrayForUpdate.map(([review_assignment_question_id, { status }]) => {
+        if (!status) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
+        return prismaClient.review_assignment_question.update({
+            where: {
+                id: convertToBigIntOrThrow(review_assignment_question_id),
+                review_assignment: { student: { id: student_id, hagwon: { principal: { user_id } } } },
+            },
+            data: { status },
+        })
+    })
+    const deletePromiseArray = entryArrayForDelete.map(([review_assignment_question_id, _]) => {
+        return prismaClient.review_assignment_question.delete({
+            where: {
+                id: convertToBigIntOrThrow(review_assignment_question_id),
+                review_assignment: { student: { id: student_id, hagwon: { principal: { user_id } } } },
+            },
+        })
+    })
+    const [updated, deleted] = await Promise.all([Promise.all(upsertPromiseArray), Promise.all(deletePromiseArray)])
+    const updatedDeleted = [...updated, ...deleted]
+
+    const assignmentIdSet = new Set(updatedDeleted.map(({ review_assignment_id }) => review_assignment_id))
+    const assignmentIdArray = [...assignmentIdSet]
+    const assignmentResult = await prismaClient.review_assignment.findMany({
+        where: {
+            id: { in: assignmentIdArray },
+        },
+        include: {
+            reviewAssignmentQuestions: {
+                where: { review_check: { student: { id: student_id, hagwon: { principal: { user_id } } } } },
+            },
+        },
+    })
+    // NOTE: 이미 완료가 되었다면 또 만들어선 안 된다 << unique constraint에 걸림 << upsert로 해결하자 << 아니야 그러면 createMany를 못 한다. upsertMany는 없다
+    // NOTE: 하지만 지금은 이미 만들어진 assginment를 수정하는 것이라 일일이 map -> update해야 함
+    const completedAssignmentIdArray = assignmentResult
+        .filter((assignment) => {
+            if (assignment.reviewAssignmentQuestions.length === 0) return false
+            return (
+                assignment.reviewAssignmentQuestions.length ===
+                    assignment.reviewAssignmentQuestions.filter((assignmentQuestion) => assignmentQuestion.status) // NOTE: 문제 수 === 체크 완료된 문제 수
+                        .length && !assignment.completed_at // NOTE: 이전에 완료됐으면 건드릴 필요 없음
+            )
+        })
+        .map((assignment) => assignment.id)
+    const uncompletedAssignmentIdArray = assignmentResult
+        .filter((assignment) => {
+            if (assignment.reviewAssignmentQuestions.length === 0) return false
+            return (
+                assignment.reviewAssignmentQuestions.length !==
+                assignment.reviewAssignmentQuestions.filter((assignmentQuestion) => assignmentQuestion.status).length
+            )
+        })
+        .map((assignment) => assignment.id)
+
+    const completedPromise = completedAssignmentIdArray.map((assignment_id) =>
+        prismaClient.review_assignment.update({
+            where: { id: assignment_id },
+            data: { completed_at: new Date() },
+        })
+    )
+    const uncompletedPromise = completedAssignmentIdArray.map((assignment_id) =>
+        prismaClient.review_assignment.update({
+            where: { id: assignment_id },
+            data: { completed_at: null },
+        })
+    )
+    const [completed, uncompleted] = await Promise.all([completedPromise, uncompletedPromise])
+
+    return {
+        updated,
+        deleted,
+        completed,
+        uncompleted,
+        assignmentIdArray,
+        completedAssignmentIdArray,
+        uncompletedAssignmentIdArray,
+    }
 }

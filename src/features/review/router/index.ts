@@ -3,10 +3,15 @@ import type { review_check_status, session_status } from "@/generated/prisma/enu
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
-import type { QuestionIdToInfoForApi, QuestionIdToInfoFromClient } from "../types/index.js"
-import { dbReviewCheckFindMany, dbReviewCheckBulkWrite, dbReviewCheckForAssignmentFindMany } from "../db/index.js"
+import {
+    dbReviewCheckFindMany,
+    dbReviewCheckBulkWrite,
+    dbReviewCheckForAssignmentFindMany,
+    dbReviewCheckAssignmentBulkWrite,
+} from "../db/index.js"
 import { convertToBigIntOrNull, convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
 import { validateBody } from "@/src/utils/validateBody.js"
+import type { IdToChangedInfo } from "../types/index.js"
 
 const reviewCheckRouter = Router()
 
@@ -117,11 +122,11 @@ reviewCheckRouter.get("/check/assignment", async (req, res) => {
 // NOTE: bulk update
 reviewCheckRouter.post("/check", async (req, res) => {
     const user_id = extractUserId(req.headers)
-    const changedReviewChecksFromClient = req.body.changedReviewChecks as QuestionIdToInfoFromClient
+    const changedReviewChecksFromClient = req.body.changedReviewChecks as IdToChangedInfo<"client", "syllabus">
     const student_id = convertToBigIntOrThrow(req.body.student_id)
     validateBody({ changedReviewChecksFromClient, student_id })
 
-    const changedReviewChecks: QuestionIdToInfoForApi = Object.fromEntries(
+    const changedReviewChecks: IdToChangedInfo<"api", "syllabus"> = Object.fromEntries(
         Object.entries(changedReviewChecksFromClient).map(([key, { status, session_id }]) => [
             key,
             {
@@ -137,7 +142,27 @@ reviewCheckRouter.post("/check", async (req, res) => {
 })
 
 reviewCheckRouter.post("/check/assignment", async (req, res) => {
-    res.status(200).send("---- good")
+    const user_id = extractUserId(req.headers)
+    const idToChangedInfoFromClient = req.body.idToChangedInfoFromClient as IdToChangedInfo<"client", "assignment">
+    const student_id = convertToBigIntOrThrow(req.body.student_id)
+    validateBody({ idToChangedInfoFromClient, student_id })
+
+    const idToChangedInfo: IdToChangedInfo<"api", "assignment"> = Object.fromEntries(
+        Object.entries(idToChangedInfoFromClient)
+            .filter(([_, { forWhat }]) => forWhat === "assignment") // NOTE: defence error for accessing assignment_id at below
+            .map(([key, { status, assignment_id }]) => [
+                key,
+                {
+                    forWhat: "assignment",
+                    status: status,
+                    assignment_id: convertToBigIntOrThrow(assignment_id), // NOTE: should not be thrown because I have filtered it
+                },
+            ])
+    )
+
+    const result = await dbReviewCheckAssignmentBulkWrite({ user_id, student_id, idToChangedInfo })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
 })
 
 export default reviewCheckRouter
