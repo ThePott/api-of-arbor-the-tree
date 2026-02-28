@@ -30,6 +30,7 @@ type AssignmentMetaInfo = {
 }
 const condenseAssignmentMetaInfo = (result: ReviewAssignmentArrayVerbose): AssignmentMetaInfo[] => {
     const assignmentMetaInfoArray: AssignmentMetaInfo[] = result.map((verboseAssignment) => {
+        console.log(verboseAssignment)
         const bookTitleSet = new Set<string>()
         verboseAssignment.reviewAssignmentQuestions.forEach((reviewAssignmentQuestion) => {
             const bookTitle = reviewAssignmentQuestion.review_check.question.step?.topic?.book?.title

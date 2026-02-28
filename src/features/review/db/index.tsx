@@ -238,7 +238,7 @@ export const dbReviewCheckAssignmentBulkWrite = async ({
                 id: convertToBigIntOrThrow(review_assignment_question_id),
                 review_assignment: { student: { id: student_id, hagwon: { principal: { user_id } } } },
             },
-            data: { status },
+            data: { status, completed_at: new Date() },
         })
     })
     const updateResult = await Promise.all(updatePromiseArray)
@@ -259,17 +259,14 @@ export const dbReviewCheckAssignmentBulkWrite = async ({
     // NOTE: 하지만 지금은 이미 만들어진 assginment를 수정하는 것이라 일일이 map -> update해야 함
     const completedAssignmentIdArray = assignmentResult
         .filter((assignment) => {
-            if (assignment.reviewAssignmentQuestions.length === 0) return false
             return (
                 assignment.reviewAssignmentQuestions.length ===
-                    assignment.reviewAssignmentQuestions.filter((assignmentQuestion) => assignmentQuestion.status) // NOTE: 문제 수 === 체크 완료된 문제 수
-                        .length && !assignment.completed_at // NOTE: 이전에 완료됐으면 건드릴 필요 없음
+                assignment.reviewAssignmentQuestions.filter((assignmentQuestion) => assignmentQuestion.status).length
             )
         })
         .map((assignment) => assignment.id)
     const uncompletedAssignmentIdArray = assignmentResult
         .filter((assignment) => {
-            if (assignment.reviewAssignmentQuestions.length === 0) return false
             return (
                 assignment.reviewAssignmentQuestions.length !==
                 assignment.reviewAssignmentQuestions.filter((assignmentQuestion) => assignmentQuestion.status).length
@@ -283,13 +280,13 @@ export const dbReviewCheckAssignmentBulkWrite = async ({
             data: { completed_at: new Date() },
         })
     )
-    const uncompletedPromise = completedAssignmentIdArray.map((assignment_id) =>
+    const uncompletedPromise = uncompletedAssignmentIdArray.map((assignment_id) =>
         prismaClient.review_assignment.update({
             where: { id: assignment_id },
             data: { completed_at: null },
         })
     )
-    const [completed, uncompleted] = await Promise.all([completedPromise, uncompletedPromise])
+    const [completed, uncompleted] = await Promise.all([Promise.all(completedPromise), Promise.all(uncompletedPromise)])
 
     return {
         updateResult,
