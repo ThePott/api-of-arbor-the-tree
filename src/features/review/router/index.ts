@@ -21,6 +21,7 @@ type AdditionalPropsForJoinedQuestion = {
     review_check_status: review_check_status | null
     review_check_status_visual: review_check_status | null
     review_check_id: bigint | null
+    review_assignment_created_at: Date | null
 }
 
 const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany>>) => {
@@ -36,6 +37,7 @@ const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany
                     review_check_id: null,
                     review_check_status: null,
                     review_check_status_visual: null,
+                    review_assignment_created_at: null,
                     session_id: null,
                 }
                 joinedQuestion.review_check_status = reviewChecks[0]?.status ?? null
@@ -47,6 +49,9 @@ const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany
 
                 joinedQuestion.session_id = sessionQuestions[0]?.session.id ?? null
                 joinedQuestion.review_check_id = reviewChecks[0]?.id ?? null
+
+                joinedQuestion.review_assignment_created_at =
+                    reviewChecks[0]?.reviewAssignmentQuestions[0]?.review_assignment.created_at ?? null
                 return joinedQuestion
             })
             return { ...step, questions }
