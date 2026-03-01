@@ -34,20 +34,27 @@ export const dbReviewCheckFindMany = async ({
                                             classroom_id,
                                             session: { syllabus_id },
                                         },
+                                        include: { child_attempt: true },
+                                    },
+                                    sessionQuestions: {
+                                        where: { session: { syllabus_id } },
                                         include: {
-                                            child_attempt: true,
                                             session: {
-                                                where: { syllabus_id },
-                                                select: {
-                                                    id: true,
+                                                include: {
                                                     ...(classroom_id && {
                                                         assignedSessionClassrooms: {
-                                                            where: { classroom_id, session: { syllabus_id } },
+                                                            where: {
+                                                                classroom_id,
+                                                                session: { syllabus_id },
+                                                            },
                                                         },
                                                     }),
                                                     ...(!classroom_id && {
                                                         assignedSessionStudents: {
-                                                            where: { student_id, session: { syllabus_id } },
+                                                            where: {
+                                                                student_id,
+                                                                session: { syllabus_id },
+                                                            },
                                                         },
                                                     }),
                                                 },

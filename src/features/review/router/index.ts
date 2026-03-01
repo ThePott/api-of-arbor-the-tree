@@ -30,10 +30,12 @@ const addAttemptInfo = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany>
     const topics = result?.topics.map((topic) => {
         const steps = topic.steps.map((step) => {
             const questions = step.questions.map((question) => {
-                const { questionAttempts, ...rest } = question
-                const attempt = questionAttempts[0]
+                const { questionAttempts, sessionQuestions, ...rest } = question
+                const attempt = questionAttempts?.[0]
+                const session = sessionQuestions?.[0]?.session
 
-                type QuestionWithAttemptInfo = Omit<typeof question, "questionAttempts"> & WithAttemptInfo
+                type QuestionWithAttemptInfo = Omit<typeof question, "questionAttempts" | "sessionQuestions"> &
+                    WithAttemptInfo
                 const questionWithAttemptInfo: QuestionWithAttemptInfo = {
                     ...rest,
                     attempt_id: null,
@@ -49,10 +51,11 @@ const addAttemptInfo = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany>
                 questionWithAttemptInfo.attempt_status_visual = attempt?.status ?? null
                 questionWithAttemptInfo.isReviewed = Boolean(attempt?.child_attempt)
 
-                const session = questionAttempts[0]?.session
                 questionWithAttemptInfo.session_id = session?.id ?? null
                 questionWithAttemptInfo.session_status =
-                    session?.assignedSessionClassrooms[0]?.status ?? session?.assignedSessionStudents[0]?.status ?? null
+                    session?.assignedSessionClassrooms?.[0]?.status ??
+                    session?.assignedSessionStudents?.[0]?.status ??
+                    null
 
                 return questionWithAttemptInfo
             })
@@ -73,6 +76,11 @@ reviewCheckRouter.get("/check", async (req, res) => {
     if (!student_id || !syllabus_id) throw ApiError.BadRequest("학생과 문제집을 선택해주세요")
 
     const result = await dbReviewCheckFindMany({ user_id, classroom_id, student_id, syllabus_id })
+    try {
+        addAttemptInfo(result)
+    } catch (error) {
+        console.error(error)
+    }
     const joinedResult = addAttemptInfo(result)
 
     const serializable = makeSerializable(joinedResult)
