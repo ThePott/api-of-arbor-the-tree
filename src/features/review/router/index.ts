@@ -1,5 +1,5 @@
 import { Router } from "express"
-import type { review_check_status, session_status } from "@/generated/prisma/enums.js"
+import type { attempt_status, review_check_status, session_status } from "@/generated/prisma/enums.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
@@ -15,44 +15,47 @@ import type { IdToChangedInfo } from "../types/index.js"
 
 const reviewCheckRouter = Router()
 
-type AdditionalPropsForJoinedQuestion = {
-    session_status: session_status | null
-    session_id: bigint | null
-    review_check_status: review_check_status | null
-    review_check_status_visual: review_check_status | null
-    review_check_id: bigint | null
-    review_assignment_created_at: Date | null
+export const ReviewCheckError = ApiError.Internal("오답 체크를 정리하던 중 문제가 발생했어요")
+
+type WithAttemptInfo = {
+    attempt_id: bigint | null
+    attempt_status: attempt_status | null
+    attempt_status_visual: attempt_status | null
+    isReviewed: boolean
+    session_id: bigint | null // NOTE: idToChangedInfo에 들어 있어야 한다
+    session_status: session_status | null // NOTE: session이 할당된 것만 오답체크할 수 있다
 }
 
-const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany>>) => {
+const addAttemptInfo = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany>>) => {
     const topics = result?.topics.map((topic) => {
         const steps = topic.steps.map((step) => {
             const questions = step.questions.map((question) => {
-                type JoinedQuestion = Omit<typeof question, "reviewChecks" | "sessionQuestions"> &
-                    AdditionalPropsForJoinedQuestion
-                const { reviewChecks, sessionQuestions, ...rest } = question
-                const joinedQuestion: JoinedQuestion = {
-                    ...rest,
-                    session_status: null,
-                    review_check_id: null,
-                    review_check_status: null,
-                    review_check_status_visual: null,
-                    review_assignment_created_at: null,
-                    session_id: null,
-                }
-                joinedQuestion.review_check_status = reviewChecks[0]?.status ?? null
-                joinedQuestion.review_check_status_visual = reviewChecks[0]?.status ?? null
+                const { questionAttempts, ...rest } = question
+                const attempt = questionAttempts[0]
+                if (!attempt) throw ReviewCheckError
 
-                const session = sessionQuestions[0]?.session
-                joinedQuestion.session_status =
+                type QuestionWithAttemptInfo = Omit<typeof question, "questionAttempts"> & WithAttemptInfo
+                const questionWithAttemptInfo: QuestionWithAttemptInfo = {
+                    ...rest,
+                    attempt_id: null,
+                    attempt_status: null,
+                    attempt_status_visual: null,
+                    isReviewed: false,
+                    session_id: null,
+                    session_status: null,
+                }
+
+                questionWithAttemptInfo.attempt_id = attempt.id
+                questionWithAttemptInfo.attempt_status = attempt.status
+                questionWithAttemptInfo.attempt_status_visual = attempt.status
+                questionWithAttemptInfo.isReviewed = Boolean(attempt.child_attempt)
+
+                const session = questionAttempts[0]?.session
+                questionWithAttemptInfo.session_id = session?.id ?? null
+                questionWithAttemptInfo.session_status =
                     session?.assignedSessionClassrooms[0]?.status ?? session?.assignedSessionStudents[0]?.status ?? null
 
-                joinedQuestion.session_id = sessionQuestions[0]?.session.id ?? null
-                joinedQuestion.review_check_id = reviewChecks[0]?.id ?? null
-
-                joinedQuestion.review_assignment_created_at =
-                    reviewChecks[0]?.reviewAssignmentQuestions[0]?.review_assignment.created_at ?? null
-                return joinedQuestion
+                return questionWithAttemptInfo
             })
             return { ...step, questions }
         })
@@ -65,16 +68,38 @@ const addStatusToBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany
 }
 reviewCheckRouter.get("/check", async (req, res) => {
     const user_id = extractUserId(req.headers)
+    const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const student_id = convertToBigIntOrNull(req.query.student_id)
     const syllabus_id = convertToBigIntOrNull(req.query.syllabus_id)
-    const review_assignment_id = req.query.review_assignment_id ? BigInt(String(req.query.review_assignment_id)) : null
     if (!student_id || !syllabus_id) throw ApiError.BadRequest("학생과 문제집을 선택해주세요")
 
-    const result = await dbReviewCheckFindMany({ user_id, student_id, syllabus_id, review_assignment_id })
-    const joinedResult = addStatusToBook(result)
+    const result = await dbReviewCheckFindMany({ user_id, classroom_id, student_id, syllabus_id })
+    const joinedResult = addAttemptInfo(result)
 
     const serializable = makeSerializable(joinedResult)
     // const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
+})
+
+// NOTE: bulk update
+reviewCheckRouter.post("/check", async (req, res) => {
+    const user_id = extractUserId(req.headers)
+    const changedReviewChecksFromClient = req.body.changedReviewChecks as IdToChangedInfo<"client", "syllabus">
+    const student_id = convertToBigIntOrThrow(req.body.student_id)
+    validateBody({ changedReviewChecksFromClient, student_id })
+
+    const changedReviewChecks: IdToChangedInfo<"api", "syllabus"> = Object.fromEntries(
+        Object.entries(changedReviewChecksFromClient).map(([key, { status, session_id }]) => [
+            key,
+            {
+                status,
+                session_id: convertToBigIntOrThrow(session_id),
+            },
+        ])
+    )
+
+    const result = await dbReviewCheckBulkWrite({ user_id, student_id, changedReviewChecks })
+    const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
 
@@ -121,28 +146,6 @@ reviewCheckRouter.get("/check/assignment", async (req, res) => {
     const result = await dbReviewCheckForAssignmentFindMany({ user_id, student_id, classroom_id })
     const condensed = condenseAssignmentWithQuestions(result)
     const serializable = makeSerializable(condensed)
-    res.status(200).json(serializable)
-})
-
-// NOTE: bulk update
-reviewCheckRouter.post("/check", async (req, res) => {
-    const user_id = extractUserId(req.headers)
-    const changedReviewChecksFromClient = req.body.changedReviewChecks as IdToChangedInfo<"client", "syllabus">
-    const student_id = convertToBigIntOrThrow(req.body.student_id)
-    validateBody({ changedReviewChecksFromClient, student_id })
-
-    const changedReviewChecks: IdToChangedInfo<"api", "syllabus"> = Object.fromEntries(
-        Object.entries(changedReviewChecksFromClient).map(([key, { status, session_id }]) => [
-            key,
-            {
-                status,
-                session_id: convertToBigIntOrThrow(session_id),
-            },
-        ])
-    )
-
-    const result = await dbReviewCheckBulkWrite({ user_id, student_id, changedReviewChecks })
-    const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
 

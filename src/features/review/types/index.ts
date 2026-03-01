@@ -1,4 +1,4 @@
-import type { review_check_status } from "@/generated/prisma/enums.js"
+import type { attempt_status } from "@/generated/prisma/enums.js"
 
 export type SourceToIdType = {
     client: string
@@ -6,14 +6,14 @@ export type SourceToIdType = {
 }
 
 export type ForWhatToReviewCheckChangedInfo<TSource extends keyof SourceToIdType> = {
-    syllabus: {
-        forWhat?: "syllabus"
-        status: review_check_status | null
+    session: {
+        forWhat: "session"
+        status: attempt_status | null
         session_id: SourceToIdType[TSource]
     }
     assignment: {
         forWhat: "assignment"
-        status: review_check_status | null
+        status: attempt_status | null
     }
 }
 
@@ -22,6 +22,8 @@ export type ReviewCheckChangedInfo<
     TForWhat extends keyof ForWhatToReviewCheckChangedInfo<TSource>,
 > = ForWhatToReviewCheckChangedInfo<TSource>[TForWhat]
 
+// NOTE: for session, id is question_id, when upsert, use question_student_session_id
+// NOTE: for assignment, id is question_attempt_id
 export type IdToChangedInfo<
     TSource extends keyof SourceToIdType,
     TForWhat extends keyof ForWhatToReviewCheckChangedInfo<TSource>,

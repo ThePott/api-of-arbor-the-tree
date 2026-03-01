@@ -3,60 +3,53 @@ import { ApiError } from "@/src/errors/appError/AppError.js"
 import type { IdToChangedInfo } from "../types/index.js"
 import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
 
+// NOTE: syllabus __그 문제집의 오답과제를 가져와야 함
 type DbReviewCheckFindManyProps = {
     user_id: bigint
+    classroom_id: bigint | null
     student_id: bigint
     syllabus_id: bigint
-    review_assignment_id: bigint | null
 }
-// NOTE: 그 문제집의 오답과제를 가져와야 함
 export const dbReviewCheckFindMany = async ({
     user_id,
+    classroom_id,
     student_id,
     syllabus_id,
-    review_assignment_id,
 }: DbReviewCheckFindManyProps) => {
-    if (review_assignment_id) throw ApiError.Internal("---- CURRENTLY NOT HANDLING CHECKING ASSIGNMENT")
-
     const result = await prismaClient.book.findFirst({
         where: { syllabi: { some: { id: syllabus_id, user_id } } },
-        select: {
-            title: true,
+        include: {
             topics: {
-                select: {
-                    order: true,
-                    title: true,
+                orderBy: { order: "asc" },
+                include: {
                     steps: {
-                        select: {
-                            order: true,
-                            title: true,
+                        orderBy: { order: "asc" },
+                        include: {
                             questions: {
-                                select: {
-                                    order: true,
-                                    id: true,
-                                    name: true,
-                                    page: true,
-                                    reviewChecks: {
-                                        where: { student_id, session: { syllabus_id } },
-                                        include: {
-                                            reviewAssignmentQuestions: {
-                                                where: { review_check: { student_id, session: { syllabus_id } } },
-                                                include: { review_assignment: { select: { created_at: true } } },
-                                            },
-                                        },
-                                    },
-                                    sessionQuestions: {
+                                orderBy: { order: "asc" },
+                                include: {
+                                    questionAttempts: {
                                         where: {
-                                            session: {
-                                                syllabus_id,
-                                            },
+                                            student_id,
+                                            classroom_id,
+                                            session: { syllabus_id },
                                         },
-                                        select: {
+                                        include: {
+                                            child_attempt: true,
                                             session: {
+                                                where: { syllabus_id },
                                                 select: {
                                                     id: true,
-                                                    assignedSessionStudents: true,
-                                                    assignedSessionClassrooms: true,
+                                                    ...(classroom_id && {
+                                                        assignedSessionClassrooms: {
+                                                            where: { classroom_id, session: { syllabus_id } },
+                                                        },
+                                                    }),
+                                                    ...(!classroom_id && {
+                                                        assignedSessionStudents: {
+                                                            where: { student_id, session: { syllabus_id } },
+                                                        },
+                                                    }),
                                                 },
                                             },
                                         },
@@ -69,7 +62,6 @@ export const dbReviewCheckFindMany = async ({
             },
         },
     })
-
     return result
 }
 
