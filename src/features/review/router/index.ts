@@ -32,7 +32,6 @@ const addAttemptInfo = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany>
             const questions = step.questions.map((question) => {
                 const { questionAttempts, ...rest } = question
                 const attempt = questionAttempts[0]
-                if (!attempt) throw ReviewCheckError
 
                 type QuestionWithAttemptInfo = Omit<typeof question, "questionAttempts"> & WithAttemptInfo
                 const questionWithAttemptInfo: QuestionWithAttemptInfo = {
@@ -45,10 +44,10 @@ const addAttemptInfo = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany>
                     session_status: null,
                 }
 
-                questionWithAttemptInfo.attempt_id = attempt.id
-                questionWithAttemptInfo.attempt_status = attempt.status
-                questionWithAttemptInfo.attempt_status_visual = attempt.status
-                questionWithAttemptInfo.isReviewed = Boolean(attempt.child_attempt)
+                questionWithAttemptInfo.attempt_id = attempt?.id ?? null
+                questionWithAttemptInfo.attempt_status = attempt?.status ?? null
+                questionWithAttemptInfo.attempt_status_visual = attempt?.status ?? null
+                questionWithAttemptInfo.isReviewed = Boolean(attempt?.child_attempt)
 
                 const session = questionAttempts[0]?.session
                 questionWithAttemptInfo.session_id = session?.id ?? null

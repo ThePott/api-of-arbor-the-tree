@@ -38,7 +38,6 @@ progressRouter.post("/syllabus/assigned", async (req, res) => {
 
     const result = await dbProgressCreateSyllabus({ ...body, user_id })
     const serializable = makeSerializable(result)
-    console.log({ serializable })
     res.status(200).json(serializable)
 })
 
