@@ -15,39 +15,27 @@ export const dbAssignmentFindManyAssignment = async ({
     classroom_id,
     student_id,
 }: DbAssignmentFindManyAssignmentProps) => {
-    // TODO: 반을 어떻게 적용하지? 이리저리 하면 될 것 같긴 하다
-    const result = await prismaClient.review_assignment.findMany({
+    // TODO: review_assignment에 들어있는 bookTitleArray가 필요하다
+    const assignmentResult = await prismaClient.review_assignment.findMany({
         where: {
             student_id,
-            reviewAssignmentQuestions: {
-                some: {
-                    review_check: {
-                        session: {
-                            syllabus: { user_id },
-                            ...(classroom_id && { assignedSessionClassrooms: { some: { classroom_id } } }),
-                            ...(!classroom_id && { assignedSessionStudents: { some: { student_id } } }),
-                        },
-                    },
-                },
-            },
+            classroom_id,
+            student: { hagwon: { principal: { user_id } } },
         },
-        include: {
-            assignedReviewAssignment: true,
-            reviewAssignmentQuestions: {
-                include: {
-                    review_check: {
-                        select: {
-                            question: {
-                                select: {
-                                    step: { select: { topic: { select: { book: { select: { title: true } } } } } },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
+        include: {},
     })
+
+    const bookIdsArray = assignmentResult.map(({ book_ids }) => book_ids)
+    const bookTitleArrayArrayPromise = bookIdsArray.map((bookIds) =>
+        prismaClient.book.findMany({ where: { id: { in: bookIds } }, select: { title: true } })
+    )
+    const bookTitleArrayArray = await Promise.all(bookTitleArrayArrayPromise)
+
+    const result = assignmentResult.map((assignment, index) => ({
+        ...assignment,
+        bookTitleArray: bookTitleArrayArray[index],
+    }))
+
     return result
 }
 

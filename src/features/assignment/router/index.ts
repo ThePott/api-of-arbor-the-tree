@@ -17,49 +17,12 @@ import { validateBody } from "@/src/utils/validateBody.js"
 
 const assignmentRouter = Router()
 
-type ReviewAssignmentArrayVerbose = Awaited<ReturnType<typeof dbAssignmentFindManyAssignment>>
-type AssignmentMetaInfo = {
-    id: bigint
-    student_id: bigint
-    created_at: Date
-    completed_at: Date | null
-    assigned_at: Date | null
-    status: session_status | null
-    bookTitleArray: string[]
-    questionCount: number
-}
-const condenseAssignmentMetaInfo = (result: ReviewAssignmentArrayVerbose): AssignmentMetaInfo[] => {
-    const assignmentMetaInfoArray: AssignmentMetaInfo[] = result.map((verboseAssignment) => {
-        console.log(verboseAssignment)
-        const bookTitleSet = new Set<string>()
-        verboseAssignment.reviewAssignmentQuestions.forEach((reviewAssignmentQuestion) => {
-            const bookTitle = reviewAssignmentQuestion.review_check.question.step?.topic?.book?.title
-            if (!bookTitle) throw ApiError.Internal("오답 과제 목록을 정리하던 중 오류가 발생했어요")
-            bookTitleSet.add(bookTitle)
-        })
-        const questionCount = verboseAssignment.reviewAssignmentQuestions.length
-        const metaInfo: AssignmentMetaInfo = {
-            id: verboseAssignment.id,
-            student_id: verboseAssignment.student_id,
-            created_at: verboseAssignment.created_at,
-            completed_at: verboseAssignment.completed_at ?? null,
-            assigned_at: verboseAssignment.assignedReviewAssignment?.assigned_at ?? null,
-            status: verboseAssignment.assignedReviewAssignment?.status ?? null,
-            bookTitleArray: Array.from(bookTitleSet),
-            questionCount,
-        }
-        return metaInfo
-    })
-    return assignmentMetaInfoArray
-}
 assignmentRouter.get("/", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const student_id = convertToBigIntOrThrow(req.query.student_id)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const result = await dbAssignmentFindManyAssignment({ user_id, classroom_id, student_id })
-    const condensed = condenseAssignmentMetaInfo(result)
-    const serializable = makeSerializable(condensed)
-    // const serializable = makeSerializable(result)
+    const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
 
