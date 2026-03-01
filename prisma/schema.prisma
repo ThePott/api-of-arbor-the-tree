@@ -55,8 +55,8 @@ model student {
     studentSyllabuses        student_syllabus[]
     assignedSessionStudents  assigned_session_student[]
     completedSessionStudents completed_session_student[]
+    questionAttempts         question_attempt[]
     reviewAssignments        review_assignment[]
-    reviewChecks             review_check[]
 
     @@index([user_id], map: "idx_student_user_id")
 }
@@ -156,7 +156,7 @@ model question {
     sub_question     question?          @relation("SubQuestion", fields: [sub_question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
     super_question   question[]         @relation("SubQuestion")
     sessionQuestions session_question[]
-    reviewChecks     review_check[]
+    questionAttempts question_attempt[]
 
     @@unique([name, step_id])
     @@unique([order, step_id])
@@ -185,7 +185,7 @@ model session {
     assignedSessionStudents    assigned_session_student[]
     completedSessionStudents   completed_session_student[]
     completedSessionClassrooms completed_session_classroom[]
-    reviewChecks               review_check[]
+    questionAttempts           question_attempt[]
 
     @@unique([order, syllabus_id])
 }
@@ -209,6 +209,7 @@ model classroom {
     classroomSyllabuses        classroom_syllabus[]
     assignedSessionClassrooms  assigned_session_classroom[]
     completedSessionClassrooms completed_session_classroom[]
+    questionAttempts           question_attempt[]
     reviewAssignments          review_assignment[]
 
     @@unique([name, hagwon_id])
@@ -307,60 +308,44 @@ model completed_session_student {
     @@unique([session_id, student_id])
 }
 
-enum review_check_status {
+enum attempt_status {
     CORRECT
     WRONG
 }
 
-model review_check {
-    id          BigInt              @id @default(autoincrement())
-    session_id  BigInt
-    student_id  BigInt
-    question_id BigInt
-    status      review_check_status
+model question_attempt {
+    id                   BigInt          @id @default(autoincrement())
+    student_id           BigInt
+    question_id          BigInt
+    classroom_id         BigInt?
+    session_id           BigInt? // NOTE: only one of these need to be truthy. MUST CHECK WITH SQL `CHECK` WITH MANUAL MIGRATION
+    review_assignment_id BigInt? // NOTE: only one of these need to be truthy. MUST CHECK WITH SQL `CHECK` WITH MANUAL MIGRATION
+    status               attempt_status? // NOTE: null is only possible with attempts for assignment. for session, just delete the row
+    parent_attempt_id    BigInt?         @unique
+    created_at           DateTime        @default(now())
 
-    session  session  @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    student  student  @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    question question @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    student           student            @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    question          question           @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    classroom         classroom?         @relation(fields: [classroom_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    session           session?           @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    review_assignment review_assignment? @relation(fields: [review_assignment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    parent_attempt    question_attempt?  @relation("AttemptChain", fields: [parent_attempt_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+    child_attempt     question_attempt?  @relation("AttemptChain")
 
-    reviewAssignmentQuestions review_assignment_question[]
-
-    @@unique([session_id, student_id, question_id])
+    @@unique([student_id, question_id, session_id, review_assignment_id])
 }
 
 model review_assignment {
-    id           BigInt    @id @default(autoincrement())
-    classroom_id BigInt?
+    id           BigInt          @id @default(autoincrement())
     student_id   BigInt
-    created_at   DateTime  @default(now())
+    classroom_id BigInt?
+    book_ids     BigInt[] // NOTE: needs for meta data
+    status       session_status?
+    created_at   DateTime        @default(now())
+    assigned_at  DateTime?
     completed_at DateTime?
 
-    classroom                 classroom?                   @relation(fields: [classroom_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-    student                   student                      @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    reviewAssignmentQuestions review_assignment_question[]
-    assignedReviewAssignment  assigned_review_assignment?
+    student           student            @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    classroom         classroom?         @relation(fields: [classroom_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    question_attempts question_attempt[]
 }
-
-model review_assignment_question {
-    id                   BigInt               @id @default(autoincrement())
-    review_assignment_id BigInt
-    review_check_id      BigInt
-    order                Int
-    status               review_check_status?
-    completed_at         DateTime?
-
-    review_assignment review_assignment @relation(fields: [review_assignment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    review_check      review_check      @relation(fields: [review_check_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
-model assigned_review_assignment {
-    id                   BigInt         @id @default(autoincrement())
-    review_assignment_id BigInt         @unique
-    status               session_status
-    assigned_at          DateTime       @default(now())
-
-    review_assignment review_assignment @relation(fields: [review_assignment_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-}
-
-// TODO: syllabus review check, assignment review check 이렇게 나눠야 할까?
-// NOTE: 하지만 그 부분은 review_assignemnt_question.status로 해결이 된다
