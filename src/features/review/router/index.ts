@@ -65,12 +65,9 @@ const addAttemptInfoToBookArray = (result: Awaited<ReturnType<typeof dbReviewChe
 const condenseAssignmentWithBooksArray = (extended: ReturnType<typeof addAttemptInfoToBookArray>) => {
     const condensed = extended.map((assignment) => {
         const books = assignment?.books?.map((book) => {
-            const topics = book.topics?.map((topic) => {
-                const { steps: _, ...rest } = topic
-                const questions = topic.steps.flatMap((step) => step.questions)
-                return { ...rest, questions }
-            })
-            return { ...book, topics }
+            const { topics: _, ...rest } = book
+            const questions = book.topics?.flatMap((topic) => topic.steps.flatMap(({ questions }) => questions))
+            return { ...rest, questions }
         })
         return { ...assignment, books }
     })
