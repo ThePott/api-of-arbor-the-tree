@@ -13,6 +13,7 @@ import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import type { session_status } from "@/generated/prisma/client.js"
 import makeAssignmentPdf from "../pdf/index.js"
 import { validateBody } from "@/src/utils/validateBody.js"
+import { logError } from "@/src/utils/log-error.js"
 
 const assignmentRouter = Router()
 
@@ -54,40 +55,16 @@ assignmentRouter.get("/create", async (req, res) => {
     res.status(200).json(serializable)
 })
 
-export type BookWithExtendedReviewChecksFromClient = {
-    title: string
-    extendedReviewChecks: {
-        student_id: string
-        id: string
-        session_id: string
-        question_id: string
-        status: review_check_status
-        topic_order: number
-        step_order: number
-        question_order: number
-    }[]
-}
 assignmentRouter.post("/create", async (req, res) => {
     const user_id = extractUserId(req.headers)
-    const student_id = convertToBigIntOrThrow(req.body.student_id)
-    const classroom_id = convertToBigIntOrNull(req.body.classroom_id)
-    const bookWithExtendedReviewChecksArray = req.body
-        .bookWithExtendedReviewChecksArray as BookWithExtendedReviewChecksFromClient[]
-    validateBody({ student_id, bookWithExtendedReviewChecksArray })
+    const student_id = convertToBigIntOrThrow(req.query.student_id)
+    const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
+    const book_ids = req.body?.book_ids // NOTE: body가 없으면 속성 접근 시 에러가 뜬다
+    validateBody({ book_ids })
 
-    try {
-        const result = await dbAssignmentCreateAssignment({
-            user_id,
-            bookWithExtendedReviewChecksArray,
-            classroom_id,
-            student_id,
-        })
-        const serializable = makeSerializable(result)
-        res.status(200).json(serializable)
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: "...debugging..." })
-    }
+    const result = await dbAssignmentCreateAssignment({ user_id, classroom_id, student_id, book_ids })
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
 })
 
 export const condenseBookForPdf = (bookArray: Awaited<ReturnType<typeof dbAssignmentFindBookForPdf>>) => {

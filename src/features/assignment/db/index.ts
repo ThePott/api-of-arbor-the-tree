@@ -54,36 +54,40 @@ type DbAssignmentCreateAssignmentProps = {
     user_id: bigint
     classroom_id: bigint | null
     student_id: bigint
-    bookWithExtendedReviewChecksArray: BookWithExtendedReviewChecksFromClient[]
+    book_ids: bigint[]
 }
 export const dbAssignmentCreateAssignment = async ({
-    user_id: _user_id,
+    user_id,
     classroom_id,
     student_id,
-    bookWithExtendedReviewChecksArray,
+    book_ids,
 }: DbAssignmentCreateAssignmentProps) => {
-    // TODO
-    // TODO: NEED TO VALIDATE with user_id
-    // TODO
+    await prismaClient.student.findUniqueOrThrow({
+        where: { id: student_id, hagwon: { principal: { user_id } } },
+    })
+
+    const unreviewedAtteptArray = await prismaClient.question_attempt.findMany({
+        where: {
+            classroom_id,
+            student_id,
+            child_attempt: null,
+            question: { step: { topic: { book: { id: { in: book_ids } } } } },
+        },
+    })
+
     const result = await prismaClient.review_assignment.create({
         data: {
             student_id,
             classroom_id,
-            reviewAssignmentQuestions: {
-                create: bookWithExtendedReviewChecksArray
-                    .sort((a, b) => a.title.localeCompare(b.title))
-                    .flatMap((book) =>
-                        book.extendedReviewChecks.sort((a, b) => {
-                            if (a.topic_order !== b.topic_order) return a.topic_order - b.topic_order
-                            if (a.step_order !== b.step_order) return a.step_order - b.step_order
-                            return a.question_order - b.question_order
-                        })
-                    )
-                    .map((reviewCheck, index) => ({
-                        review_check_id: convertToBigIntOrThrow(reviewCheck.id),
-                        order: index + 1,
-                    })),
+            question_attempts: {
+                create: unreviewedAtteptArray.map((attempt) => ({
+                    student_id,
+                    question_id: attempt.question_id,
+                    classroom_id,
+                    parent_attempt_id: attempt.id,
+                })),
             },
+            book_ids,
         },
     })
     return result

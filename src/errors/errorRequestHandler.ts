@@ -11,6 +11,7 @@ const errorRequestHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     } else if (err instanceof PrismaClientKnownRequestError) {
         appError = convertPrismaError(err)
     } else {
+        console.error(err)
         appError = ApiError.Internal("알 수 없는 오류가 발생했어요")
     }
 
