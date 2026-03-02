@@ -247,11 +247,13 @@ export const dbReviewCheckForAssignmentFindMany = async ({
 
 type DbReviewCheckAssignmentBulkWriteProps = {
     user_id: bigint
+    classroom_id: bigint | null
     student_id: bigint
     idToChangedInfo: IdToChangedInfo<"api", "assignment"> // NOTE: already converted to bigint except for question_id(key)
 }
 export const dbReviewCheckAssignmentBulkWrite = async ({
     user_id, // TODO: need to validate using it
+    classroom_id,
     student_id,
     idToChangedInfo,
 }: DbReviewCheckAssignmentBulkWriteProps) => {
@@ -260,27 +262,30 @@ export const dbReviewCheckAssignmentBulkWrite = async ({
     // NOTE: review_assignment_question은 이미 만들어져있다
     // NOTE: 언제나 update or delete만 한다. 이미 만들어져있기 때문에 assignment_id는 불필요하다 << result에서 추출도 바로 가능하니 더더욱 불필요하다
     // TODO: review_check_id가 필요하다
-    const updatePromiseArray = entryArray.map(([review_assignment_question_id, { status }]) => {
-        return prismaClient.review_assignment_question.update({
+    const updatePromiseArray = entryArray.map(([question_attempt_id, { status }]) => {
+        return prismaClient.question_attempt.update({
             where: {
-                id: convertToBigIntOrThrow(review_assignment_question_id),
-                review_assignment: { student: { id: student_id, hagwon: { principal: { user_id } } } },
+                id: convertToBigIntOrThrow(question_attempt_id),
+                classroom_id,
+                student_id,
+                student: { hagwon: { principal: { user_id } } },
             },
-            data: { status, completed_at: new Date() },
+            data: { status },
         })
     })
     const updateResult = await Promise.all(updatePromiseArray)
 
     const assignmentIdSet = new Set(updateResult.map(({ review_assignment_id }) => review_assignment_id))
-    const assignmentIdArray = [...assignmentIdSet]
+    const assignmentIdArray: bigint[] = [...assignmentIdSet].filter((id) => id !== null)
     const assignmentResult = await prismaClient.review_assignment.findMany({
         where: {
             id: { in: assignmentIdArray },
+            classroom_id,
+            student_id,
+            student: { hagwon: { principal: { user_id } } },
         },
         include: {
-            reviewAssignmentQuestions: {
-                where: { review_check: { student: { id: student_id, hagwon: { principal: { user_id } } } } },
-            },
+            question_attempts: true,
         },
     })
     // NOTE: 이미 완료가 되었다면 또 만들어선 안 된다 << unique constraint에 걸림 << upsert로 해결하자 << 아니야 그러면 createMany를 못 한다. upsertMany는 없다
@@ -288,16 +293,16 @@ export const dbReviewCheckAssignmentBulkWrite = async ({
     const completedAssignmentIdArray = assignmentResult
         .filter((assignment) => {
             return (
-                assignment.reviewAssignmentQuestions.length ===
-                assignment.reviewAssignmentQuestions.filter((assignmentQuestion) => assignmentQuestion.status).length
+                assignment.question_attempts.length ===
+                assignment.question_attempts.filter(({ status }) => status).length
             )
         })
         .map((assignment) => assignment.id)
     const uncompletedAssignmentIdArray = assignmentResult
         .filter((assignment) => {
             return (
-                assignment.reviewAssignmentQuestions.length !==
-                assignment.reviewAssignmentQuestions.filter((assignmentQuestion) => assignmentQuestion.status).length
+                assignment.question_attempts.length !==
+                assignment.question_attempts.filter(({ status }) => status).length
             )
         })
         .map((assignment) => assignment.id)

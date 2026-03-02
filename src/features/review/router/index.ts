@@ -151,23 +151,12 @@ reviewCheckRouter.get("/check/assignment", async (req, res) => {
 
 reviewCheckRouter.post("/check/assignment", async (req, res) => {
     const user_id = extractUserId(req.headers)
-    const idToChangedInfoFromClient = req.body.idToChangedInfo as IdToChangedInfo<"client", "assignment">
-    const student_id = convertToBigIntOrThrow(req.body.student_id)
-    validateBody({ idToChangedInfoFromClient, student_id })
+    const idToChangedInfo = req.body.idToChangedInfo as IdToChangedInfo<"api", "assignment">
+    const classroom_id = convertToBigIntOrNull(req.query.classroom_id) // NOTE: 사실 question_attempt_id로 mutate하기에 불필요하지만 방어적으로 확인하느라 넣었다
+    const student_id = convertToBigIntOrThrow(req.query.student_id)
+    validateBody({ idToChangedInfo })
 
-    const idToChangedInfo: IdToChangedInfo<"api", "assignment"> = Object.fromEntries(
-        Object.entries(idToChangedInfoFromClient)
-            .filter(([_, { forWhat }]) => forWhat === "assignment") // NOTE: defence error for accessing assignment_id at below
-            .map(([key, { status }]) => [
-                key,
-                {
-                    forWhat: "assignment",
-                    status: status,
-                },
-            ])
-    )
-
-    const result = await dbReviewCheckAssignmentBulkWrite({ user_id, student_id, idToChangedInfo })
+    const result = await dbReviewCheckAssignmentBulkWrite({ user_id, classroom_id, student_id, idToChangedInfo })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
