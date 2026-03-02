@@ -7,11 +7,10 @@ import {
     dbAssignmentCreateAssignment,
     dbAssignmentFindBookForPdf,
     dbAssignmentFindManyAssignment,
-    dbAssignmentFindManyBookWithReviewChecks,
+    dbAssignmentFindManyBookWithReviewNeededAttempts,
 } from "../db/index.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
-import type { review_check, review_check_status, session_status } from "@/generated/prisma/client.js"
-import { ApiError } from "@/src/errors/appError/AppError.js"
+import type { session_status } from "@/generated/prisma/client.js"
 import makeAssignmentPdf from "../pdf/index.js"
 import { validateBody } from "@/src/utils/validateBody.js"
 
@@ -28,42 +27,30 @@ assignmentRouter.get("/", async (req, res) => {
 
 // NOTE: 얘는 오답과제를 만들려고 하는데 거기에 들어갈 문제들이 무엇인지 보여주는 용도(틀린 문제들 종합한 결과 정리해서 보여준다)
 // NOTE: 지금까지의 모든 체크를 보려면 get check를 봐야 한다
-type ExtendedReviewCheck = review_check & {
-    topic_order: number
-    step_order: number
-    question_order: number
+type BookWithReviewNeededAttemptsVerbose = Awaited<ReturnType<typeof dbAssignmentFindManyBookWithReviewNeededAttempts>>
+type AssignmentCandidate = {
+    bookTitle: string
+    questionCount: number
 }
-type BookWithReviewChecksArrayVerbose = Awaited<ReturnType<typeof dbAssignmentFindManyBookWithReviewChecks>>
-const condenseBookWithReviewChecksArray = (bookWithReviewChecksArray: BookWithReviewChecksArrayVerbose) => {
-    const newData = bookWithReviewChecksArray.map((book) => {
-        const extendedReviewChecks: ExtendedReviewCheck[] = []
-        book.topics.forEach((topic) => {
-            const topic_order = topic.order
-            topic.steps.forEach((step) => {
-                const step_order = step.order
-                step.questions.forEach((question) => {
-                    const question_order = question.order
-                    const extendedArray: ExtendedReviewCheck[] = question.reviewChecks.map((review_check) => ({
-                        ...review_check,
-                        topic_order,
-                        step_order,
-                        question_order,
-                    }))
-                    extendedReviewChecks.push(...extendedArray)
-                })
-            })
+const condenseBookWithReviewChecksArray = (bookWithReviewChecksArray: BookWithReviewNeededAttemptsVerbose) => {
+    const assignmentCandidateArray: AssignmentCandidate[] = bookWithReviewChecksArray.map((book) => {
+        const questionsInBook = book.topics.flatMap((topic) => {
+            const questionsInTopic = topic.steps.flatMap((step) => step.questions)
+            return questionsInTopic
         })
-        return { title: book.title, extendedReviewChecks }
+        return { bookTitle: book.title, questionCount: questionsInBook.length }
     })
-    return newData
+    return assignmentCandidateArray
 }
 assignmentRouter.get("/create", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const student_id = convertToBigIntOrThrow(req.query.student_id)
-    const result = await dbAssignmentFindManyBookWithReviewChecks({ user_id, classroom_id, student_id })
-    const condensedResult = condenseBookWithReviewChecksArray(result)
-    const serializable = makeSerializable(condensedResult)
+    // NOTE: 여기선 후보를 찾는 거니까 책별 meta data만 필요하다
+    const result = await dbAssignmentFindManyBookWithReviewNeededAttempts({ user_id, classroom_id, student_id })
+    const condensed = condenseBookWithReviewChecksArray(result)
+    const serializable = makeSerializable(condensed)
+    // const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
 

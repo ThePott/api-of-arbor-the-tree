@@ -3,6 +3,7 @@ import type { BookWithExtendedReviewChecksFromClient } from "../router/index.js"
 import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
 import type { bookWhereInput, questionWhereInput, stepWhereInput, topicWhereInput } from "@/generated/prisma/models.js"
 import type { session_status } from "@/generated/prisma/enums.js"
+import findManyBooksWithReviewNeededAttempts from "@/src/shared/queries/find-many-books-with-review-needed-attempts.js"
 
 // NOTE: AssignmentMetaInfo 만드는 데에 사용됨
 type DbAssignmentFindManyAssignmentProps = {
@@ -44,66 +45,8 @@ type DbAssignmentFindManyCanditateProps = {
     classroom_id: bigint | null
     student_id: bigint
 }
-export const dbAssignmentFindManyBookWithReviewChecks = async ({
-    user_id,
-    classroom_id,
-    student_id,
-}: DbAssignmentFindManyCanditateProps) => {
-    const result = await prismaClient.book.findMany({
-        where: {
-            topics: {
-                some: {
-                    steps: {
-                        some: {
-                            questions: {
-                                some: {
-                                    reviewChecks: {
-                                        some: {
-                                            student_id,
-                                            ...(classroom_id && {
-                                                session: {
-                                                    assignedSessionClassrooms: {
-                                                        some: {
-                                                            classroom_id,
-                                                        },
-                                                    },
-                                                },
-                                            }),
-                                            reviewAssignmentQuestions: { none: {} },
-                                            status: "WRONG",
-                                            student: { hagwon: { principal: { user_id } } },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        select: {
-            title: true,
-            topics: {
-                select: {
-                    order: true,
-                    steps: {
-                        select: {
-                            order: true,
-                            questions: {
-                                select: {
-                                    order: true,
-                                    reviewChecks: {
-                                        where: { student_id },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    })
-
+export const dbAssignmentFindManyBookWithReviewNeededAttempts = async (props: DbAssignmentFindManyCanditateProps) => {
+    const result = await findManyBooksWithReviewNeededAttempts(props)
     return result
 }
 

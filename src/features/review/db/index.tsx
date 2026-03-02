@@ -2,6 +2,7 @@ import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import type { IdToChangedInfo } from "../types/index.js"
 import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
+import findManyBooksWithReviewNeededAttempts from "@/src/shared/queries/find-many-books-with-review-needed-attempts.js"
 
 // NOTE: syllabus __그 문제집의 오답과제를 가져와야 함
 type DbReviewCheckFindManyProps = {
@@ -184,64 +185,8 @@ type DbReviewCheckForAssignmentFindManyProps = {
     student_id: bigint
     classroom_id: bigint | null
 }
-export const dbReviewCheckForAssignmentFindMany = async ({
-    user_id,
-    student_id,
-    classroom_id,
-}: DbReviewCheckForAssignmentFindManyProps) => {
-    const result = await prismaClient.book.findMany({
-        where: {
-            user_id,
-            topics: {
-                some: {
-                    steps: {
-                        some: {
-                            questions: {
-                                some: {
-                                    questionAttempts: {
-                                        some: {
-                                            student_id,
-                                            classroom_id,
-                                            child_attempt: null,
-                                            review_assignment_id: { not: null },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        include: {
-            topics: {
-                orderBy: { order: "asc" },
-                include: {
-                    steps: {
-                        orderBy: { order: "asc" },
-                        include: {
-                            questions: {
-                                orderBy: { order: "asc" },
-                                include: {
-                                    questionAttempts: {
-                                        where: {
-                                            student_id,
-                                            classroom_id,
-                                            child_attempt: null,
-                                            review_assignment_id: { not: null },
-                                        },
-                                        include: {
-                                            review_assignment: true,
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    })
+export const dbReviewCheckForAssignmentFindMany = async (props: DbReviewCheckForAssignmentFindManyProps) => {
+    const result = await findManyBooksWithReviewNeededAttempts(props)
     return result
 }
 

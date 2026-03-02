@@ -103,6 +103,7 @@ reviewCheckRouter.post("/check", async (req, res) => {
     res.status(200).json(serializable)
 })
 
+// TODO: 공통 함수로 교체해야
 const condenseAssignmentWithQuestions = (
     verboseAssignmentArray: Awaited<ReturnType<typeof dbReviewCheckForAssignmentFindMany>>
 ) => {
