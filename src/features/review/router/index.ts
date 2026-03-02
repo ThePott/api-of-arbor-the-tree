@@ -1,73 +1,22 @@
 import { Router } from "express"
-import type { attempt_status, session_status } from "@/generated/prisma/enums.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import {
-    dbReviewCheckFindMany,
     dbReviewCheckBulkWrite,
     dbReviewCheckForAssignmentFindMany,
     dbReviewCheckAssignmentBulkWrite,
+    dbReviewCheckFindMany,
 } from "../db/index.js"
 import { convertToBigIntOrNull, convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
 import { validateBody } from "@/src/utils/validateBody.js"
 import type { IdToChangedInfo } from "../types/index.js"
+import { addAttemptInfoToSingleBook, addAttemptInfoToBookArray } from "../utils/add-attempt-info.js"
 
 const reviewCheckRouter = Router()
 
 export const ReviewCheckError = ApiError.Internal("오답 체크를 정리하던 중 문제가 발생했어요")
 
-type WithAttemptInfo = {
-    attempt_id: bigint | null
-    attempt_status: attempt_status | null
-    attempt_status_visual: attempt_status | null
-    isReviewed: boolean
-    session_id: bigint | null // NOTE: idToChangedInfo에 들어 있어야 한다
-    session_status: session_status | null // NOTE: session이 할당된 것만 오답체크할 수 있다
-}
-
-const addAttemptInfo = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany>>) => {
-    const topics = result?.topics.map((topic) => {
-        const steps = topic.steps.map((step) => {
-            const questions = step.questions.map((question) => {
-                const { questionAttempts, sessionQuestions, ...rest } = question
-                const attempt = questionAttempts?.[0]
-                const session = sessionQuestions?.[0]?.session
-
-                type QuestionWithAttemptInfo = Omit<typeof question, "questionAttempts" | "sessionQuestions"> &
-                    WithAttemptInfo
-                const questionWithAttemptInfo: QuestionWithAttemptInfo = {
-                    ...rest,
-                    attempt_id: null,
-                    attempt_status: null,
-                    attempt_status_visual: null,
-                    isReviewed: false,
-                    session_id: null,
-                    session_status: null,
-                }
-
-                questionWithAttemptInfo.attempt_id = attempt?.id ?? null
-                questionWithAttemptInfo.attempt_status = attempt?.status ?? null
-                questionWithAttemptInfo.attempt_status_visual = attempt?.status ?? null
-                questionWithAttemptInfo.isReviewed = Boolean(attempt?.child_attempt)
-
-                questionWithAttemptInfo.session_id = session?.id ?? null
-                questionWithAttemptInfo.session_status =
-                    session?.assignedSessionClassrooms?.[0]?.status ??
-                    session?.assignedSessionStudents?.[0]?.status ??
-                    null
-
-                return questionWithAttemptInfo
-            })
-            return { ...step, questions }
-        })
-        return { ...topic, steps }
-    })
-
-    const joinedBookResult = { ...result, topics }
-
-    return joinedBookResult
-}
 reviewCheckRouter.get("/check", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
@@ -76,7 +25,7 @@ reviewCheckRouter.get("/check", async (req, res) => {
     if (!student_id || !syllabus_id) throw ApiError.BadRequest("학생과 문제집을 선택해주세요")
 
     const result = await dbReviewCheckFindMany({ user_id, classroom_id, student_id, syllabus_id })
-    const joinedResult = addAttemptInfo(result)
+    const joinedResult = addAttemptInfoToSingleBook(result)
 
     const serializable = makeSerializable(joinedResult)
     // const serializable = makeSerializable(result)
@@ -108,20 +57,8 @@ reviewCheckRouter.get("/check/assignment", async (req, res) => {
     const student_id = convertToBigIntOrThrow(req.query.student_id)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const result = await dbReviewCheckForAssignmentFindMany({ user_id, student_id, classroom_id })
-    const condensed = result.map((book) => {
-        const topics = book.topics.map((topic) => {
-            const steps = topic.steps.map((step) => {
-                const questions = step.questions.map((question) => {
-                    const { questionAttempts, ...rest } = question
-                    return { ...rest, question_attempt: questionAttempts[0] }
-                })
-                return { ...step, questions }
-            })
-            return { ...topic, steps }
-        })
-        return { ...book, topics }
-    })
-    const serializable = makeSerializable(condensed)
+    const extended = addAttemptInfoToBookArray(result)
+    const serializable = makeSerializable(extended)
     res.status(200).json(serializable)
 })
 
