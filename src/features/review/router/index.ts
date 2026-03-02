@@ -86,21 +86,19 @@ reviewCheckRouter.get("/check", async (req, res) => {
 // NOTE: bulk update
 reviewCheckRouter.post("/check", async (req, res) => {
     const user_id = extractUserId(req.headers)
-    const changedReviewChecksFromClient = req.body.changedReviewChecks as IdToChangedInfo<"client", "syllabus">
-    const student_id = convertToBigIntOrThrow(req.body.student_id)
-    validateBody({ changedReviewChecksFromClient, student_id })
+    const classroom_id = convertToBigIntOrNull(req.query.classroom_id) // NOTE: MUST put in query params
+    const student_id = convertToBigIntOrThrow(req.query.student_id) // NOTE: MUT put in query params
+    const idToChangedInfoFromClient = req.body.changedReviewChecks as IdToChangedInfo<"client", "session">
+    validateBody({ idToChangedInfoFromClient })
 
-    const changedReviewChecks: IdToChangedInfo<"api", "syllabus"> = Object.fromEntries(
-        Object.entries(changedReviewChecksFromClient).map(([key, { status, session_id }]) => [
+    const idToChangedInfo: IdToChangedInfo<"api", "session"> = Object.fromEntries(
+        Object.entries(idToChangedInfoFromClient).map(([key, value]) => [
             key,
-            {
-                status,
-                session_id: convertToBigIntOrThrow(session_id),
-            },
+            { ...value, session_id: convertToBigIntOrThrow(value.session_id) },
         ])
     )
 
-    const result = await dbReviewCheckBulkWrite({ user_id, student_id, changedReviewChecks })
+    const result = await dbReviewCheckBulkWrite({ user_id, classroom_id, student_id, idToChangedInfo })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })

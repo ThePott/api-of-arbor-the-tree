@@ -103,10 +103,11 @@ export const dbReviewCheckBulkWrite = async ({
             },
             update: { status },
             create: {
-                session_id,
                 student_id,
-                status,
                 question_id: BigInt(question_id),
+                classroom_id,
+                session_id,
+                status,
             },
         })
     })
@@ -188,28 +189,57 @@ export const dbReviewCheckForAssignmentFindMany = async ({
     student_id,
     classroom_id,
 }: DbReviewCheckForAssignmentFindManyProps) => {
-    const result = await prismaClient.review_assignment.findMany({
+    const result = await prismaClient.book.findMany({
         where: {
-            classroom_id,
-            student_id,
-            student: { hagwon: { principal: { user_id } } },
-        },
-        include: {
-            reviewAssignmentQuestions: {
-                orderBy: { order: "asc" },
-                include: {
-                    review_check: {
-                        select: {
-                            question: {
-                                select: {
-                                    step: { select: { topic: { select: { book: { select: { title: true } } } } } },
+            user_id,
+            topics: {
+                some: {
+                    steps: {
+                        some: {
+                            questions: {
+                                some: {
+                                    questionAttempts: {
+                                        some: {
+                                            student_id,
+                                            classroom_id,
+                                            child_attempt: null,
+                                            review_assignment_id: { not: null },
+                                        },
+                                    },
                                 },
                             },
                         },
                     },
                 },
             },
-            assignedReviewAssignment: true,
+        },
+        include: {
+            topics: {
+                orderBy: { order: "asc" },
+                include: {
+                    steps: {
+                        orderBy: { order: "asc" },
+                        include: {
+                            questions: {
+                                orderBy: { order: "asc" },
+                                include: {
+                                    questionAttempts: {
+                                        where: {
+                                            student_id,
+                                            classroom_id,
+                                            child_attempt: null,
+                                            review_assignment_id: { not: null },
+                                        },
+                                        include: {
+                                            review_assignment: true,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         },
     })
     return result
