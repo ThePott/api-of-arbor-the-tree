@@ -3,6 +3,6 @@
     margin: 1cm,
     "a4",
   )
-  set text(font: "Noto Sans KR")
+  set text(font: "Noto Serif KR")
   content
 }
