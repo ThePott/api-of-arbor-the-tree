@@ -76,11 +76,6 @@ reviewCheckRouter.get("/check", async (req, res) => {
     if (!student_id || !syllabus_id) throw ApiError.BadRequest("학생과 문제집을 선택해주세요")
 
     const result = await dbReviewCheckFindMany({ user_id, classroom_id, student_id, syllabus_id })
-    try {
-        addAttemptInfo(result)
-    } catch (error) {
-        console.error(error)
-    }
     const joinedResult = addAttemptInfo(result)
 
     const serializable = makeSerializable(joinedResult)

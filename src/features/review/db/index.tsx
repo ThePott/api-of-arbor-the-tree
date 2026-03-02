@@ -74,15 +74,17 @@ export const dbReviewCheckFindMany = async ({
 
 type DbReviewCheckBulkWriteProps = {
     user_id: bigint
+    classroom_id: bigint | null
     student_id: bigint
-    changedReviewChecks: IdToChangedInfo<"api", "syllabus"> // NOTE: already converted to bigint except for question_id(key)
+    idToChangedInfo: IdToChangedInfo<"api", "session"> // NOTE: already converted to bigint except for question_id(key)
 }
 export const dbReviewCheckBulkWrite = async ({
     user_id: _user_id,
+    classroom_id,
     student_id,
-    changedReviewChecks,
+    idToChangedInfo,
 }: DbReviewCheckBulkWriteProps) => {
-    const entryArray = Object.entries(changedReviewChecks)
+    const entryArray = Object.entries(idToChangedInfo)
     const entryArrayForUpsert = entryArray.filter(([_, { status }]) => status)
     const entryArrayForDelete = entryArray.filter(([_, { status }]) => !status)
 
@@ -91,9 +93,9 @@ export const dbReviewCheckBulkWrite = async ({
     // TODO
     const upsertPromiseArray = entryArrayForUpsert.map(([question_id, { status, session_id }]) => {
         if (!status) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
-        return prismaClient.review_check.upsert({
+        return prismaClient.question_attempt.upsert({
             where: {
-                session_id_student_id_question_id: {
+                student_id_question_id_session_id: {
                     student_id,
                     question_id: BigInt(question_id),
                     session_id,
@@ -109,9 +111,9 @@ export const dbReviewCheckBulkWrite = async ({
         })
     })
     const deletePromiseArray = entryArrayForDelete.map(([question_id, { session_id }]) => {
-        return prismaClient.review_check.delete({
+        return prismaClient.question_attempt.delete({
             where: {
-                session_id_student_id_question_id: {
+                student_id_question_id_session_id: {
                     student_id,
                     question_id: BigInt(question_id),
                     session_id,
@@ -129,15 +131,13 @@ export const dbReviewCheckBulkWrite = async ({
         },
         select: {
             id: true,
-            reviewChecks: {
-                where: { student_id },
-                select: { id: true },
-            },
-            sessionQuestions: {
-                select: {
-                    question_id: true,
+            questionAttempts: {
+                where: {
+                    classroom_id,
+                    student_id,
                 },
             },
+            // NOTE: 내가 이미 끝냈는지 확인
             completedSessionStudents: {
                 where: { student_id },
             },
@@ -146,7 +146,6 @@ export const dbReviewCheckBulkWrite = async ({
     // NOTE: 이미 완료가 되었다면 또 만들어선 안 된다 << unique constraint에 걸림
     const completedSessionIdArray = sessionResult
         .filter((session) => {
-            if (session.sessionQuestions.length === 0) return false
             return (
                 session.reviewChecks.length === session.sessionQuestions.length &&
                 session.completedSessionStudents.length === 0

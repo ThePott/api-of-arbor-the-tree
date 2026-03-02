@@ -332,7 +332,8 @@ model question_attempt {
     parent_attempt    question_attempt?  @relation("AttemptChain", fields: [parent_attempt_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
     child_attempt     question_attempt?  @relation("AttemptChain")
 
-    @@unique([student_id, question_id, session_id, review_assignment_id])
+    @@unique([student_id, question_id, session_id])
+    @@unique([student_id, question_id, review_assignment_id])
 }
 
 model review_assignment {
