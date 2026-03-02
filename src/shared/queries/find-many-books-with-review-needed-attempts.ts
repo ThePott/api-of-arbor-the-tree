@@ -60,6 +60,7 @@ const findManyBooksWithReviewNeededAttempts = async (props: FindManyBooksWithRev
                                 some: {
                                     questionAttempts: {
                                         some: {
+                                            status: "WRONG",
                                             student_id,
                                             classroom_id,
                                             child_attempt: null,

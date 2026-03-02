@@ -30,6 +30,7 @@ assignmentRouter.get("/", async (req, res) => {
 // NOTE: 지금까지의 모든 체크를 보려면 get check를 봐야 한다
 type BookWithReviewNeededAttemptsVerbose = Awaited<ReturnType<typeof dbAssignmentFindManyBookWithReviewNeededAttempts>>
 type AssignmentCandidate = {
+    bookId: bigint
     bookTitle: string
     questionCount: number
 }
@@ -39,7 +40,7 @@ const condenseBookWithReviewChecksArray = (bookWithReviewChecksArray: BookWithRe
             const questionsInTopic = topic.steps.flatMap((step) => step.questions)
             return questionsInTopic
         })
-        return { bookTitle: book.title, questionCount: questionsInBook.length }
+        return { bookId: book.id, bookTitle: book.title, questionCount: questionsInBook.length }
     })
     return assignmentCandidateArray
 }

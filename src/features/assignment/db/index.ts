@@ -4,6 +4,7 @@ import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
 import type { bookWhereInput, questionWhereInput, stepWhereInput, topicWhereInput } from "@/generated/prisma/models.js"
 import type { session_status } from "@/generated/prisma/enums.js"
 import findManyBooksWithReviewNeededAttempts from "@/src/shared/queries/find-many-books-with-review-needed-attempts.js"
+import { ApiError } from "@/src/errors/appError/AppError.js"
 
 // NOTE: AssignmentMetaInfo 만드는 데에 사용됨
 type DbAssignmentFindManyAssignmentProps = {
@@ -74,6 +75,8 @@ export const dbAssignmentCreateAssignment = async ({
             question: { step: { topic: { book: { id: { in: book_ids } } } } },
         },
     })
+    if (unreviewedAtteptArray.length === 0) throw ApiError.NotFound("오답 과제를 만들 것을 못 찾았어요")
+    console.log()
 
     const result = await prismaClient.review_assignment.create({
         data: {
