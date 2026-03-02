@@ -1,11 +1,11 @@
 import type { attempt_status, session_status } from "@/generated/prisma/enums.js"
-import type { dbReviewCheckFindMany } from "../db/index.js"
-import type findManyBooksWithAttempts from "@/src/shared/queries/find-many-books-with-attempts.js"
+import type { dbReviewCheckFindMany, dbReviewCheckForAssignmentFindMany } from "../db/index.js"
 
 type WithAttemptInfo = {
     attempt_id: bigint | null
     attempt_status: attempt_status | null
     attempt_status_visual: attempt_status | null
+    assignment_status: session_status | null
     isReviewed: boolean
     session_id: bigint | null // NOTE: idToChangedInfo에 들어 있어야 한다
     session_status: session_status | null // NOTE: session이 할당된 것만 오답체크할 수 있다
@@ -29,12 +29,14 @@ export const addAttemptInfoToSingleBook = (result: Awaited<ReturnType<typeof dbR
                     isReviewed: false,
                     session_id: null,
                     session_status: null,
+                    assignment_status: null,
                 }
 
                 questionWithAttemptInfo.attempt_id = attempt?.id ?? null
                 questionWithAttemptInfo.attempt_status = attempt?.status ?? null
                 questionWithAttemptInfo.attempt_status_visual = attempt?.status ?? null
                 questionWithAttemptInfo.isReviewed = Boolean(attempt?.child_attempt)
+                questionWithAttemptInfo.assignment_status = attempt?.review_assignment?.status ?? null
 
                 questionWithAttemptInfo.session_id = session?.id ?? null
                 questionWithAttemptInfo.session_status =
@@ -52,9 +54,4 @@ export const addAttemptInfoToSingleBook = (result: Awaited<ReturnType<typeof dbR
     const joinedBookResult = { ...result, topics }
 
     return joinedBookResult
-}
-
-export const addAttemptInfoToBookArray = (result: Awaited<ReturnType<typeof findManyBooksWithAttempts>>) => {
-    const bookArray = result.map((book) => addAttemptInfoToSingleBook(book))
-    return bookArray
 }

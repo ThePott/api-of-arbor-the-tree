@@ -3,6 +3,8 @@ import { ApiError } from "@/src/errors/appError/AppError.js"
 import type { IdToChangedInfo } from "../types/index.js"
 import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
 import findManyBooksWithAttempts from "@/src/shared/queries/find-many-books-with-attempts.js"
+import { makeStartOfToday } from "@/src/utils/date-manipulations.js"
+import { findManyBooksFromAssignment } from "@/src/shared/queries/find-many-books-from-assignment-id.js"
 
 // NOTE: syllabus __그 문제집의 오답과제를 가져와야 함
 type DbReviewCheckFindManyProps = {
@@ -35,7 +37,7 @@ export const dbReviewCheckFindMany = async ({
                                             classroom_id,
                                             session: { syllabus_id },
                                         },
-                                        include: { child_attempt: true },
+                                        include: { child_attempt: true, review_assignment: true },
                                     },
                                     sessionQuestions: {
                                         where: { session: { syllabus_id } },
@@ -185,9 +187,33 @@ type DbReviewCheckForAssignmentFindManyProps = {
     student_id: bigint
     classroom_id: bigint | null
 }
-export const dbReviewCheckForAssignmentFindMany = async (props: DbReviewCheckForAssignmentFindManyProps) => {
-    const result = await findManyBooksWithAttempts({ ...props, isReviewNeeded: false })
-    const thing = result[0]?.topics[0].steps[0]?.questions[0].questionAttemp
+export const dbReviewCheckForAssignmentFindMany = async ({
+    user_id,
+    student_id,
+    classroom_id,
+}: DbReviewCheckForAssignmentFindManyProps) => {
+    const assignmentArray = await prismaClient.review_assignment.findMany({
+        where: {
+            classroom_id,
+            student_id,
+            OR: [
+                { completed_at: null },
+                {
+                    completed_at: {
+                        gte: makeStartOfToday(),
+                    },
+                },
+            ],
+        },
+    })
+    const booksFromAssignmentArrayPromise = assignmentArray.map((assignment) =>
+        findManyBooksFromAssignment({ user_id, assignment_id: assignment.id })
+    )
+    const booksFromAssignmentArray = await Promise.all(booksFromAssignmentArrayPromise)
+    const result = assignmentArray.map((assignment, index) => ({
+        ...assignment,
+        books: booksFromAssignmentArray[index],
+    }))
     return result
 }
 

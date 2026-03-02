@@ -1,16 +1,9 @@
 import prismaClient from "@/src/db/prismaClient.js"
-import type { BookWithExtendedReviewChecksFromClient } from "../router/index.js"
-import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
-import type {
-    bookWhereInput,
-    question_attemptWhereInput,
-    questionWhereInput,
-    stepWhereInput,
-    topicWhereInput,
-} from "@/generated/prisma/models.js"
 import type { session_status } from "@/generated/prisma/enums.js"
 import findManyBooksWithAttempts from "@/src/shared/queries/find-many-books-with-attempts.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
+import filterByAssignment from "@/src/shared/queries/filter-by-assignment.js"
+import { findManyBooksFromAssignment } from "@/src/shared/queries/find-many-books-from-assignment-id.js"
 
 // NOTE: AssignmentMetaInfo 만드는 데에 사용됨
 type DbAssignmentFindManyAssignmentProps = {
@@ -104,77 +97,13 @@ export const dbAssignmentCreateAssignment = async ({
     return result
 }
 
-type FilterInBookProps = {
-    forWhat: "book" | "topic" | "step" | "question" | "questionAttempt"
-    assignment_id: bigint
-}
-function filterByAssignment(props: { forWhat: "questionAttempt"; assignment_id: bigint }): question_attemptWhereInput
-function filterByAssignment(props: { forWhat: "question"; assignment_id: bigint }): questionWhereInput
-function filterByAssignment(props: { forWhat: "step"; assignment_id: bigint }): stepWhereInput
-function filterByAssignment(props: { forWhat: "topic"; assignment_id: bigint }): topicWhereInput
-function filterByAssignment(props: { forWhat: "book"; assignment_id: bigint }): bookWhereInput
-function filterByAssignment({ forWhat, assignment_id }: FilterInBookProps) {
-    const questionAttemptWhereInput: question_attemptWhereInput = {
-        child_attempt: null,
-        review_assignment_id: assignment_id,
-    }
-    if (forWhat === "questionAttempt") return questionAttemptWhereInput
-
-    const questionWhereInput: questionWhereInput = {
-        questionAttempts: {
-            some: questionAttemptWhereInput,
-        },
-    }
-    if (forWhat === "question") return questionWhereInput
-
-    const stepWhereInput: stepWhereInput = {
-        questions: { some: questionWhereInput },
-    }
-    if (forWhat === "step") return stepWhereInput
-
-    const topicWhereInput: topicWhereInput = {
-        steps: { some: stepWhereInput },
-    }
-    if (forWhat === "topic") return topicWhereInput
-
-    const bookWhereInput: bookWhereInput = {
-        topics: { some: topicWhereInput },
-    }
-    return bookWhereInput
-}
 type DbAssignmentFindForPdfProps = {
     user_id: bigint
     assignment_id: bigint
 }
 export const dbAssignmentFindBookForPdf = async ({ user_id, assignment_id }: DbAssignmentFindForPdfProps) => {
     // NOTE: book으로 묶을 거니까 처음부터 book을 가져오는 게 낫겠다
-    const result = await prismaClient.book.findMany({
-        where: {
-            ...filterByAssignment({ forWhat: "book", assignment_id }),
-            user_id,
-        },
-        include: {
-            topics: {
-                where: filterByAssignment({ forWhat: "topic", assignment_id }),
-                orderBy: { order: "asc" },
-                include: {
-                    steps: {
-                        where: filterByAssignment({ forWhat: "step", assignment_id }),
-                        orderBy: { order: "asc" },
-                        include: {
-                            questions: {
-                                where: filterByAssignment({ forWhat: "question", assignment_id }),
-                                orderBy: { order: "asc" },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        orderBy: {
-            title: "asc",
-        },
-    })
+    const result = await findManyBooksFromAssignment({ user_id, assignment_id })
     return result
 }
 

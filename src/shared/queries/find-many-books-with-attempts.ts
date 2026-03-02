@@ -93,6 +93,9 @@ const findManyBooksWithAttempts = async (props: FindManyBooksWithAttemptsProps) 
                                     // NOTE: 조건부로 넣으면 접근이 안 된다
                                     questionAttempts: {
                                         where: makeWhereInput({ forWhat: "questionAttempt", ...props }),
+                                        include: {
+                                            review_assignment: true,
+                                        },
                                     },
                                 },
                             },

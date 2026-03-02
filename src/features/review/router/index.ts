@@ -11,7 +11,7 @@ import {
 import { convertToBigIntOrNull, convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
 import { validateBody } from "@/src/utils/validateBody.js"
 import type { IdToChangedInfo } from "../types/index.js"
-import { addAttemptInfoToSingleBook, addAttemptInfoToBookArray } from "../utils/add-attempt-info.js"
+import { addAttemptInfoToSingleBook } from "../utils/add-attempt-info.js"
 
 const reviewCheckRouter = Router()
 
@@ -52,20 +52,37 @@ reviewCheckRouter.post("/check", async (req, res) => {
     res.status(200).json(serializable)
 })
 
+const addAttemptInfoToBookArray = (result: Awaited<ReturnType<typeof dbReviewCheckForAssignmentFindMany>>) => {
+    const assignmentArray = result.map((assignment) => {
+        const books = assignment.books?.map((book) => addAttemptInfoToSingleBook(book))
+        return {
+            ...assignment,
+            books,
+        }
+    })
+    return assignmentArray
+}
+const condenseAssignmentWithBooksArray = (extended: ReturnType<typeof addAttemptInfoToBookArray>) => {
+    const condensed = extended.map((assignment) => {
+        const books = assignment?.books?.map((book) => {
+            const topics = book.topics?.map((topic) => {
+                const { steps: _, ...rest } = topic
+                const questions = topic.steps.flatMap((step) => step.questions)
+                return { ...rest, questions }
+            })
+            return { ...book, topics }
+        })
+        return { ...assignment, books }
+    })
+    return condensed
+}
 reviewCheckRouter.get("/check/assignment", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const student_id = convertToBigIntOrThrow(req.query.student_id)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const result = await dbReviewCheckForAssignmentFindMany({ user_id, student_id, classroom_id })
     const extended = addAttemptInfoToBookArray(result)
-    const condensed = extended.map((book) => {
-        const topics = book.topics?.map((topic) => {
-            const { steps: _, ...rest } = topic
-            const questions = topic.steps.flatMap((step) => step.questions)
-            return { ...rest, questions }
-        })
-        return { ...book, topics }
-    })
+    const condensed = condenseAssignmentWithBooksArray(extended)
     const serializable = makeSerializable(condensed)
     res.status(200).json(serializable)
 })
