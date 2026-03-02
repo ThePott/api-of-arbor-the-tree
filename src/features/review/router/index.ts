@@ -58,7 +58,15 @@ reviewCheckRouter.get("/check/assignment", async (req, res) => {
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const result = await dbReviewCheckForAssignmentFindMany({ user_id, student_id, classroom_id })
     const extended = addAttemptInfoToBookArray(result)
-    const serializable = makeSerializable(extended)
+    const condensed = extended.map((book) => {
+        const topics = book.topics?.map((topic) => {
+            const { steps: _, ...rest } = topic
+            const questions = topic.steps.flatMap((step) => step.questions)
+            return { ...rest, questions }
+        })
+        return { ...book, topics }
+    })
+    const serializable = makeSerializable(condensed)
     res.status(200).json(serializable)
 })
 
