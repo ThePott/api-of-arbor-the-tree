@@ -129,12 +129,13 @@ export const dbReviewCheckBulkWrite = async ({
         where: {
             id: { in: sessionIdArray },
         },
-        select: {
-            id: true,
+        include: {
+            sessionQuestions: true,
             questionAttempts: {
                 where: {
                     classroom_id,
                     student_id,
+                    status: { not: {} },
                 },
             },
             // NOTE: 내가 이미 끝냈는지 확인
@@ -145,18 +146,14 @@ export const dbReviewCheckBulkWrite = async ({
     })
     // NOTE: 이미 완료가 되었다면 또 만들어선 안 된다 << unique constraint에 걸림
     const completedSessionIdArray = sessionResult
-        .filter((session) => {
-            return (
-                session.reviewChecks.length === session.sessionQuestions.length &&
+        .filter(
+            (session) =>
+                session.questionAttempts.length === session.sessionQuestions.length &&
                 session.completedSessionStudents.length === 0
-            )
-        })
+        )
         .map((session) => session.id)
     const uncompletedSessionIdArray = sessionResult
-        .filter((session) => {
-            if (session.sessionQuestions.length === 0) return false
-            return session.reviewChecks.length < session.sessionQuestions.length
-        })
+        .filter((session) => session.questionAttempts.length < session.sessionQuestions.length)
         .map((session) => session.id)
 
     const completedPromise = prismaClient.completed_session_student.createManyAndReturn({
