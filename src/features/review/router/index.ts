@@ -1,5 +1,5 @@
 import { Router } from "express"
-import type { attempt_status, review_check_status, session_status } from "@/generated/prisma/enums.js"
+import type { attempt_status, session_status } from "@/generated/prisma/enums.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
@@ -103,49 +103,24 @@ reviewCheckRouter.post("/check", async (req, res) => {
     res.status(200).json(serializable)
 })
 
-// TODO: 공통 함수로 교체해야
-const condenseAssignmentWithQuestions = (
-    verboseAssignmentArray: Awaited<ReturnType<typeof dbReviewCheckForAssignmentFindMany>>
-) => {
-    const condensed = verboseAssignmentArray.map((assignment) => {
-        const grouped = Object.groupBy(assignment.reviewAssignmentQuestions, (assignmentQuestion) => {
-            const bookTitle = assignmentQuestion.review_check.question.step?.topic?.book?.title
-            if (!bookTitle) throw ApiError.Internal("오답 과제를 정리하는 도중에 오류가 발생했어요")
-            return bookTitle
-        })
-        const entryArray = Object.entries(grouped)
-        const bookArray = entryArray.map(([bookTitle, reviewAssignmentQuestions]) => {
-            if (!reviewAssignmentQuestions) throw ApiError.Internal("오답 과제를 정리하는 도중에 오류가 발생했어요")
-            const condensedAssignmentQuestions = reviewAssignmentQuestions.map((assignmentQuestion) => {
-                const { review_check: _, status, ...rest } = assignmentQuestion
-                return {
-                    ...rest,
-                    review_check_status: status,
-                    review_check_status_visual: status,
-                    session_status: assignment.assignedReviewAssignment?.status ?? null,
-                }
-            })
-            return { bookTitle: bookTitle, reviewAssignmentQuestions: condensedAssignmentQuestions }
-        })
-        return {
-            id: assignment.id,
-            student_id: assignment.student_id,
-            classroom_id: assignment.classroom_id,
-            created_at: assignment.created_at,
-            completed_at: assignment.completed_at,
-            // NOTE: addtional
-            books: bookArray,
-            question_count: assignment.reviewAssignmentQuestions.length,
-        }
-    })
-    return condensed
-}
 reviewCheckRouter.get("/check/assignment", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const student_id = convertToBigIntOrThrow(req.query.student_id)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const result = await dbReviewCheckForAssignmentFindMany({ user_id, student_id, classroom_id })
-    const condensed = condenseAssignmentWithQuestions(result)
+    const condensed = result.map((book) => {
+        const topics = book.topics.map((topic) => {
+            const steps = topic.steps.map((step) => {
+                const questions = step.questions.map((question) => {
+                    const { questionAttempts, ...rest } = question
+                    return { ...rest, question_attempt: questionAttempts[0] }
+                })
+                return { ...step, questions }
+            })
+            return { ...topic, steps }
+        })
+        return { ...book, topics }
+    })
     const serializable = makeSerializable(condensed)
     res.status(200).json(serializable)
 })

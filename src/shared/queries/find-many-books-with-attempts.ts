@@ -42,13 +42,17 @@ function makeWhereInput({ forWhat, classroom_id, student_id }: MakeWhereInputPro
     return bookWhereInput
 }
 
-type FindManyBooksWithReviewNeededAttemptsProps = {
+// NOTE: isReviewNeeded - assignment/create: 후보 찾을 때 << 몇 문제가 복습이 필요한지 확인
+// NOTE: !isReviewNeeded - check/assignment: attempt까지 끌고 와야 체크 상태를 알 수 있음
+type FindManyBooksWithAttemptsProps = {
     user_id: bigint
     classroom_id: bigint | null
     student_id: bigint
+    isReviewNeeded: boolean
 }
-const findManyBooksWithReviewNeededAttempts = async (props: FindManyBooksWithReviewNeededAttemptsProps) => {
-    const { user_id, classroom_id, student_id } = props
+const findManyBooksWithAttempts = async (props: FindManyBooksWithAttemptsProps) => {
+    const { user_id, classroom_id, student_id, isReviewNeeded } = props
+
     const result = await prismaClient.book.findMany({
         where: {
             user_id,
@@ -60,7 +64,7 @@ const findManyBooksWithReviewNeededAttempts = async (props: FindManyBooksWithRev
                                 some: {
                                     questionAttempts: {
                                         some: {
-                                            status: "WRONG",
+                                            ...(isReviewNeeded && { status: "WRONG" }),
                                             student_id,
                                             classroom_id,
                                             child_attempt: null,
@@ -85,6 +89,12 @@ const findManyBooksWithReviewNeededAttempts = async (props: FindManyBooksWithRev
                             questions: {
                                 orderBy: { order: "asc" },
                                 where: makeWhereInput({ forWhat: "question", ...props }),
+                                include: {
+                                    // NOTE: 조건부로 넣으면 접근이 안 된다
+                                    questionAttempts: {
+                                        where: makeWhereInput({ forWhat: "questionAttempt", ...props }),
+                                    },
+                                },
                             },
                         },
                     },
@@ -95,4 +105,4 @@ const findManyBooksWithReviewNeededAttempts = async (props: FindManyBooksWithRev
     return result
 }
 
-export default findManyBooksWithReviewNeededAttempts
+export default findManyBooksWithAttempts

@@ -13,7 +13,6 @@ import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import type { session_status } from "@/generated/prisma/client.js"
 import makeAssignmentPdf from "../pdf/index.js"
 import { validateBody } from "@/src/utils/validateBody.js"
-import { logError } from "@/src/utils/log-error.js"
 
 const assignmentRouter = Router()
 

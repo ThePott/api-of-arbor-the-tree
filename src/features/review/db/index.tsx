@@ -2,7 +2,7 @@ import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import type { IdToChangedInfo } from "../types/index.js"
 import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
-import findManyBooksWithReviewNeededAttempts from "@/src/shared/queries/find-many-books-with-review-needed-attempts.js"
+import findManyBooksWithAttempts from "@/src/shared/queries/find-many-books-with-attempts.js"
 
 // NOTE: syllabus __그 문제집의 오답과제를 가져와야 함
 type DbReviewCheckFindManyProps = {
@@ -186,7 +186,8 @@ type DbReviewCheckForAssignmentFindManyProps = {
     classroom_id: bigint | null
 }
 export const dbReviewCheckForAssignmentFindMany = async (props: DbReviewCheckForAssignmentFindManyProps) => {
-    const result = await findManyBooksWithReviewNeededAttempts(props)
+    const result = await findManyBooksWithAttempts({ ...props, isReviewNeeded: false })
+    const thing = result[0]?.topics[0].steps[0]?.questions[0].questionAttemp
     return result
 }
 

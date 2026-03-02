@@ -9,7 +9,7 @@ import type {
     topicWhereInput,
 } from "@/generated/prisma/models.js"
 import type { session_status } from "@/generated/prisma/enums.js"
-import findManyBooksWithReviewNeededAttempts from "@/src/shared/queries/find-many-books-with-review-needed-attempts.js"
+import findManyBooksWithAttempts from "@/src/shared/queries/find-many-books-with-attempts.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 
 // NOTE: AssignmentMetaInfo 만드는 데에 사용됨
@@ -55,7 +55,7 @@ type DbAssignmentFindManyCanditateProps = {
     student_id: bigint
 }
 export const dbAssignmentFindManyBookWithReviewNeededAttempts = async (props: DbAssignmentFindManyCanditateProps) => {
-    const result = await findManyBooksWithReviewNeededAttempts(props)
+    const result = await findManyBooksWithAttempts({ isReviewNeeded: true, ...props })
     return result
 }
 
