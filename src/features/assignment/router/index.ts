@@ -2,8 +2,7 @@ import { convertToBigIntOrNull, convertToBigIntOrThrow } from "@/src/utils/conve
 import { extractUserId } from "@/src/utils/decodeAccessToken.js"
 import { Router } from "express"
 import {
-    dbAssignedAssignmentUpsert,
-    dbAssignedAssignmentDelete,
+    dbAssignedAssignmentUpdate,
     dbAssignmentCreateAssignment,
     dbAssignmentFindBookForPdf,
     dbAssignmentFindManyAssignment,
@@ -100,20 +99,12 @@ assignmentRouter.get("/:assignment_id/pdf", async (req, res) => {
     res.status(200).send(pdf)
 })
 
-assignmentRouter.post("/:assignment_id/assigned", async (req, res) => {
+assignmentRouter.patch("/:assignment_id", async (req, res) => {
     const user_id = extractUserId(req.headers)
     const assignment_id = convertToBigIntOrThrow(req.params.assignment_id)
-    const status = req.body.status as session_status
-    validateBody({ status })
+    const status = req.body.status as session_status | null
 
-    const result = await dbAssignedAssignmentUpsert({ user_id, assignment_id, status })
-    const serializable = makeSerializable(result)
-    res.status(200).json(serializable)
-})
-assignmentRouter.delete("/:assignment_id/assigned", async (req, res) => {
-    const user_id = extractUserId(req.headers)
-    const assignment_id = convertToBigIntOrThrow(req.params.assignment_id)
-    const result = await dbAssignedAssignmentDelete({ user_id, assignment_id })
+    const result = await dbAssignedAssignmentUpdate({ user_id, assignment_id, status })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })

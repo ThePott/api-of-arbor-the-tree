@@ -2,7 +2,6 @@ import prismaClient from "@/src/db/prismaClient.js"
 import type { session_status } from "@/generated/prisma/enums.js"
 import findManyBooksWithAttempts from "@/src/shared/queries/find-many-books-with-attempts.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
-import filterByAssignment from "@/src/shared/queries/filter-by-assignment.js"
 import { findManyBooksFromAssignment } from "@/src/shared/queries/find-many-books-from-assignment-id.js"
 
 // NOTE: AssignmentMetaInfo 만드는 데에 사용됨
@@ -107,43 +106,22 @@ export const dbAssignmentFindBookForPdf = async ({ user_id, assignment_id }: DbA
     return result
 }
 
-type DbAssignedAssignmentCreateProps = {
+type DbAssignedAssignmentUpdateProps = {
     user_id: bigint
     assignment_id: bigint
-    status: session_status
+    status: session_status | null
 }
-export const dbAssignedAssignmentUpsert = async ({
+export const dbAssignedAssignmentUpdate = async ({
     user_id,
     assignment_id,
     status,
-}: DbAssignedAssignmentCreateProps) => {
-    await prismaClient.review_assignment.findUniqueOrThrow({
+}: DbAssignedAssignmentUpdateProps) => {
+    const result = await prismaClient.review_assignment.update({
         where: {
             id: assignment_id,
             student: { hagwon: { principal: { user_id } } },
         },
-    })
-    const result = await prismaClient.assigned_review_assignment.upsert({
-        where: { review_assignment_id: assignment_id },
-        create: {
-            review_assignment_id: assignment_id,
-            status,
-        },
-        update: { status },
-    })
-    return result
-}
-
-type DbAssignedAssignmentDeleteProps = {
-    user_id: bigint
-    assignment_id: bigint
-}
-export const dbAssignedAssignmentDelete = async ({ user_id, assignment_id }: DbAssignedAssignmentDeleteProps) => {
-    const result = await prismaClient.assigned_review_assignment.delete({
-        where: {
-            review_assignment_id: assignment_id,
-            review_assignment: { student: { hagwon: { principal: { user_id } } } },
-        },
+        data: { status },
     })
     return result
 }
