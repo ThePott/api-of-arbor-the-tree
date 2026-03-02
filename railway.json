@@ -2,6 +2,6 @@
     "$schema": "https://railway.com/railway.schema.json",
     "build": {
         "builder": "RAILPACK",
-        "buildCommand": "curl -L https://github.com/typst/typst/releases/download/v0.14.2/typst-x86_64-unknown-linux-musl.tar.xz | tar -xJ && mv typst-x86_64-unknown-linux-musl.tar.xz/typst /usr/local/bin/ && npm run build"
+        "buildCommand": "chmod +x scripts/railway-build.sh"
     }
 }
