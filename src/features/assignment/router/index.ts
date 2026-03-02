@@ -22,7 +22,15 @@ assignmentRouter.get("/", async (req, res) => {
     const student_id = convertToBigIntOrThrow(req.query.student_id)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const result = await dbAssignmentFindManyAssignment({ user_id, classroom_id, student_id })
-    const serializable = makeSerializable(result)
+    const condensed = result.map((assignment) => {
+        const { bookTitleArray, question_attempts, ...rest } = assignment
+        return {
+            ...rest,
+            questionCount: question_attempts.length,
+            bookTitleArray: bookTitleArray?.map(({ title }) => title),
+        }
+    })
+    const serializable = makeSerializable(condensed)
     res.status(200).json(serializable)
 })
 

@@ -24,7 +24,9 @@ export const dbAssignmentFindManyAssignment = async ({
             classroom_id,
             student: { hagwon: { principal: { user_id } } },
         },
-        include: {},
+        include: {
+            question_attempts: true,
+        },
     })
 
     const bookIdsArray = assignmentResult.map(({ book_ids }) => book_ids)
