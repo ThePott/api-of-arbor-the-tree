@@ -10,3 +10,5 @@ rm -rf typst-x86_64-unknown-linux-musl
 # Build
 npm run build
 
+# Copy typst template files to dist
+cp -r src/features/assignment/pdf/typst-template dist/src/features/assignment/pdf/
