@@ -24,8 +24,8 @@ reviewCheckRouter.get("/check", async (req, res) => {
     const syllabus_id = convertToBigIntOrNull(req.query.syllabus_id)
     if (!student_id || !syllabus_id) throw ApiError.BadRequest("학생과 문제집을 선택해주세요")
 
-    const result = await dbReviewCheckFindMany({ user_id, classroom_id, student_id, syllabus_id })
-    const joinedResult = addAttemptInfoToSingleBook({ result })
+    const book = await dbReviewCheckFindMany({ user_id, classroom_id, student_id, syllabus_id })
+    const joinedResult = addAttemptInfoToSingleBook({ book })
 
     const serializable = makeSerializable(joinedResult)
     // const serializable = makeSerializable(result)
