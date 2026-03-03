@@ -4,6 +4,8 @@ import { PrismaClientKnownRequestError } from "../../generated/prisma/internal/p
 import convertPrismaError from "./convertPrismaError.js"
 
 const errorRequestHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+    console.error(err)
+
     let appError: ApiError
 
     if (err instanceof ApiError) {

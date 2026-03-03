@@ -1,58 +1,65 @@
 import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
-import type { QuestionIdToInfoForApi } from "../types/index.js"
+import type { IdToChangedInfo } from "../types/index.js"
+import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
+import findManyBooksWithAttempts from "@/src/shared/queries/find-many-books-with-attempts.js"
+import { makeStartOfToday } from "@/src/utils/date-manipulations.js"
+import { findManyBooksFromAssignment } from "@/src/shared/queries/find-many-books-from-assignment-id.js"
 
+// NOTE: syllabus __그 문제집의 오답과제를 가져와야 함
 type DbReviewCheckFindManyProps = {
     user_id: bigint
+    classroom_id: bigint | null
     student_id: bigint
     syllabus_id: bigint
-    review_assignment_id: bigint | null
 }
-// NOTE: 그 문제집의 오답과제를 가져와야 함
 export const dbReviewCheckFindMany = async ({
     user_id,
+    classroom_id,
     student_id,
     syllabus_id,
-    review_assignment_id,
 }: DbReviewCheckFindManyProps) => {
-    if (review_assignment_id) throw ApiError.Internal("---- CURRENTLY NOT HANDLING CHECKING ASSIGNMENT")
-
     const result = await prismaClient.book.findFirst({
         where: { syllabi: { some: { id: syllabus_id, user_id } } },
-        select: {
-            title: true,
+        include: {
             topics: {
-                select: {
-                    order: true,
-                    title: true,
+                orderBy: { order: "asc" },
+                include: {
                     steps: {
-                        select: {
-                            order: true,
-                            title: true,
+                        orderBy: { order: "asc" },
+                        include: {
                             questions: {
-                                select: {
-                                    order: true,
-                                    id: true,
-                                    name: true,
-                                    page: true,
-                                    reviewChecks: {
+                                orderBy: { order: "asc" },
+                                include: {
+                                    questionAttempts: {
                                         where: {
                                             student_id,
+                                            classroom_id,
                                             session: { syllabus_id },
                                         },
+                                        include: { child_attempt: true },
                                     },
                                     sessionQuestions: {
-                                        where: {
+                                        where: { session: { syllabus_id } },
+                                        include: {
                                             session: {
-                                                syllabus_id,
-                                            },
-                                        },
-                                        select: {
-                                            session: {
-                                                select: {
-                                                    id: true,
-                                                    assignedSessionStudents: true,
-                                                    assignedSessionClassrooms: true,
+                                                include: {
+                                                    ...(classroom_id && {
+                                                        assignedSessionClassrooms: {
+                                                            where: {
+                                                                classroom_id,
+                                                                session: { syllabus_id },
+                                                            },
+                                                        },
+                                                    }),
+                                                    ...(!classroom_id && {
+                                                        assignedSessionStudents: {
+                                                            where: {
+                                                                student_id,
+                                                                session: { syllabus_id },
+                                                            },
+                                                        },
+                                                    }),
                                                 },
                                             },
                                         },
@@ -65,33 +72,33 @@ export const dbReviewCheckFindMany = async ({
             },
         },
     })
-
     return result
 }
 
 type DbReviewCheckBulkWriteProps = {
     user_id: bigint
+    classroom_id: bigint | null
     student_id: bigint
-    changedReviewChecks: QuestionIdToInfoForApi // NOTE: already converted to bigint except for question_id(key)
+    idToChangedInfo: IdToChangedInfo<"api", "session"> // NOTE: already converted to bigint except for question_id(key)
 }
 export const dbReviewCheckBulkWrite = async ({
     user_id: _user_id,
+    classroom_id,
     student_id,
-    changedReviewChecks,
+    idToChangedInfo,
 }: DbReviewCheckBulkWriteProps) => {
-    const entryArray = Object.entries(changedReviewChecks)
+    const entryArray = Object.entries(idToChangedInfo)
     const entryArrayForUpsert = entryArray.filter(([_, { status }]) => status)
     const entryArrayForDelete = entryArray.filter(([_, { status }]) => !status)
 
-    debugger
     // TODO
     // TODO: validate assigned_session_student is from user_id's hagwon as principal
     // TODO
     const upsertPromiseArray = entryArrayForUpsert.map(([question_id, { status, session_id }]) => {
         if (!status) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
-        return prismaClient.review_check.upsert({
+        return prismaClient.question_attempt.upsert({
             where: {
-                session_id_student_id_question_id: {
+                student_id_question_id_session_id: {
                     student_id,
                     question_id: BigInt(question_id),
                     session_id,
@@ -99,17 +106,18 @@ export const dbReviewCheckBulkWrite = async ({
             },
             update: { status },
             create: {
-                session_id,
                 student_id,
-                status,
                 question_id: BigInt(question_id),
+                classroom_id,
+                session_id,
+                status,
             },
         })
     })
     const deletePromiseArray = entryArrayForDelete.map(([question_id, { session_id }]) => {
-        return prismaClient.review_check.delete({
+        return prismaClient.question_attempt.delete({
             where: {
-                session_id_student_id_question_id: {
+                student_id_question_id_session_id: {
                     student_id,
                     question_id: BigInt(question_id),
                     session_id,
@@ -125,31 +133,33 @@ export const dbReviewCheckBulkWrite = async ({
         where: {
             id: { in: sessionIdArray },
         },
-        select: {
-            id: true,
-            reviewChecks: {
-                where: { student_id },
-                select: { id: true },
-            },
-            sessionQuestions: {
-                select: {
-                    question_id: true,
+        include: {
+            sessionQuestions: true,
+            questionAttempts: {
+                where: {
+                    classroom_id,
+                    student_id,
+                    status: { not: {} },
                 },
+            },
+            // NOTE: 내가 이미 끝냈는지 확인
+            completedSessionStudents: {
+                where: { student_id },
             },
         },
     })
+    // NOTE: 이미 완료가 되었다면 또 만들어선 안 된다 << unique constraint에 걸림
     const completedSessionIdArray = sessionResult
-        .filter((session) => {
-            if (session.sessionQuestions.length === 0) return false
-            return session.reviewChecks.length === session.sessionQuestions.length
-        })
+        .filter(
+            (session) =>
+                session.questionAttempts.length === session.sessionQuestions.length &&
+                session.completedSessionStudents.length === 0
+        )
         .map((session) => session.id)
     const uncompletedSessionIdArray = sessionResult
-        .filter((session) => {
-            if (session.sessionQuestions.length === 0) return false
-            return session.reviewChecks.length < session.sessionQuestions.length
-        })
+        .filter((session) => session.questionAttempts.length < session.sessionQuestions.length)
         .map((session) => session.id)
+
     const completedPromise = prismaClient.completed_session_student.createManyAndReturn({
         data: completedSessionIdArray.map((session_id) => ({ session_id, student_id })),
     })
@@ -169,5 +179,126 @@ export const dbReviewCheckBulkWrite = async ({
         sessionIdArray,
         completedSessionIdArray,
         uncompletedSessionIdArray,
+    }
+}
+
+type DbReviewCheckForAssignmentFindManyProps = {
+    user_id: bigint
+    student_id: bigint
+    classroom_id: bigint | null
+}
+export const dbReviewCheckForAssignmentFindMany = async ({
+    user_id,
+    student_id,
+    classroom_id,
+}: DbReviewCheckForAssignmentFindManyProps) => {
+    const assignmentArray = await prismaClient.review_assignment.findMany({
+        where: {
+            classroom_id,
+            student_id,
+            OR: [
+                { completed_at: null },
+                {
+                    completed_at: {
+                        gte: makeStartOfToday(),
+                    },
+                },
+            ],
+        },
+    })
+    const booksFromAssignmentArrayPromise = assignmentArray.map((assignment) =>
+        findManyBooksFromAssignment({ user_id, assignment_id: assignment.id })
+    )
+    const booksFromAssignmentArray = await Promise.all(booksFromAssignmentArrayPromise)
+    const result = assignmentArray.map((assignment, index) => ({
+        ...assignment,
+        books: booksFromAssignmentArray[index],
+    }))
+    return result
+}
+
+type DbReviewCheckAssignmentBulkWriteProps = {
+    user_id: bigint
+    classroom_id: bigint | null
+    student_id: bigint
+    idToChangedInfo: IdToChangedInfo<"api", "assignment"> // NOTE: already converted to bigint except for question_id(key)
+}
+export const dbReviewCheckAssignmentBulkWrite = async ({
+    user_id, // TODO: need to validate using it
+    classroom_id,
+    student_id,
+    idToChangedInfo,
+}: DbReviewCheckAssignmentBulkWriteProps) => {
+    const entryArray = Object.entries(idToChangedInfo)
+
+    // NOTE: review_assignment_question은 이미 만들어져있다
+    // NOTE: 언제나 update or delete만 한다. 이미 만들어져있기 때문에 assignment_id는 불필요하다 << result에서 추출도 바로 가능하니 더더욱 불필요하다
+    // TODO: review_check_id가 필요하다
+    const updatePromiseArray = entryArray.map(([question_attempt_id, { status }]) => {
+        return prismaClient.question_attempt.update({
+            where: {
+                id: convertToBigIntOrThrow(question_attempt_id),
+                classroom_id,
+                student_id,
+                student: { hagwon: { principal: { user_id } } },
+            },
+            data: { status },
+        })
+    })
+    const updateResult = await Promise.all(updatePromiseArray)
+
+    const assignmentIdSet = new Set(updateResult.map(({ review_assignment_id }) => review_assignment_id))
+    const assignmentIdArray: bigint[] = [...assignmentIdSet].filter((id) => id !== null)
+    const assignmentResult = await prismaClient.review_assignment.findMany({
+        where: {
+            id: { in: assignmentIdArray },
+            classroom_id,
+            student_id,
+            student: { hagwon: { principal: { user_id } } },
+        },
+        include: {
+            question_attempts: true,
+        },
+    })
+    // NOTE: 이미 완료가 되었다면 또 만들어선 안 된다 << unique constraint에 걸림 << upsert로 해결하자 << 아니야 그러면 createMany를 못 한다. upsertMany는 없다
+    // NOTE: 하지만 지금은 이미 만들어진 assginment를 수정하는 것이라 일일이 map -> update해야 함
+    const completedAssignmentIdArray = assignmentResult
+        .filter((assignment) => {
+            return (
+                assignment.question_attempts.length ===
+                assignment.question_attempts.filter(({ status }) => status).length
+            )
+        })
+        .map((assignment) => assignment.id)
+    const uncompletedAssignmentIdArray = assignmentResult
+        .filter((assignment) => {
+            return (
+                assignment.question_attempts.length !==
+                assignment.question_attempts.filter(({ status }) => status).length
+            )
+        })
+        .map((assignment) => assignment.id)
+
+    const completedPromise = completedAssignmentIdArray.map((assignment_id) =>
+        prismaClient.review_assignment.update({
+            where: { id: assignment_id },
+            data: { completed_at: new Date() },
+        })
+    )
+    const uncompletedPromise = uncompletedAssignmentIdArray.map((assignment_id) =>
+        prismaClient.review_assignment.update({
+            where: { id: assignment_id },
+            data: { completed_at: null },
+        })
+    )
+    const [completed, uncompleted] = await Promise.all([Promise.all(completedPromise), Promise.all(uncompletedPromise)])
+
+    return {
+        updateResult,
+        completed,
+        uncompleted,
+        assignmentIdArray,
+        completedAssignmentIdArray,
+        uncompletedAssignmentIdArray,
     }
 }

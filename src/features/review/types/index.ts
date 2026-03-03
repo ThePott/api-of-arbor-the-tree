@@ -1,17 +1,30 @@
-import type { review_check_status } from "@/generated/prisma/enums.js"
+import type { attempt_status } from "@/generated/prisma/enums.js"
 
-export type QuestionIdToInfoForApi = Record<
-    string, // NOTE: question_id
-    {
-        status: review_check_status | null // NOTE: use to delete if null
-        session_id: bigint
-    }
->
+export type SourceToIdType = {
+    client: string
+    api: bigint // NOTE: should be never null when bulk write
+}
 
-export type QuestionIdToInfoFromClient = Record<
-    string, // NOTE: question_id
-    {
-        status: review_check_status | null // NOTE: use to delete if null
-        session_id: string // NOTE: 오답 체크는 부여된 묶음에서만 가능함
+export type ForWhatToReviewCheckChangedInfo<TSource extends keyof SourceToIdType> = {
+    session: {
+        forWhat: "session"
+        status: attempt_status | null
+        session_id: SourceToIdType[TSource]
     }
->
+    assignment: {
+        forWhat: "assignment"
+        status: attempt_status | null
+    }
+}
+
+export type ReviewCheckChangedInfo<
+    TSource extends keyof SourceToIdType,
+    TForWhat extends keyof ForWhatToReviewCheckChangedInfo<TSource>,
+> = ForWhatToReviewCheckChangedInfo<TSource>[TForWhat]
+
+// NOTE: for session, id is question_id, when upsert, use question_student_session_id
+// NOTE: for assignment, id is question_attempt_id
+export type IdToChangedInfo<
+    TSource extends keyof SourceToIdType,
+    TForWhat extends keyof ForWhatToReviewCheckChangedInfo<TSource>,
+> = Record<string, ReviewCheckChangedInfo<TSource, TForWhat>>
