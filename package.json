@@ -10,7 +10,8 @@
         "build": "npx prisma generate && tsc && tsc-alias",
         "format": "prettier --write --cache .",
         "prepare": "husky",
-        "postinstall": "npx prisma generate"
+        "postinstall": "npx prisma generate",
+        "start": "node dist/src/server.js"
     },
     "keywords": [],
     "author": "",

@@ -8,3 +8,14 @@ rm -rf typst-x86_64-unknown-linux-musl
 
 # Build
 npm run build
+
+# Debug output
+echo "=== Build complete, checking output ==="
+echo "Current directory: $(pwd)"
+ls -la
+echo "=== dist/ contents ==="
+ls -la dist/ || echo "dist/ not found"
+echo "=== dist/src/ contents ==="
+ls -la dist/src/ || echo "dist/src/ not found"
+echo "=== Looking for server.js ==="
+find . -name "server.js" -type f
