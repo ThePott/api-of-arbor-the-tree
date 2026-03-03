@@ -1,5 +1,5 @@
 import type { attempt_status, session_status } from "@/generated/prisma/enums.js"
-import type { dbReviewCheckFindMany, dbReviewCheckForAssignmentFindMany } from "../db/index.js"
+import type { dbReviewCheckFindMany } from "../db/index.js"
 
 type WithAttemptInfo = {
     attempt_id: bigint | null
@@ -11,8 +11,12 @@ type WithAttemptInfo = {
     session_status: session_status | null // NOTE: session이 할당된 것만 오답체크할 수 있다
 }
 
-export const addAttemptInfoToSingleBook = (result: Awaited<ReturnType<typeof dbReviewCheckFindMany>>) => {
-    const topics = result?.topics.map((topic) => {
+type AddAttemptInfoToSingleBookProps = {
+    book: Awaited<ReturnType<typeof dbReviewCheckFindMany>>
+    assignment_status?: session_status | null
+}
+export const addAttemptInfoToSingleBook = ({ book, assignment_status = null }: AddAttemptInfoToSingleBookProps) => {
+    const topics = book?.topics.map((topic) => {
         const steps = topic.steps.map((step) => {
             const questions = step.questions.map((question) => {
                 const { questionAttempts, sessionQuestions, ...rest } = question
@@ -36,7 +40,7 @@ export const addAttemptInfoToSingleBook = (result: Awaited<ReturnType<typeof dbR
                 questionWithAttemptInfo.attempt_status = attempt?.status ?? null
                 questionWithAttemptInfo.attempt_status_visual = attempt?.status ?? null
                 questionWithAttemptInfo.isReviewed = Boolean(attempt?.child_attempt)
-                questionWithAttemptInfo.assignment_status = attempt?.review_assignment?.status ?? null
+                questionWithAttemptInfo.assignment_status = assignment_status
 
                 questionWithAttemptInfo.session_id = session?.id ?? null
                 questionWithAttemptInfo.session_status =
@@ -51,7 +55,7 @@ export const addAttemptInfoToSingleBook = (result: Awaited<ReturnType<typeof dbR
         return { ...topic, steps }
     })
 
-    const joinedBookResult = { ...result, topics }
+    const joinedBookResult = { ...book, topics }
 
     return joinedBookResult
 }

@@ -25,7 +25,7 @@ reviewCheckRouter.get("/check", async (req, res) => {
     if (!student_id || !syllabus_id) throw ApiError.BadRequest("학생과 문제집을 선택해주세요")
 
     const result = await dbReviewCheckFindMany({ user_id, classroom_id, student_id, syllabus_id })
-    const joinedResult = addAttemptInfoToSingleBook(result)
+    const joinedResult = addAttemptInfoToSingleBook({ result })
 
     const serializable = makeSerializable(joinedResult)
     // const serializable = makeSerializable(result)
@@ -54,7 +54,9 @@ reviewCheckRouter.post("/check", async (req, res) => {
 
 const addAttemptInfoToBookArray = (result: Awaited<ReturnType<typeof dbReviewCheckForAssignmentFindMany>>) => {
     const assignmentArray = result.map((assignment) => {
-        const books = assignment.books?.map((book) => addAttemptInfoToSingleBook(book))
+        const books = assignment.books?.map((book) =>
+            addAttemptInfoToSingleBook({ book, assignment_status: assignment.status })
+        )
         return {
             ...assignment,
             books,
@@ -67,6 +69,7 @@ const condenseAssignmentWithBooksArray = (extended: ReturnType<typeof addAttempt
         const books = assignment?.books?.map((book) => {
             const { topics: _, ...rest } = book
             const questions = book.topics?.flatMap((topic) => topic.steps.flatMap(({ questions }) => questions))
+            // .map((question) => ({ ...question, assignment_status: assignment.status }))
             return { ...rest, questions }
         })
         return { ...assignment, books }
@@ -81,6 +84,7 @@ reviewCheckRouter.get("/check/assignment", async (req, res) => {
     const extended = addAttemptInfoToBookArray(result)
     const condensed = condenseAssignmentWithBooksArray(extended)
     const serializable = makeSerializable(condensed)
+    // const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
 
