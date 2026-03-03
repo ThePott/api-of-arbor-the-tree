@@ -72,11 +72,11 @@ export const dbAssignmentCreateAssignment = async ({
             classroom_id,
             student_id,
             child_attempt: null,
+            status: "WRONG",
             question: { step: { topic: { book: { id: { in: book_ids } } } } },
         },
     })
     if (unreviewedAtteptArray.length === 0) throw ApiError.NotFound("오답 과제를 만들 것을 못 찾았어요")
-    console.log()
 
     const result = await prismaClient.review_assignment.create({
         data: {
