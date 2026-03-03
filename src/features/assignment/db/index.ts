@@ -121,7 +121,7 @@ export const dbAssignedAssignmentUpdate = async ({
             id: assignment_id,
             student: { hagwon: { principal: { user_id } } },
         },
-        data: { status },
+        data: { status, assigned_at: status ? new Date() : null },
     })
     return result
 }
