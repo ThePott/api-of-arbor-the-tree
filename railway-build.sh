@@ -12,3 +12,4 @@ npm run build
 
 # Copy typst template files to dist
 cp -r src/features/assignment/pdf/typst-template dist/src/features/assignment/pdf/
+cp -r src/features/assignment/pdf/fonts dist/src/features/assignment/pdf/
