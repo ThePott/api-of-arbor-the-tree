@@ -57,8 +57,8 @@ assignmentRouter.get("/create", async (req, res) => {
     // NOTE: 여기선 후보를 찾는 거니까 책별 meta data만 필요하다
     const result = await dbAssignmentFindManyBookWithReviewNeededAttempts({ user_id, classroom_id, student_id })
     const condensed = condenseBookWithReviewChecksArray(result)
-    // const serializable = makeSerializable(condensed)
-    const serializable = makeSerializable(result)
+    const serializable = makeSerializable(condensed)
+    // const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
 
