@@ -3,5 +3,8 @@
     "build": {
         "builder": "RAILPACK",
         "buildCommand": "bash ./railway-build.sh"
+    },
+    "deploy": {
+        "startCommand": "export PATH=$PATH:/app/bin && npm run start"
     }
 }
