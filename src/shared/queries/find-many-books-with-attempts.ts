@@ -11,22 +11,45 @@ type MakeWhereInputProps = {
     forWhat: "book" | "topic" | "step" | "question" | "questionAttempt"
     classroom_id: bigint | null
     student_id: bigint
+    isReviewNeeded: boolean
 }
 function makeWhereInput(props: {
     forWhat: "questionAttempt"
     classroom_id: bigint | null
     student_id: bigint
+    isReviewNeeded: boolean
 }): question_attemptWhereInput
 function makeWhereInput(props: {
     forWhat: "question"
     classroom_id: bigint | null
     student_id: bigint
+    isReviewNeeded: boolean
 }): questionWhereInput
-function makeWhereInput(props: { forWhat: "step"; classroom_id: bigint | null; student_id: bigint }): stepWhereInput
-function makeWhereInput(props: { forWhat: "topic"; classroom_id: bigint | null; student_id: bigint }): topicWhereInput
-function makeWhereInput(props: { forWhat: "book"; classroom_id: bigint | null; student_id: bigint }): bookWhereInput
-function makeWhereInput({ forWhat, classroom_id, student_id }: MakeWhereInputProps) {
-    const questionAttemptWhereInput: question_attemptWhereInput = { student_id, classroom_id, child_attempt: null }
+function makeWhereInput(props: {
+    forWhat: "step"
+    classroom_id: bigint | null
+    student_id: bigint
+    isReviewNeeded: boolean
+}): stepWhereInput
+function makeWhereInput(props: {
+    forWhat: "topic"
+    classroom_id: bigint | null
+    student_id: bigint
+    isReviewNeeded: boolean
+}): topicWhereInput
+function makeWhereInput(props: {
+    forWhat: "book"
+    classroom_id: bigint | null
+    student_id: bigint
+    isReviewNeeded: boolean
+}): bookWhereInput
+function makeWhereInput({ forWhat, classroom_id, student_id, isReviewNeeded: isReviewNeeded }: MakeWhereInputProps) {
+    const questionAttemptWhereInput: question_attemptWhereInput = {
+        student_id,
+        classroom_id,
+        child_attempt: null,
+        ...(isReviewNeeded && { status: "WRONG" }),
+    }
     if (forWhat === "questionAttempt") return questionAttemptWhereInput
 
     const questionWhereInput: questionWhereInput = { questionAttempts: { some: questionAttemptWhereInput } }
@@ -51,30 +74,13 @@ type FindManyBooksWithAttemptsProps = {
     isReviewNeeded: boolean
 }
 const findManyBooksWithAttempts = async (props: FindManyBooksWithAttemptsProps) => {
-    const { user_id, classroom_id, student_id, isReviewNeeded } = props
+    const { user_id } = props
 
     const result = await prismaClient.book.findMany({
         where: {
             user_id,
             topics: {
-                some: {
-                    steps: {
-                        some: {
-                            questions: {
-                                some: {
-                                    questionAttempts: {
-                                        some: {
-                                            ...(isReviewNeeded && { status: "WRONG" }),
-                                            student_id,
-                                            classroom_id,
-                                            child_attempt: null,
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
+                some: makeWhereInput({ forWhat: "topic", ...props }),
             },
         },
         include: {
