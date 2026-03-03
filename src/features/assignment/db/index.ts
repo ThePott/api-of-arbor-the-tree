@@ -29,7 +29,7 @@ export const dbAssignmentFindManyAssignment = async ({
 
     const bookIdsArray = assignmentResult.map(({ book_ids }) => book_ids)
     const bookTitleArrayArrayPromise = bookIdsArray.map((bookIds) =>
-        prismaClient.book.findMany({ where: { id: { in: bookIds } }, select: { title: true } })
+        prismaClient.book.findMany({ where: { id: { in: bookIds }, user_id }, select: { title: true } })
     )
     const bookTitleArrayArray = await Promise.all(bookTitleArrayArrayPromise)
 
