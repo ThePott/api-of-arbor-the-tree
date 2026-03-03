@@ -5,6 +5,6 @@
         "buildCommand": "bash ./railway-build.sh"
     },
     "deploy": {
-        "startCommand": "export PATH=$PATH:/app/bin && npm run start"
+        "startCommand": "export PATH=$PATH:/app/bin  && export TYPST_FONT_PATHS=/app/dist/src/features/assignment/pdf/fonts && npm run start"
     }
 }
