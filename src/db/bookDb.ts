@@ -144,11 +144,15 @@ export const dbCreateBook = async ({ title, published_year, data, user_id }: Boo
         console.timeEnd("dbCreateBook: tx.session_question.createMany")
     })
 
-export const dbFindManyBook = async () => await prismaClient.book.findMany()
+export const dbFindManyBook = async (user_id: bigint) => await prismaClient.book.findMany({ where: { user_id } })
 
-export const dbDeleteBook = async (id: number) => {
+type DbDeleteBookProps = {
+    user_id: bigint
+    book_id: bigint
+}
+export const dbDeleteBook = async ({ user_id, book_id }: DbDeleteBookProps) => {
     console.time("book delete")
-    const result = await prismaClient.book.delete({ where: { id } })
+    const result = await prismaClient.book.delete({ where: { id: book_id, user_id } })
     console.timeEnd("book delete")
     return result
 }
