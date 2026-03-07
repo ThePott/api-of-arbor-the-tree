@@ -27,7 +27,7 @@ import {
     KAKAO_LOGOUT_URL,
     KAKAO_UNLINK_URL,
 } from "../config/env.js"
-import { decodeAccessToken } from "../utils/decodeAccessToken.js"
+import { decodeAccessToken, extractUserId } from "../utils/decodeAccessToken.js"
 import { issueTokens } from "../utils/issueTokens.js"
 import { REFRESH_TOKEN_AGE } from "../constants/cookieOptions/index.js"
 
@@ -127,11 +127,9 @@ authRouter.get("/me", async (req, res) => {
 
 // TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
 authRouter.patch("/me", async (req, res) => {
-    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
-
-    const { id, ...mePatchPayload } = req.body
-
-    await dbPatchMe(id, mePatchPayload)
+    const user_id = extractUserId(req.headers)
+    const mePatchPayload = req.body
+    await dbPatchMe({ user_id, mePatchPayload })
 
     res.status(204).send()
 })

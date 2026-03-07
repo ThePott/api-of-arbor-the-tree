@@ -67,22 +67,26 @@ export const dbCreateMe = async (signupPayload: SignupPayload) => {
     return result
 }
 
-export const dbPatchMe = async (id: number, mePatchPayload: MePatchPayload) => {
+type DbPatchMeProps = {
+    user_id: bigint
+    mePatchPayload: MePatchPayload
+}
+export const dbPatchMe = async ({ user_id, mePatchPayload }: DbPatchMeProps) => {
     const { name, role, phone_number, hagwon, school } = mePatchPayload
 
     await prismaClient.app_user.update({
-        where: { id },
+        where: { id: user_id },
         data: { ...(name && { name }), ...(phone_number && { phone_number }) },
     })
 
     await prismaClient.resume.upsert({
-        where: { user_id: id },
+        where: { user_id },
         update: {
             ...(hagwon && { hagwon_name: hagwon }),
             ...(school && { school_name: school }),
         },
         create: {
-            user_id: id,
+            user_id,
             role: role!,
             hagwon_name: hagwon!,
             ...(school && { school_name: school }),
