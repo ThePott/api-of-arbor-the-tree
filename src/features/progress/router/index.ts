@@ -10,7 +10,7 @@ import {
     dbProgressFindManySyllabusAssigned,
     dbProgressFindManySyllabusWithSessions,
 } from "../db/index.js"
-import { extractUserId } from "@/src/utils/decodeAccessToken.js"
+import { extractPermission } from "@/src/utils/decodeAccessToken.js"
 import { makeSerializable } from "@/src/utils/makeSerializable.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import type { session_status } from "@/generated/prisma/enums.js"
@@ -21,7 +21,7 @@ const progressRouter = Router()
 
 // NOTE: auto complete에 사용할 실라버스 받아와야
 progressRouter.get("/syllabus", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const result = await dbProgressFindManySyllabus(user_id)
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
@@ -30,7 +30,7 @@ progressRouter.get("/syllabus", async (req, res) => {
 // NOTE: 과정 추가할 때
 progressRouter.post("/syllabus/assigned", async (req, res) => {
     const body = req.body // NOTE: book_id, classroom_id, student_id
-    const user_id = extractUserId(req.headers)
+    const user_id = extractPermission(req.headers)
 
     const { classroom_id, student_id } = body
     if ((classroom_id && student_id) || (!classroom_id && !student_id))
@@ -43,7 +43,7 @@ progressRouter.post("/syllabus/assigned", async (req, res) => {
 
 // NOTE: 학생, 반한테 등록된 실라버스를 받아올 때
 progressRouter.get("/syllabus/assigned", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
 
@@ -59,7 +59,7 @@ progressRouter.delete("/syllabus/assigned/:syllabus_id", async (req, res) => {
     const syllabus_id = BigInt(req.params.syllabus_id)
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
 
     const result = await dbProgressDeleteSyllabus({ classroom_id, student_id, user_id, syllabus_id })
     const serializable = makeSerializable(result)
@@ -73,7 +73,7 @@ progressRouter.get("/syllabus-with-sessions", async (req, res) => {
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
 
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const syllabusArray = await dbProgressFindManySyllabusWithSessions({
         classroom_id,
         syllabus_id,
@@ -93,7 +93,7 @@ progressRouter.get("/syllabus-with-sessions", async (req, res) => {
 })
 
 progressRouter.post("/session/assigned", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const body = req.body
     const session_id = BigInt(body.session_id)
     const session_status = body.session_status as session_status
@@ -112,7 +112,7 @@ progressRouter.post("/session/assigned", async (req, res) => {
 })
 
 progressRouter.delete("/session/assigned/:session_id", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
     const session_id = BigInt(req.params.session_id)
@@ -125,7 +125,7 @@ progressRouter.delete("/session/assigned/:session_id", async (req, res) => {
 })
 
 progressRouter.post("/session/:session_id/completed", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const session_id = BigInt(req.params.session_id)
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
@@ -137,7 +137,7 @@ progressRouter.post("/session/:session_id/completed", async (req, res) => {
 })
 
 progressRouter.delete("/session/:session_id/completed", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
     const session_id = BigInt(req.params.session_id)

@@ -1,4 +1,4 @@
-import { decodeAccessToken, extractUserId } from "@/src/utils/decodeAccessToken.js"
+import { decodeAccessToken, extractPermission } from "@/src/utils/decodeAccessToken.js"
 import { Router } from "express"
 import {
     dbAppendStudentToClassroom,
@@ -21,7 +21,7 @@ manageRouter.get("/student", async (req, res) => {
 })
 
 manageRouter.post("/classroom", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const { classroom_name } = req.body
 
     const result = await dbCreateClassroom({ classroom_name, user_id })
@@ -41,7 +41,8 @@ manageRouter.post("/classroom-student", async (req, res) => {
 })
 
 manageRouter.delete("/classroom-student/:classroomStudentId", async (req, res) => {
-    const _user_id = extractUserId(req.headers)
+    // TODO: 권한 적용해야 함
+    const { user_id: _user_id } = extractPermission(req.headers)
     const classroom_student_id = BigInt(req.params.classroomStudentId)
     const result = await dbDeleteClassroomStudent(classroom_student_id)
     const serializable = makeSerializable(result)
@@ -49,7 +50,7 @@ manageRouter.delete("/classroom-student/:classroomStudentId", async (req, res) =
 })
 
 manageRouter.delete("/classroom/:classroomId", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const classroom_id = BigInt(req.params.classroomId)
     const result = await dbDeleteClassroom({ user_id, classroom_id })
     const serializable = makeSerializable(result)

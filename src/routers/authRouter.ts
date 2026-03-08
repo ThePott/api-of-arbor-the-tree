@@ -27,7 +27,7 @@ import {
     KAKAO_LOGOUT_URL,
     KAKAO_UNLINK_URL,
 } from "../config/env.js"
-import { decodeAccessToken, extractUserId } from "../utils/decodeAccessToken.js"
+import { decodeAccessToken, extractPermission } from "../utils/decodeAccessToken.js"
 import { issueTokens } from "../utils/issueTokens.js"
 import { REFRESH_TOKEN_AGE } from "../constants/cookieOptions/index.js"
 
@@ -71,7 +71,10 @@ authRouter.post("/kakao/me", async (req, res) => {
     const meResult = await dbFindMeInLogin("kakao", loginPayload)
 
     if (meResult) {
-        const { access_token, resCookieParams } = issueTokens({ userIdInString: meResult.id.toString() })
+        const { access_token, resCookieParams } = issueTokens({
+            userIdInString: meResult.id.toString(),
+            role: meResult.role,
+        })
         res.cookie(...resCookieParams)
 
         mutateToSerializable(meResult)
@@ -85,7 +88,10 @@ authRouter.post("/kakao/me", async (req, res) => {
     }
     const signupResult = await dbCreateMe(signupPayload)
 
-    const { access_token, resCookieParams } = issueTokens({ userIdInString: signupResult.id.toString() })
+    const { access_token, resCookieParams } = issueTokens({
+        userIdInString: signupResult.id.toString(),
+        role: signupResult.role,
+    })
     res.cookie(...resCookieParams)
 
     const serializable = makeSerializable(signupResult)
@@ -127,7 +133,7 @@ authRouter.get("/me", async (req, res) => {
 
 // TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
 authRouter.patch("/me", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const mePatchPayload = req.body
     await dbPatchMe({ user_id, mePatchPayload })
 
@@ -186,7 +192,7 @@ authRouter.post("/email/login", async (req, res) => {
     const result = await dbFindMeInLogin("email", { email, password: rawPassword })
     if (!result) throw ApiError.NotFound("이메일과 비밀번호를 다시 확인해주세요")
 
-    const { access_token, resCookieParams } = issueTokens({ userIdInString: result.id.toString() })
+    const { access_token, resCookieParams } = issueTokens({ userIdInString: result.id.toString(), role: result.role })
     res.cookie(...resCookieParams)
 
     const serializable = makeSerializable(result)

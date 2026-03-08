@@ -1,5 +1,5 @@
 import { convertToBigIntOrNull, convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
-import { extractUserId } from "@/src/utils/decodeAccessToken.js"
+import { extractPermission } from "@/src/utils/decodeAccessToken.js"
 import { Router } from "express"
 import {
     dbAssignedAssignmentUpdate,
@@ -16,7 +16,7 @@ import { validateBody } from "@/src/utils/validateBody.js"
 const assignmentRouter = Router()
 
 assignmentRouter.get("/", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const student_id = convertToBigIntOrThrow(req.query.student_id)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const result = await dbAssignmentFindManyAssignment({ user_id, classroom_id, student_id })
@@ -51,7 +51,7 @@ const condenseBookWithReviewChecksArray = (bookWithReviewChecksArray: BookWithRe
     return assignmentCandidateArray
 }
 assignmentRouter.get("/create", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const student_id = convertToBigIntOrThrow(req.query.student_id)
     // NOTE: 여기선 후보를 찾는 거니까 책별 meta data만 필요하다
@@ -63,7 +63,7 @@ assignmentRouter.get("/create", async (req, res) => {
 })
 
 assignmentRouter.post("/create", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const student_id = convertToBigIntOrThrow(req.query.student_id)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const book_ids = req.body?.book_ids // NOTE: body가 없으면 속성 접근 시 에러가 뜬다
@@ -86,7 +86,7 @@ export const condenseBookForPdf = (bookArray: Awaited<ReturnType<typeof dbAssign
     return newBookArray
 }
 assignmentRouter.get("/:assignment_id/pdf", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const assignment_id = convertToBigIntOrThrow(req.params.assignment_id)
     const result = await dbAssignmentFindBookForPdf({ user_id, assignment_id })
     const condensed = condenseBookForPdf(result)
@@ -100,7 +100,7 @@ assignmentRouter.get("/:assignment_id/pdf", async (req, res) => {
 })
 
 assignmentRouter.patch("/:assignment_id", async (req, res) => {
-    const user_id = extractUserId(req.headers)
+    const { user_id } = extractPermission(req.headers)
     const assignment_id = convertToBigIntOrThrow(req.params.assignment_id)
     const status = req.body.status as session_status | null
 
