@@ -16,8 +16,11 @@ import { validatePermission } from "@/src/utils/make-allowed-role-array.js"
 
 const assignmentRouter = Router()
 
+// NOTE: meta data 얻기 (sidebar에서 사용, 현재 받은 오답과제 목록 보여줌)
 assignmentRouter.get("/", async (req, res) => {
-    const { user_id } = extractPermission(req.headers)
+    const { user_id, role } = extractPermission(req.headers)
+    validatePermission({ minimumRole: "PARENT", currentRole: role })
+
     const student_id = convertToBigIntOrThrow(req.query.student_id)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const result = await dbAssignmentFindManyAssignment({ user_id, classroom_id, student_id })
@@ -51,9 +54,10 @@ const condenseBookWithReviewChecksArray = (bookWithReviewChecksArray: BookWithRe
     })
     return assignmentCandidateArray
 }
+// NOTE: 새로 생성할 오답 과제의 후보 확인 << 이건 생성 권한 가지고 있는 사람들만 볼 수 있어야
 assignmentRouter.get("/create", async (req, res) => {
     const { user_id, role } = extractPermission(req.headers)
-    validatePermission({ minimumRole: "PARENT", currentRole: role })
+    validatePermission({ minimumRole: "HELPER", currentRole: role })
 
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const student_id = convertToBigIntOrThrow(req.query.student_id)
