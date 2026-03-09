@@ -103,8 +103,13 @@ type DbAssignmentFindForPdfProps = {
 }
 export const dbAssignmentFindBookForPdf = async ({ hagwon_id, assignment_id }: DbAssignmentFindForPdfProps) => {
     // NOTE: book으로 묶을 거니까 처음부터 book을 가져오는 게 낫겠다
-    const result = await findManyBooksFromAssignment({ hagwon_id, assignment_id })
-    return result
+    const booksFromAssignmentPromise = findManyBooksFromAssignment({ hagwon_id, assignment_id })
+    const assignmentPromise = prismaClient.review_assignment.findUniqueOrThrow({
+        where: { id: assignment_id },
+        include: { student: { include: { users: true } } },
+    })
+    const [booksFromAssignment, assignment] = await Promise.all([booksFromAssignmentPromise, assignmentPromise])
+    return { booksFromAssignment, assignment }
 }
 
 type DbAssignedAssignmentUpdateProps = {

@@ -83,7 +83,9 @@ assignmentRouter.post("/create", async (req, res) => {
     res.status(200).json(serializable)
 })
 
-export const condenseBookForPdf = (bookArray: Awaited<ReturnType<typeof dbAssignmentFindBookForPdf>>) => {
+export const condenseBookForPdf = (
+    bookArray: Awaited<ReturnType<typeof dbAssignmentFindBookForPdf>>["booksFromAssignment"]
+) => {
     const newBookArray = bookArray.map((book) => {
         const topics = book.topics.map((topic) => {
             const questions = topic.steps.flatMap(({ questions }) => questions)
@@ -99,10 +101,10 @@ assignmentRouter.get("/:assignment_id/pdf", async (req, res) => {
     validatePermission({ minimumRole: "PARENT", currentRole: role })
 
     const assignment_id = convertToBigIntOrThrow(req.params.assignment_id)
-    const result = await dbAssignmentFindBookForPdf({ hagwon_id, assignment_id })
-    const condensed = condenseBookForPdf(result)
+    const { booksFromAssignment, assignment } = await dbAssignmentFindBookForPdf({ hagwon_id, assignment_id })
+    const condensed = condenseBookForPdf(booksFromAssignment)
     const pdf = makeAssignmentPdf({
-        studentName: "홍길동",
+        studentName: assignment.student.users.name,
         assigned_at: new Date(),
         bookForPdfArray: condensed,
     })
