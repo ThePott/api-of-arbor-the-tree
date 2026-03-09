@@ -18,12 +18,12 @@ const assignmentRouter = Router()
 
 // NOTE: meta data 얻기 (sidebar에서 사용, 현재 받은 오답과제 목록 보여줌)
 assignmentRouter.get("/", async (req, res) => {
-    const { user_id, role } = extractPermission(req.headers)
+    const { hagwon_id, role } = extractPermission(req.headers)
     validatePermission({ minimumRole: "PARENT", currentRole: role })
 
     const student_id = convertToBigIntOrThrow(req.query.student_id)
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
-    const result = await dbAssignmentFindManyAssignment({ user_id, classroom_id, student_id })
+    const result = await dbAssignmentFindManyAssignment({ hagwon_id, classroom_id, student_id })
     const condensed = result.map((assignment) => {
         const { bookTitleArray, question_attempts, ...rest } = assignment
         return {
@@ -56,13 +56,13 @@ const condenseBookWithReviewChecksArray = (bookWithReviewChecksArray: BookWithRe
 }
 // NOTE: 새로 생성할 오답 과제의 후보 확인 << 이건 생성 권한 가지고 있는 사람들만 볼 수 있어야
 assignmentRouter.get("/create", async (req, res) => {
-    const { user_id, role } = extractPermission(req.headers)
+    const { hagwon_id, role } = extractPermission(req.headers)
     validatePermission({ minimumRole: "HELPER", currentRole: role })
 
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id)
     const student_id = convertToBigIntOrThrow(req.query.student_id)
     // NOTE: 여기선 후보를 찾는 거니까 책별 meta data만 필요하다
-    const result = await dbAssignmentFindManyBookWithReviewNeededAttempts({ user_id, classroom_id, student_id })
+    const result = await dbAssignmentFindManyBookWithReviewNeededAttempts({ hagwon_id, classroom_id, student_id })
     const condensed = condenseBookWithReviewChecksArray(result)
     const serializable = makeSerializable(condensed)
     // const serializable = makeSerializable(result)
@@ -70,7 +70,7 @@ assignmentRouter.get("/create", async (req, res) => {
 })
 
 assignmentRouter.post("/create", async (req, res) => {
-    const { user_id, role } = extractPermission(req.headers)
+    const { hagwon_id, role } = extractPermission(req.headers)
     validatePermission({ minimumRole: "HELPER", currentRole: role })
 
     const student_id = convertToBigIntOrThrow(req.query.student_id)
@@ -78,7 +78,7 @@ assignmentRouter.post("/create", async (req, res) => {
     const book_ids = req.body?.book_ids // NOTE: body가 없으면 속성 접근 시 에러가 뜬다
     validateBody({ book_ids })
 
-    const result = await dbAssignmentCreateAssignment({ user_id, classroom_id, student_id, book_ids })
+    const result = await dbAssignmentCreateAssignment({ hagwon_id, classroom_id, student_id, book_ids })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
@@ -95,11 +95,11 @@ export const condenseBookForPdf = (bookArray: Awaited<ReturnType<typeof dbAssign
     return newBookArray
 }
 assignmentRouter.get("/:assignment_id/pdf", async (req, res) => {
-    const { user_id, role } = extractPermission(req.headers)
+    const { hagwon_id, role } = extractPermission(req.headers)
     validatePermission({ minimumRole: "PARENT", currentRole: role })
 
     const assignment_id = convertToBigIntOrThrow(req.params.assignment_id)
-    const result = await dbAssignmentFindBookForPdf({ user_id, assignment_id })
+    const result = await dbAssignmentFindBookForPdf({ hagwon_id, assignment_id })
     const condensed = condenseBookForPdf(result)
     const pdf = makeAssignmentPdf({
         studentName: "홍길동",
@@ -112,13 +112,13 @@ assignmentRouter.get("/:assignment_id/pdf", async (req, res) => {
 
 // NOTE: 할당 여부 바꾸기
 assignmentRouter.patch("/:assignment_id", async (req, res) => {
-    const { user_id, role } = extractPermission(req.headers)
+    const { hagwon_id, role } = extractPermission(req.headers)
     validatePermission({ minimumRole: "HELPER", currentRole: role })
 
     const assignment_id = convertToBigIntOrThrow(req.params.assignment_id)
     const status = req.body.status as session_status | null
 
-    const result = await dbAssignedAssignmentUpdate({ user_id, assignment_id, status })
+    const result = await dbAssignedAssignmentUpdate({ hagwon_id, assignment_id, status })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })

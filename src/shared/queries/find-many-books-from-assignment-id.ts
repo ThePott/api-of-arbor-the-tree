@@ -2,14 +2,14 @@ import prismaClient from "@/src/db/prismaClient.js"
 import filterByAssignment from "./filter-by-assignment.js"
 
 type FindManyBooksFromAssignmentProps = {
-    user_id: bigint
+    hagwon_id: bigint
     assignment_id: bigint
 }
-export const findManyBooksFromAssignment = async ({ user_id, assignment_id }: FindManyBooksFromAssignmentProps) => {
+export const findManyBooksFromAssignment = async ({ hagwon_id, assignment_id }: FindManyBooksFromAssignmentProps) => {
     const result = await prismaClient.book.findMany({
         where: {
             ...filterByAssignment({ forWhat: "book", assignment_id }),
-            user_id,
+            hagwon_id,
         },
         include: {
             topics: {
