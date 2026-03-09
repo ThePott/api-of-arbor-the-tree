@@ -32,6 +32,7 @@ import { issueTokens } from "../utils/issueTokens.js"
 import { REFRESH_TOKEN_AGE } from "../constants/cookieOptions/index.js"
 import type { app_user, resume } from "@/generated/prisma/client.js"
 import { convertToBigIntOrThrow } from "../utils/convertToBigInt.js"
+import { validatePermission } from "../utils/make-allowed-role-array.js"
 
 type AdditionalInfo = { school_name: string | null; hagwon_name: string | null }
 type Me = Omit<app_user, "password"> & { resume: resume | null } & { additional_info: AdditionalInfo }
@@ -206,8 +207,9 @@ authRouter.delete("/me/:userId", async (req, res) => {
 })
 
 authRouter.post("/resume/:resumeId/accept", async (req, res) => {
-    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
-    const resume_id = BigInt(req.params.resumeId)
+    const { role } = extractPermission(req.headers) // TODO: 지금은 access token을 검증하지 않음
+    validatePermission({ minimumRole: "PRINCIPAL", currentRole: role })
+    const resume_id = convertToBigIntOrThrow(req.params.resumeId)
     await dbAcceptResume({ resume_id })
 
     res.status(200).send("----good")

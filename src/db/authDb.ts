@@ -139,11 +139,12 @@ export const dbAcceptResume = async ({ resume_id }: DbAcceptResumeProps) => {
             })
             break
         case "PARENT":
-            break
+            throw new Error("---- 이걸 고르는 일은 없어야 해")
         case "PRINCIPAL":
             await prismaClient.principal.create({ data: { hagwon_id: hagwon!.id, user_id: resume.users.id } })
             break
         case "HELPER":
+            await prismaClient.helper.create({ data: { hagwon_id: hagwon!.id, user_id: resume.users.id } })
             break
         case "MAINTAINER":
             throw new Error("---- 이걸 고르는 일은 없어야 해")
