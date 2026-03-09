@@ -57,10 +57,6 @@ authRouter.post("/kakao/code-to-token", async (req, res) => {
     res.status(200).json({ kakao_access_token })
 })
 
-const extractSchoolName = (result: Awaited<ReturnType<typeof dbFindMe>> | null): string | null => {
-    if (result?.role !== "STUDENT") return null
-    return result.student?.school.name ?? null
-}
 const extractAdditionalInfo = (result: Awaited<ReturnType<typeof dbFindMe>> | null): AdditionalInfo => {
     if (!result?.role) return { hagwon_name: null, school_name: null }
     switch (result.role) {
@@ -167,7 +163,8 @@ authRouter.get("/me", async (req, res) => {
     const decoded = decodeAccessToken(req.headers)
     const id = BigInt(decoded.userIdInString)
     const result = await dbFindMe(id)
-    const serializable = makeSerializable(result)
+    const condensed = condenseToMe(result)
+    const serializable = makeSerializable(condensed)
     res.status(200).json(serializable)
 })
 
