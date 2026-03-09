@@ -2,7 +2,6 @@ import prismaClient from "@/src/db/prismaClient.js"
 import { ApiError } from "@/src/errors/appError/AppError.js"
 import type { IdToChangedInfo } from "../types/index.js"
 import { convertToBigIntOrThrow } from "@/src/utils/convertToBigInt.js"
-import findManyBooksWithAttempts from "@/src/shared/queries/find-many-books-with-attempts.js"
 import { makeStartOfToday } from "@/src/utils/date-manipulations.js"
 import { findManyBooksFromAssignment } from "@/src/shared/queries/find-many-books-from-assignment-id.js"
 

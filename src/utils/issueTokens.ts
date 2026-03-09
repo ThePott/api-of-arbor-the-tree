@@ -11,18 +11,18 @@ import type { role } from "@/generated/prisma/enums.js"
 
 export type Token = {
     userIdInString: string
+    hagwonIdInString: string | null
     role: role | null
 }
 type IssueTokensReturns = {
     access_token: string
     resCookieParams: [string, string, CookieOptions]
 }
-export const issueTokens = ({ userIdInString, role }: Token): IssueTokensReturns => {
-    const tokenBody = { userIdInString, role }
-    const access_token = jwt.sign(tokenBody, ACCESS_TOKEN_SECRET, {
+export const issueTokens = (token: Token): IssueTokensReturns => {
+    const access_token = jwt.sign(token, ACCESS_TOKEN_SECRET, {
         expiresIn: ACCESS_TOKEN_AGE,
     })
-    const refresh_token = jwt.sign(tokenBody, REFRESH_TOKEN_SECRET, {
+    const refresh_token = jwt.sign(token, REFRESH_TOKEN_SECRET, {
         expiresIn: REFRESH_TOKEN_AGE,
     })
 

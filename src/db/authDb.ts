@@ -4,6 +4,12 @@ import type { SignupPayload, LoginProvider, LoginPayload, MePatchPayload } from 
 import prismaClient from "./prismaClient.js"
 import bcrypt from "bcrypt"
 
+const appUserInclude = {
+    student: { include: { hagwon: true } },
+    helper: { include: { hagwon: true } },
+    principal: { include: { hagwon: true } },
+    resume: true,
+}
 export const dbFindMeInLogin = async (loginProvider: LoginProvider, loginPayload: LoginPayload) => {
     switch (loginProvider) {
         case "kakao": {
@@ -11,14 +17,20 @@ export const dbFindMeInLogin = async (loginProvider: LoginProvider, loginPayload
             if (!kakao_id) {
                 throw new Error("---- MISSING KAKAO ID")
             }
-            return prismaClient.app_user.findUnique({ where: { kakao_id } })
+            return prismaClient.app_user.findUniqueOrThrow({
+                where: { kakao_id },
+                include: appUserInclude,
+            })
         }
         case "email": {
             const { email, password } = loginPayload
             if (!email || !password) throw ApiError.BadRequest("이메일 혹은 비밀번호를 다시 확인해주세요")
 
-            const result = await prismaClient.app_user.findUnique({ where: { email }, omit: { password: false } })
-            if (!result) throw ApiError.NotFound("이메일 혹은 비밀번호를 다시 확인해주세요")
+            const result = await prismaClient.app_user.findUniqueOrThrow({
+                where: { email },
+                omit: { password: false },
+                include: appUserInclude,
+            })
 
             const { password: hashedPassword, ...rest } = result
             if (!hashedPassword) throw ApiError.Internal("알 수 없는 오류가 발생했어요")
@@ -32,34 +44,12 @@ export const dbFindMeInLogin = async (loginProvider: LoginProvider, loginPayload
 }
 
 export const dbFindMe = async (id: bigint) => {
-    const result = await prismaClient.app_user.findUnique({ where: { id } })
+    const result = await prismaClient.app_user.findUniqueOrThrow({
+        where: { id },
+        include: appUserInclude,
+    })
 
-    const additional_info: { school_name: string | null; hagwon_name: string | null } = {
-        school_name: null,
-        hagwon_name: null,
-    }
-    if (result && result.role === "PRINCIPAL") {
-        const principalResult = await prismaClient.principal.findUnique({
-            where: { user_id: id },
-            select: { hagwon: { select: { name: true } } },
-        })
-        additional_info.hagwon_name = principalResult?.hagwon.name ?? null
-    }
-    if (result && result.role === "STUDENT") {
-        const studentResult = await prismaClient.student.findUnique({
-            where: { user_id: id },
-            select: {
-                hagwon: { select: { name: true } },
-                school: { select: { name: true } },
-            },
-        })
-        additional_info.hagwon_name = studentResult?.hagwon.name ?? null
-        additional_info.school_name = studentResult?.school.name ?? null
-    }
-
-    const resume = await prismaClient.resume.findUnique({ where: { user_id: id } })
-
-    return { result, resume, additional_info }
+    return result
 }
 
 export const dbCreateMe = async (signupPayload: SignupPayload) => {

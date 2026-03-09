@@ -53,6 +53,22 @@ authRouter.post("/kakao/code-to-token", async (req, res) => {
     res.status(200).json({ kakao_access_token })
 })
 
+const extractHagwonIdFromMe = (result: Awaited<ReturnType<typeof dbFindMe>>): bigint | null => {
+    if (!result.role) return null
+    switch (result.role) {
+        case "STUDENT":
+            return result.student?.hagwon_id ?? null
+        case "PARENT":
+            return null
+        case "PRINCIPAL":
+            return result.principal?.hagwon_id ?? null
+        case "HELPER":
+            return result.helper?.hagwon_id ?? null
+        case "MAINTAINER":
+            return null
+    }
+}
+
 authRouter.post("/kakao/me", async (req, res) => {
     const { kakao_access_token } = req.body
     const url = KAKAO_ME_URL
@@ -68,17 +84,19 @@ authRouter.post("/kakao/me", async (req, res) => {
     const loginPayload: LoginPayload = {
         kakao_id: kakaoMe.id,
     }
-    const meResult = await dbFindMeInLogin("kakao", loginPayload)
+    const result = await dbFindMeInLogin("kakao", loginPayload)
+    const hagwon_id = extractHagwonIdFromMe(result)
 
-    if (meResult) {
+    if (result) {
         const { access_token, resCookieParams } = issueTokens({
-            userIdInString: meResult.id.toString(),
-            role: meResult.role,
+            userIdInString: result.id.toString(),
+            role: result.role,
+            hagwonIdInString: hagwon_id ? hagwon_id?.toString() : null,
         })
         res.cookie(...resCookieParams)
 
-        mutateToSerializable(meResult)
-        res.status(200).json({ me: meResult, access_token })
+        mutateToSerializable(result)
+        res.status(200).json({ me: result, access_token })
         return
     }
 
@@ -91,6 +109,7 @@ authRouter.post("/kakao/me", async (req, res) => {
     const { access_token, resCookieParams } = issueTokens({
         userIdInString: signupResult.id.toString(),
         role: signupResult.role,
+        hagwonIdInString: null, // NOTE: 가입하는 순간엔 학원 없음
     })
     res.cookie(...resCookieParams)
 
@@ -118,17 +137,9 @@ authRouter.post("/kakao/logout", async (req, res) => {
 authRouter.get("/me", async (req, res) => {
     const decoded = decodeAccessToken(req.headers)
     const id = BigInt(decoded.userIdInString)
-    const { result, resume, additional_info } = await dbFindMe(id)
-    if (!result) {
-        res.status(400).json({ message: "---- 와 이게 없네" })
-        return
-    }
-
-    mutateToSerializable(result)
-    if (resume) {
-        mutateToSerializable(resume)
-    }
-    res.status(200).json({ result, resume, additional_info })
+    const result = await dbFindMe(id)
+    const serializable = makeSerializable(result)
+    res.status(200).json(serializable)
 })
 
 // TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
@@ -190,9 +201,13 @@ authRouter.post("/email/signup", async (req, res) => {
 authRouter.post("/email/login", async (req, res) => {
     const { email, password: rawPassword } = req.body
     const result = await dbFindMeInLogin("email", { email, password: rawPassword })
-    if (!result) throw ApiError.NotFound("이메일과 비밀번호를 다시 확인해주세요")
+    const hagwon_id = extractHagwonIdFromMe(result)
 
-    const { access_token, resCookieParams } = issueTokens({ userIdInString: result.id.toString(), role: result.role })
+    const { access_token, resCookieParams } = issueTokens({
+        userIdInString: result.id.toString(),
+        role: result.role,
+        hagwonIdInString: hagwon_id?.toString() ?? null,
+    })
     res.cookie(...resCookieParams)
 
     const serializable = makeSerializable(result)

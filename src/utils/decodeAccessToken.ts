@@ -22,7 +22,8 @@ export const decodeAccessToken = (headers: IncomingHttpHeaders): DecodedToken =>
 }
 
 export const extractPermission = (headers: IncomingHttpHeaders) => {
-    const { userIdInString, role }: Token = decodeAccessToken(headers)
+    const { userIdInString, hagwonIdInString, role }: Token = decodeAccessToken(headers)
     const user_id = convertToBigIntOrThrow(userIdInString)
-    return { user_id, role }
+    const hagwon_id = convertToBigIntOrThrow(hagwonIdInString)
+    return { user_id, hagwon_id, role }
 }
