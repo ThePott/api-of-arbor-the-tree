@@ -7,19 +7,19 @@ import { findManyBooksFromAssignment } from "@/src/shared/queries/find-many-book
 
 // NOTE: syllabus __그 문제집의 오답과제를 가져와야 함
 type DbReviewCheckFindManyProps = {
-    user_id: bigint
+    hagwon_id: bigint
     classroom_id: bigint | null
     student_id: bigint
     syllabus_id: bigint
 }
 export const dbReviewCheckFindMany = async ({
-    user_id,
+    hagwon_id,
     classroom_id,
     student_id,
     syllabus_id,
 }: DbReviewCheckFindManyProps) => {
     const result = await prismaClient.book.findFirst({
-        where: { syllabi: { some: { id: syllabus_id, user_id } } },
+        where: { syllabi: { some: { id: syllabus_id, hagwon_id } } },
         include: {
             topics: {
                 orderBy: { order: "asc" },
@@ -75,13 +75,13 @@ export const dbReviewCheckFindMany = async ({
 }
 
 type DbReviewCheckBulkWriteProps = {
-    user_id: bigint
+    hagwon_id: bigint
     classroom_id: bigint | null
     student_id: bigint
     idToChangedInfo: IdToChangedInfo<"api", "session"> // NOTE: already converted to bigint except for question_id(key)
 }
 export const dbReviewCheckBulkWrite = async ({
-    user_id: _user_id,
+    hagwon_id,
     classroom_id,
     student_id,
     idToChangedInfo,
@@ -90,9 +90,6 @@ export const dbReviewCheckBulkWrite = async ({
     const entryArrayForUpsert = entryArray.filter(([_, { status }]) => status)
     const entryArrayForDelete = entryArray.filter(([_, { status }]) => !status)
 
-    // TODO
-    // TODO: validate assigned_session_student is from user_id's hagwon as principal
-    // TODO
     const upsertPromiseArray = entryArrayForUpsert.map(([question_id, { status, session_id }]) => {
         if (!status) throw ApiError.Internal("오답 체크 필터링 중 오류가 발생했어요")
         return prismaClient.question_attempt.upsert({
@@ -102,6 +99,7 @@ export const dbReviewCheckBulkWrite = async ({
                     question_id: BigInt(question_id),
                     session_id,
                 },
+                student: { hagwon_id },
             },
             update: { status },
             create: {
@@ -182,12 +180,12 @@ export const dbReviewCheckBulkWrite = async ({
 }
 
 type DbReviewCheckForAssignmentFindManyProps = {
-    user_id: bigint
+    hagwon_id: bigint
     student_id: bigint
     classroom_id: bigint | null
 }
 export const dbReviewCheckForAssignmentFindMany = async ({
-    user_id,
+    hagwon_id,
     student_id,
     classroom_id,
 }: DbReviewCheckForAssignmentFindManyProps) => {
@@ -206,7 +204,7 @@ export const dbReviewCheckForAssignmentFindMany = async ({
         },
     })
     const booksFromAssignmentArrayPromise = assignmentArray.map((assignment) =>
-        findManyBooksFromAssignment({ user_id, assignment_id: assignment.id })
+        findManyBooksFromAssignment({ hagwon_id, assignment_id: assignment.id })
     )
     const booksFromAssignmentArray = await Promise.all(booksFromAssignmentArrayPromise)
     const result = assignmentArray.map((assignment, index) => ({
@@ -217,13 +215,13 @@ export const dbReviewCheckForAssignmentFindMany = async ({
 }
 
 type DbReviewCheckAssignmentBulkWriteProps = {
-    user_id: bigint
+    hagwon_id: bigint
     classroom_id: bigint | null
     student_id: bigint
     idToChangedInfo: IdToChangedInfo<"api", "assignment"> // NOTE: already converted to bigint except for question_id(key)
 }
 export const dbReviewCheckAssignmentBulkWrite = async ({
-    user_id, // TODO: need to validate using it
+    hagwon_id, // TODO: need to validate using it
     classroom_id,
     student_id,
     idToChangedInfo,
@@ -239,7 +237,7 @@ export const dbReviewCheckAssignmentBulkWrite = async ({
                 id: convertToBigIntOrThrow(question_attempt_id),
                 classroom_id,
                 student_id,
-                student: { hagwon: { principal: { user_id } } },
+                student: { hagwon_id },
             },
             data: { status },
         })
@@ -253,7 +251,7 @@ export const dbReviewCheckAssignmentBulkWrite = async ({
             id: { in: assignmentIdArray },
             classroom_id,
             student_id,
-            student: { hagwon: { principal: { user_id } } },
+            student: { hagwon_id },
         },
         include: {
             question_attempts: true,

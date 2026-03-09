@@ -38,7 +38,7 @@ reviewCheckRouter.get("/check", async (req, res) => {
 // NOTE: bulk update
 // NOTE: 오답 체크를 직접 하는 것: 학부모는 불가
 reviewCheckRouter.post("/check", async (req, res) => {
-    const { user_id, role, hagwon_id } = extractPermission(req.headers)
+    const { role, hagwon_id } = extractPermission(req.headers)
     validatePermission({ minimumRole: "STUDENT", currentRole: role })
 
     const classroom_id = convertToBigIntOrNull(req.query.classroom_id) // NOTE: MUST put in query params
