@@ -128,15 +128,15 @@ progressRouter.post("/session/assigned", async (req, res) => {
 })
 
 progressRouter.delete("/session/assigned/:session_id", async (req, res) => {
-    const { user_id, hagwon_id, role } = extractPermission(req.headers)
-    validatePermission({ minimumRole: "PRINCIPAL", currentRole: role })
+    const { hagwon_id, role } = extractPermission(req.headers)
+    validatePermission({ minimumRole: "HELPER", currentRole: role })
 
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
     const session_id = BigInt(req.params.session_id)
 
     checkClassroomStudentExclusiveness({ classroom_id, student_id })
-    const result = await dbProgressDeleteAssignedSession({ user_id, hagwon_id, classroom_id, student_id, session_id })
+    const result = await dbProgressDeleteAssignedSession({ hagwon_id, classroom_id, student_id, session_id })
     const serializable = makeSerializable(result)
 
     res.status(200).json(serializable)
@@ -157,14 +157,14 @@ progressRouter.post("/session/:session_id/completed", async (req, res) => {
 })
 
 progressRouter.delete("/session/:session_id/completed", async (req, res) => {
-    const { user_id, hagwon_id, role } = extractPermission(req.headers)
-    validatePermission({ minimumRole: "PRINCIPAL", currentRole: role })
+    const { hagwon_id, role } = extractPermission(req.headers)
+    validatePermission({ minimumRole: "HELPER", currentRole: role })
 
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
     const session_id = BigInt(req.params.session_id)
 
-    const result = await dbProgressDeleteCompleteSession({ classroom_id, session_id, student_id, user_id, hagwon_id })
+    const result = await dbProgressDeleteCompleteSession({ classroom_id, session_id, student_id, hagwon_id })
     const serialiazable = makeSerializable(result)
 
     res.status(200).json(serialiazable)

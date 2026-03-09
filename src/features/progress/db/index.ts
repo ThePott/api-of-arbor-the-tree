@@ -250,14 +250,12 @@ export const dbProgressAssignSession = async ({
 }
 
 type DbProgressDeleteAssignedSessionProps = {
-    user_id: bigint
     hagwon_id: bigint
     classroom_id: bigint | null
     student_id: bigint | null
     session_id: bigint
 }
 export const dbProgressDeleteAssignedSession = async ({
-    user_id,
     hagwon_id,
     classroom_id,
     student_id,
@@ -269,7 +267,7 @@ export const dbProgressDeleteAssignedSession = async ({
         const result = await prismaClient.assigned_session_classroom.delete({
             where: {
                 session_id_classroom_id: { session_id, classroom_id },
-                classroom: { hagwon_id, hagwon: { principal: { user_id } } },
+                classroom: { hagwon_id },
             },
         })
         return result
@@ -280,7 +278,7 @@ export const dbProgressDeleteAssignedSession = async ({
     const result = await prismaClient.assigned_session_student.delete({
         where: {
             session_id_student_id: { session_id, student_id },
-            student: { hagwon_id, hagwon: { principal: { user_id } } },
+            student: { hagwon_id },
         },
     })
     return result
@@ -325,14 +323,12 @@ export const dbProgressCreateCompleteSession = async ({
 }
 
 type DbProgressDeleteCompleteSessionProps = {
-    user_id: bigint
     hagwon_id: bigint
     classroom_id: bigint | null
     student_id: bigint | null
     session_id: bigint
 }
 export const dbProgressDeleteCompleteSession = async ({
-    user_id,
     hagwon_id,
     classroom_id,
     session_id,
@@ -343,7 +339,7 @@ export const dbProgressDeleteCompleteSession = async ({
         const result = await prismaClient.completed_session_student.delete({
             where: {
                 session_id_student_id: { session_id, student_id },
-                student: { hagwon_id, hagwon: { principal: { user_id } } },
+                student: { hagwon_id },
             },
         })
         return result
@@ -354,7 +350,7 @@ export const dbProgressDeleteCompleteSession = async ({
     const result = await prismaClient.completed_session_classroom.delete({
         where: {
             session_id_classroom_id: { session_id, classroom_id },
-            classroom: { hagwon_id, hagwon: { principal: { user_id } } },
+            classroom: { hagwon_id },
         },
     })
     return result
