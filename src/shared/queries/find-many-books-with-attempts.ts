@@ -47,7 +47,7 @@ function makeWhereInput({ forWhat, classroom_id, student_id, isReviewNeeded: isR
     const questionAttemptWhereInput: question_attemptWhereInput = {
         student_id,
         classroom_id,
-        child_attempt: null,
+        child_attempt: null, // NOTE: 오답 필요한 걸 찾아낼 땐 이게 필요한 게 맞다
         ...(isReviewNeeded && { status: "WRONG" }),
     }
     if (forWhat === "questionAttempt") return questionAttemptWhereInput
