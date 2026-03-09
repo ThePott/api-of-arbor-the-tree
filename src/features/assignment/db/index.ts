@@ -91,6 +91,7 @@ export const dbAssignmentCreateAssignment = async ({
                 })),
             },
             book_ids,
+            status: "HOMEWORK",
         },
     })
     return result
