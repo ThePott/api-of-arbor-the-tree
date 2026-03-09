@@ -43,13 +43,13 @@ progressRouter.post("/syllabus/assigned", async (req, res) => {
 
 // NOTE: 학생, 반한테 등록된 실라버스를 받아올 때
 progressRouter.get("/syllabus/assigned", async (req, res) => {
-    const { user_id } = extractPermission(req.headers)
+    const { hagwon_id } = extractPermission(req.headers)
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
 
     if (!classroom_id && !student_id) throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
 
-    const result = await dbProgressFindManySyllabusAssigned({ user_id, classroom_id, student_id })
+    const result = await dbProgressFindManySyllabusAssigned({ hagwon_id, classroom_id, student_id })
     const serializable = makeSerializable(result)
 
     res.status(200).json(serializable)
@@ -59,9 +59,9 @@ progressRouter.delete("/syllabus/assigned/:syllabus_id", async (req, res) => {
     const syllabus_id = BigInt(req.params.syllabus_id)
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
-    const { user_id } = extractPermission(req.headers)
+    const { user_id, hagwon_id } = extractPermission(req.headers)
 
-    const result = await dbProgressDeleteSyllabus({ classroom_id, student_id, user_id, syllabus_id })
+    const result = await dbProgressDeleteSyllabus({ user_id, hagwon_id, classroom_id, student_id, syllabus_id })
     const serializable = makeSerializable(result)
 
     res.status(200).json(serializable)
@@ -73,12 +73,12 @@ progressRouter.get("/syllabus-with-sessions", async (req, res) => {
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
 
-    const { user_id } = extractPermission(req.headers)
+    const { hagwon_id } = extractPermission(req.headers)
     const syllabusArray = await dbProgressFindManySyllabusWithSessions({
+        hagwon_id,
         classroom_id,
         syllabus_id,
         student_id,
-        user_id,
     })
 
     const conciseSyllabusArray = syllabusArray.map((syllabus) => ({
@@ -93,7 +93,7 @@ progressRouter.get("/syllabus-with-sessions", async (req, res) => {
 })
 
 progressRouter.post("/session/assigned", async (req, res) => {
-    const { user_id } = extractPermission(req.headers)
+    const { hagwon_id } = extractPermission(req.headers)
     const body = req.body
     const session_id = BigInt(body.session_id)
     const session_status = body.session_status as session_status
@@ -105,44 +105,50 @@ progressRouter.post("/session/assigned", async (req, res) => {
         throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
     }
 
-    const result = await dbProgressAssignSession({ session_id, session_status, user_id, classroom_id, student_id })
+    const result = await dbProgressAssignSession({
+        hagwon_id,
+        session_id,
+        session_status,
+        classroom_id,
+        student_id,
+    })
     const serializable = makeSerializable(result)
 
     res.status(200).json(serializable)
 })
 
 progressRouter.delete("/session/assigned/:session_id", async (req, res) => {
-    const { user_id } = extractPermission(req.headers)
+    const { user_id, hagwon_id } = extractPermission(req.headers)
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
     const session_id = BigInt(req.params.session_id)
 
     checkClassroomStudentExclusiveness({ classroom_id, student_id })
-    const result = await dbProgressDeleteAssignedSession({ user_id, classroom_id, student_id, session_id })
+    const result = await dbProgressDeleteAssignedSession({ user_id, hagwon_id, classroom_id, student_id, session_id })
     const serializable = makeSerializable(result)
 
     res.status(200).json(serializable)
 })
 
 progressRouter.post("/session/:session_id/completed", async (req, res) => {
-    const { user_id } = extractPermission(req.headers)
+    const { hagwon_id } = extractPermission(req.headers)
     const session_id = BigInt(req.params.session_id)
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
 
-    const result = await dbProgressCreateCompleteSession({ student_id, classroom_id, session_id, user_id })
+    const result = await dbProgressCreateCompleteSession({ student_id, classroom_id, session_id, hagwon_id })
     const serializable = makeSerializable(result)
 
     res.status(200).json(serializable)
 })
 
 progressRouter.delete("/session/:session_id/completed", async (req, res) => {
-    const { user_id } = extractPermission(req.headers)
+    const { user_id, hagwon_id } = extractPermission(req.headers)
     const classroom_id = req.query.classroom_id ? BigInt(String(req.query.classroom_id)) : null
     const student_id = req.query.student_id ? BigInt(String(req.query.student_id)) : null
     const session_id = BigInt(req.params.session_id)
 
-    const result = await dbProgressDeleteCompleteSession({ classroom_id, session_id, student_id, user_id })
+    const result = await dbProgressDeleteCompleteSession({ classroom_id, session_id, student_id, user_id, hagwon_id })
     const serialiazable = makeSerializable(result)
 
     res.status(200).json(serialiazable)

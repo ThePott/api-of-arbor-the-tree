@@ -6,30 +6,38 @@ import {
     ClassroomStudentAuthorizationError,
     ClassroomStudentExclusivenessError,
 } from "../utils/classroomStudentErrors.js"
+import type { syllabusWhereInput } from "@/generated/prisma/models.js"
 
-export type ProgressBase = {
+// export type ProgressBase = {
+//     classroom_id: bigint | null
+//     student_id: bigint | null
+//     user_id: bigint
+//     hagwon_id: bigint
+// }
+// export type ProgressSyllabusRelated = ProgressBase & {
+//     syllabus_id: bigint
+// }
+// export type ProgressOptionalSyllabusRelated = ProgressBase & {
+//     syllabus_id: bigint | null
+// }
+
+type DbProgressCreateSyllabusProps = {
     classroom_id: bigint | null
     student_id: bigint | null
-    user_id: bigint
-}
-export type ProgressSyllabusRelated = ProgressBase & {
+    hagwon_id: bigint
     syllabus_id: bigint
 }
-export type ProgressOptionalSyllabusRelated = ProgressBase & {
-    syllabus_id: bigint | null
-}
-
 export const dbProgressCreateSyllabus = async ({
     syllabus_id,
     classroom_id,
     student_id,
-    user_id,
-}: ProgressSyllabusRelated) => {
+    hagwon_id,
+}: DbProgressCreateSyllabusProps) => {
     if (student_id) {
         const student = await prismaClient.student.findUnique({
             where: {
                 id: student_id,
-                hagwon: { principal: { user_id } },
+                hagwon: { id: hagwon_id },
             },
         })
         if (!student) throw ClassroomStudentAuthorizationError
@@ -42,7 +50,7 @@ export const dbProgressCreateSyllabus = async ({
         const classroom = await prismaClient.classroom.findUnique({
             where: {
                 id: classroom_id,
-                hagwon: { principal: { user_id } },
+                hagwon: { id: hagwon_id },
             },
         })
 
@@ -54,15 +62,24 @@ export const dbProgressCreateSyllabus = async ({
     throw ApiError.BadRequest("반 혹은 개별 진도 학생을 선택해주세요")
 }
 
-export const dbProgressFindManySyllabus = async (user_id: bigint) => {
-    const result = await prismaClient.syllabus.findMany({ where: { user_id }, include: { book: true } })
+export const dbProgressFindManySyllabus = async (hagwon_id: bigint) => {
+    const result = await prismaClient.syllabus.findMany({ where: { hagwon_id }, include: { book: true } })
     return result
 }
 
-export const dbProgressFindManySyllabusAssigned = async ({ user_id, classroom_id, student_id }: ProgressBase) => {
+type DbProgressFindManySyllabusAssignedProps = {
+    classroom_id: bigint | null
+    student_id: bigint | null
+    hagwon_id: bigint
+}
+export const dbProgressFindManySyllabusAssigned = async ({
+    classroom_id,
+    student_id,
+    hagwon_id,
+}: DbProgressFindManySyllabusAssignedProps) => {
     if (classroom_id) {
         const result = await prismaClient.classroom_syllabus.findMany({
-            where: { classroom_id, classroom: { hagwon: { principal: { user_id } } } },
+            where: { classroom_id, classroom: { hagwon_id } },
             include: { syllabus: { include: { book: true } } },
         })
         return result
@@ -71,23 +88,31 @@ export const dbProgressFindManySyllabusAssigned = async ({ user_id, classroom_id
     if (!student_id) throw ApiError.BadRequest("반 혹은 개별 진도 학생을 선택해주세요")
 
     const result = await prismaClient.student_syllabus.findMany({
-        where: { student_id, syllabus: { user_id } },
+        where: { student_id, syllabus: { hagwon_id } },
         include: { syllabus: { include: { book: true } } },
     })
     return result
 }
 
+type DbProgressDeleteSyllabusProps = {
+    classroom_id: bigint | null
+    student_id: bigint | null
+    user_id: bigint
+    hagwon_id: bigint
+    syllabus_id: bigint
+}
 export const dbProgressDeleteSyllabus = async ({
     classroom_id,
     student_id,
     user_id,
+    hagwon_id,
     syllabus_id,
-}: ProgressSyllabusRelated) => {
+}: DbProgressDeleteSyllabusProps) => {
     if (classroom_id) {
         const result = prismaClient.classroom_syllabus.delete({
             where: {
                 classroom_id_syllabus_id: { classroom_id, syllabus_id },
-                classroom: { hagwon: { principal: { user_id } } },
+                classroom: { hagwon: { id: hagwon_id, principal: { user_id } } },
             },
         })
         return result
@@ -96,7 +121,7 @@ export const dbProgressDeleteSyllabus = async ({
     const result = prismaClient.student_syllabus.delete({
         where: {
             student_id_syllabus_id: { syllabus_id, student_id },
-            student: { hagwon: { principal: { user_id } } },
+            student: { hagwon: { id: hagwon_id, principal: { user_id } } },
         },
     })
     return result
@@ -120,24 +145,30 @@ const baseSelect = {
     },
 }
 
+type DbProgressFindManySyllabusWithSessionsProps = {
+    classroom_id: bigint | null
+    student_id: bigint | null
+    hagwon_id: bigint
+    syllabus_id: bigint | null
+}
+// NOTE: props 그대로 받아 넣음
 const makeWhereForSyllabusWithSession = ({
     classroom_id,
     student_id,
-    user_id,
+    hagwon_id,
     syllabus_id,
-}: ProgressOptionalSyllabusRelated) => {
-    if (classroom_id && syllabus_id) return { id: syllabus_id, user_id }
+}: DbProgressFindManySyllabusWithSessionsProps): syllabusWhereInput => {
+    if (classroom_id && syllabus_id) return { id: syllabus_id, hagwon_id }
 
-    if (classroom_id && !syllabus_id) return { user_id, classroomSyllabuses: { some: { classroom_id } } }
+    if (classroom_id && !syllabus_id) return { hagwon_id, classroomSyllabuses: { some: { classroom_id } } }
 
     if (!student_id) throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
 
-    if (syllabus_id) return { user_id, id: syllabus_id }
+    if (syllabus_id) return { hagwon_id, id: syllabus_id }
 
-    return { user_id, studentSyllabuses: { some: { student_id } } }
+    return { hagwon_id, studentSyllabuses: { some: { student_id } } }
 }
-// NOTE: THIS RETURNS DUPLICATED DATA. NEED TO DEDUPLICATE
-export const dbProgressFindManySyllabusWithSessions = async (props: ProgressOptionalSyllabusRelated) => {
+export const dbProgressFindManySyllabusWithSessions = async (props: DbProgressFindManySyllabusWithSessionsProps) => {
     const { student_id, classroom_id } = props
     const result = await prismaClient.syllabus.findMany({
         where: makeWhereForSyllabusWithSession(props),
@@ -183,22 +214,25 @@ export const dbProgressFindManySyllabusWithSessions = async (props: ProgressOpti
     return result
 }
 
-type DbProgressAssignSessionProps = ProgressBase & {
+type DbProgressAssignSessionProps = {
+    classroom_id: bigint | null
+    student_id: bigint | null
+    hagwon_id: bigint
     session_id: bigint
     session_status: session_status
 }
 export const dbProgressAssignSession = async ({
-    user_id,
-    session_id,
-    session_status,
     classroom_id,
     student_id,
+    hagwon_id,
+    session_id,
+    session_status,
 }: DbProgressAssignSessionProps) => {
     if (Boolean(classroom_id) === Boolean(student_id)) throw ApiError.BadRequest("학생 혹은 반을 선택해주세요")
 
     if (classroom_id) {
         const result = await prismaClient.assigned_session_classroom.upsert({
-            where: { session_id_classroom_id: { session_id, classroom_id }, session: { syllabus: { user_id } } },
+            where: { session_id_classroom_id: { session_id, classroom_id }, session: { syllabus: { hagwon_id } } },
             create: { session_id, classroom_id, status: session_status },
             update: { status: session_status },
         })
@@ -208,21 +242,26 @@ export const dbProgressAssignSession = async ({
     if (!student_id) throw ApiError.Internal("학생을 선택해주세요")
 
     const result = await prismaClient.assigned_session_student.upsert({
-        where: { session_id_student_id: { session_id, student_id }, session: { syllabus: { user_id } } },
+        where: { session_id_student_id: { session_id, student_id }, session: { syllabus: { hagwon_id } } },
         create: { session_id, student_id, status: session_status },
         update: { status: session_status },
     })
     return result
 }
 
-type DbProgressDeleteAssignedSessionProps = ProgressBase & {
+type DbProgressDeleteAssignedSessionProps = {
+    user_id: bigint
+    hagwon_id: bigint
+    classroom_id: bigint | null
+    student_id: bigint | null
     session_id: bigint
 }
 export const dbProgressDeleteAssignedSession = async ({
     user_id,
-    session_id,
+    hagwon_id,
     classroom_id,
     student_id,
+    session_id,
 }: DbProgressDeleteAssignedSessionProps) => {
     checkClassroomStudentExclusiveness({ classroom_id, student_id })
 
@@ -230,7 +269,7 @@ export const dbProgressDeleteAssignedSession = async ({
         const result = await prismaClient.assigned_session_classroom.delete({
             where: {
                 session_id_classroom_id: { session_id, classroom_id },
-                classroom: { hagwon: { principal: { user_id } } },
+                classroom: { hagwon_id, hagwon: { principal: { user_id } } },
             },
         })
         return result
@@ -241,23 +280,28 @@ export const dbProgressDeleteAssignedSession = async ({
     const result = await prismaClient.assigned_session_student.delete({
         where: {
             session_id_student_id: { session_id, student_id },
-            student: { hagwon: { principal: { user_id } } },
+            student: { hagwon_id, hagwon: { principal: { user_id } } },
         },
     })
     return result
 }
 
-type DbProgressCompleteSessionProps = ProgressBase & { session_id: bigint }
+type DbProgressCreateCompleteSessionProps = {
+    hagwon_id: bigint
+    classroom_id: bigint | null
+    student_id: bigint | null
+    session_id: bigint
+}
 export const dbProgressCreateCompleteSession = async ({
+    hagwon_id,
     classroom_id,
     session_id,
-    user_id,
     student_id,
-}: DbProgressCompleteSessionProps) => {
+}: DbProgressCreateCompleteSessionProps) => {
     // NOTE: MUST early return for STUDENT FIRST
     if (student_id) {
         const studentResult = await prismaClient.student.findUnique({
-            where: { id: student_id, hagwon: { principal: { user_id } } },
+            where: { id: student_id, hagwon_id },
         })
         if (!studentResult) throw ClassroomStudentAuthorizationError
 
@@ -270,7 +314,7 @@ export const dbProgressCreateCompleteSession = async ({
     // NOTE: 배타적이어서 던지는 게 아니라 그냥 없어서 던지는 거기는 하다
     if (!classroom_id) throw ClassroomStudentExclusivenessError
     const classroomResult = await prismaClient.classroom.findUnique({
-        where: { id: classroom_id, hagwon: { principal: { user_id } } },
+        where: { id: classroom_id, hagwon_id },
     })
     if (!classroomResult) throw ClassroomStudentAuthorizationError
 
@@ -279,34 +323,39 @@ export const dbProgressCreateCompleteSession = async ({
     })
     return result
 }
+
+type DbProgressDeleteCompleteSessionProps = {
+    user_id: bigint
+    hagwon_id: bigint
+    classroom_id: bigint | null
+    student_id: bigint | null
+    session_id: bigint
+}
 export const dbProgressDeleteCompleteSession = async ({
+    user_id,
+    hagwon_id,
     classroom_id,
     session_id,
-    user_id,
     student_id,
-}: DbProgressCompleteSessionProps) => {
+}: DbProgressDeleteCompleteSessionProps) => {
     // NOTE: MUST early return for STUDENT FIRST
     if (student_id) {
-        const studentResult = await prismaClient.student.findUnique({
-            where: { id: student_id, hagwon: { principal: { user_id } } },
-        })
-        if (!studentResult) throw ClassroomStudentAuthorizationError
-
         const result = await prismaClient.completed_session_student.delete({
-            where: { session_id_student_id: { session_id, student_id } },
+            where: {
+                session_id_student_id: { session_id, student_id },
+                student: { hagwon_id, hagwon: { principal: { user_id } } },
+            },
         })
         return result
     }
 
     // NOTE: 배타적이어서 던지는 게 아니라 그냥 없어서 던지는 거기는 하다
     if (!classroom_id) throw ClassroomStudentExclusivenessError
-    const classroomResult = await prismaClient.classroom.findUnique({
-        where: { id: classroom_id, hagwon: { principal: { user_id } } },
-    })
-    if (!classroomResult) throw ClassroomStudentAuthorizationError
-
     const result = await prismaClient.completed_session_classroom.delete({
-        where: { session_id_classroom_id: { session_id, classroom_id } },
+        where: {
+            session_id_classroom_id: { session_id, classroom_id },
+            classroom: { hagwon_id, hagwon: { principal: { user_id } } },
+        },
     })
     return result
 }

@@ -102,6 +102,7 @@ export const dbCreateBook = async ({ user_id, hagwon_id, payloadFromClient }: Db
         const syllabusResult = await tx.syllabus.create({
             data: {
                 user_id,
+                hagwon_id,
                 book_id: bookResult.id,
                 sessions: {
                     create: sessionOrderArray.map((order) => ({
