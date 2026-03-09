@@ -30,6 +30,10 @@ import {
 import { decodeAccessToken, extractPermission } from "../utils/decodeAccessToken.js"
 import { issueTokens } from "../utils/issueTokens.js"
 import { REFRESH_TOKEN_AGE } from "../constants/cookieOptions/index.js"
+import type { app_user, resume } from "@/generated/prisma/client.js"
+
+type AdditionalInfo = { school_name: string | null; hagwon_name: string | null }
+type Me = Omit<app_user, "password"> & { resume: resume | null } & { additional_info: AdditionalInfo }
 
 const authRouter = Router()
 const headers = {
@@ -53,8 +57,27 @@ authRouter.post("/kakao/code-to-token", async (req, res) => {
     res.status(200).json({ kakao_access_token })
 })
 
-const extractHagwonIdFromMe = (result: Awaited<ReturnType<typeof dbFindMe>>): bigint | null => {
-    if (!result.role) return null
+const extractSchoolName = (result: Awaited<ReturnType<typeof dbFindMe>> | null): string | null => {
+    if (result?.role !== "STUDENT") return null
+    return result.student?.school.name ?? null
+}
+const extractAdditionalInfo = (result: Awaited<ReturnType<typeof dbFindMe>> | null): AdditionalInfo => {
+    if (!result?.role) return { hagwon_name: null, school_name: null }
+    switch (result.role) {
+        case "STUDENT":
+            return { hagwon_name: result.student?.hagwon.name ?? null, school_name: null }
+        case "PARENT":
+            return { hagwon_name: null, school_name: null }
+        case "PRINCIPAL":
+            return { hagwon_name: result.principal?.hagwon.name ?? null, school_name: null }
+        case "HELPER":
+            return { hagwon_name: result.helper?.hagwon.name ?? null, school_name: null }
+        case "MAINTAINER":
+            return { hagwon_name: null, school_name: null }
+    }
+}
+const extractHagwonIdFromMe = (result: Awaited<ReturnType<typeof dbFindMe>> | null): bigint | null => {
+    if (!result?.role) return null
     switch (result.role) {
         case "STUDENT":
             return result.student?.hagwon_id ?? null
@@ -68,7 +91,13 @@ const extractHagwonIdFromMe = (result: Awaited<ReturnType<typeof dbFindMe>>): bi
             return null
     }
 }
-
+const condenseToMe = (result: Awaited<ReturnType<typeof dbFindMe>> | null): Me => {
+    if (!result) throw ApiError.Internal("내 정보를 정리하던 중 오류가 발생했어요")
+    const { principal: _principal, student: _student, helper: _helper, ...rest } = result
+    const additional_info = extractAdditionalInfo(result)
+    const me: Me = { ...rest, additional_info }
+    return me
+}
 authRouter.post("/kakao/me", async (req, res) => {
     const { kakao_access_token } = req.body
     const url = KAKAO_ME_URL
@@ -95,8 +124,9 @@ authRouter.post("/kakao/me", async (req, res) => {
         })
         res.cookie(...resCookieParams)
 
-        mutateToSerializable(result)
-        res.status(200).json({ me: result, access_token })
+        const condensed = condenseToMe(result)
+        const serializable = makeSerializable(condensed)
+        res.status(200).json({ me: serializable, access_token })
         return
     }
 
@@ -133,7 +163,6 @@ authRouter.post("/kakao/logout", async (req, res) => {
     res.status(204).send()
 })
 
-// TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
 authRouter.get("/me", async (req, res) => {
     const decoded = decodeAccessToken(req.headers)
     const id = BigInt(decoded.userIdInString)
@@ -142,7 +171,6 @@ authRouter.get("/me", async (req, res) => {
     res.status(200).json(serializable)
 })
 
-// TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
 authRouter.patch("/me", async (req, res) => {
     const { user_id } = extractPermission(req.headers)
     const mePatchPayload = req.body
@@ -151,7 +179,6 @@ authRouter.patch("/me", async (req, res) => {
     res.status(204).send()
 })
 
-// TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
 authRouter.delete("/me/:userId", async (req, res) => {
     const idInString = req.params.userId
     const id = Number(idInString)
@@ -201,6 +228,7 @@ authRouter.post("/email/signup", async (req, res) => {
 authRouter.post("/email/login", async (req, res) => {
     const { email, password: rawPassword } = req.body
     const result = await dbFindMeInLogin("email", { email, password: rawPassword })
+    if (!result) throw ApiError.BadRequest("아이디와 비밀번호를 다시 확인해주세요")
     const hagwon_id = extractHagwonIdFromMe(result)
 
     const { access_token, resCookieParams } = issueTokens({
@@ -214,7 +242,6 @@ authRouter.post("/email/login", async (req, res) => {
     res.status(200).json({ me: serializable, access_token })
 })
 
-// TODO: 나중엔 userId 없이 토큰 만으로 이게 누구인지를 서버에서 판단할 수가 있어야 하는데...
 authRouter.get("/resume/user/:userId", async (req, res) => {
     extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
     const user_id = BigInt(req.params.userId)
