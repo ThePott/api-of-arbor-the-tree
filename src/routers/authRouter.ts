@@ -31,6 +31,7 @@ import { decodeAccessToken, extractPermission } from "../utils/decodeAccessToken
 import { issueTokens } from "../utils/issueTokens.js"
 import { REFRESH_TOKEN_AGE } from "../constants/cookieOptions/index.js"
 import type { app_user, resume } from "@/generated/prisma/client.js"
+import { convertToBigIntOrThrow } from "../utils/convertToBigInt.js"
 
 type AdditionalInfo = { school_name: string | null; hagwon_name: string | null }
 type Me = Omit<app_user, "password"> & { resume: resume | null } & { additional_info: AdditionalInfo }
@@ -161,7 +162,7 @@ authRouter.post("/kakao/logout", async (req, res) => {
 
 authRouter.get("/me", async (req, res) => {
     const decoded = decodeAccessToken(req.headers)
-    const id = BigInt(decoded.userIdInString)
+    const id = convertToBigIntOrThrow(decoded.userIdInString)
     const result = await dbFindMe(id)
     const condensed = condenseToMe(result)
     const serializable = makeSerializable(condensed)

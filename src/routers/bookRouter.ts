@@ -8,6 +8,7 @@ import { convertToBigIntOrThrow } from "../utils/convertToBigInt.js"
 // NOTE: MUST SERIALIZE before respond result
 const bookRouter = Router()
 
+// NOTE: 문제집 관리 페이지: 원장, 관리자, 실장만 볼 수 있음 -> 그렇다면 책을
 bookRouter.get("/", async (req, res) => {
     const { user_id } = extractPermission(req.headers)
     const result = await dbFindManyBook(user_id)
