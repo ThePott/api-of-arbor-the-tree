@@ -202,6 +202,7 @@ export const dbReviewCheckForAssignmentFindMany = async ({
                 },
             ],
         },
+        orderBy: { created_at: "asc" },
     })
     const booksFromAssignmentArrayPromise = assignmentArray.map((assignment) =>
         findManyBooksFromAssignment({ hagwon_id, assignment_id: assignment.id })

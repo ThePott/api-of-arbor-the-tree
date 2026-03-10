@@ -25,6 +25,7 @@ export const dbAssignmentFindManyAssignment = async ({
         include: {
             question_attempts: true,
         },
+        orderBy: { created_at: "asc" },
     })
 
     const bookIdsArray = assignmentResult.map(({ book_ids }) => book_ids)
