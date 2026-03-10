@@ -74,11 +74,9 @@ const condenseAssignmentWithBooksArray = (extended: ReturnType<typeof addAttempt
     const condensed = extended.map((assignment) => {
         const books = assignment?.books?.map((book) => {
             const { topics: _, ...rest } = book
-            const topics = book.topics?.map(({ steps, ...rest }) => {
-                const questions = steps.flatMap(({ questions }) => questions)
-                return { ...rest, questions }
-            })
-            return { ...rest, topics }
+            const questions = book.topics?.flatMap((topic) => topic.steps.flatMap(({ questions }) => questions))
+            // .map((question) => ({ ...question, assignment_status: assignment.status }))
+            return { ...rest, questions }
         })
         return { ...assignment, books }
     })
