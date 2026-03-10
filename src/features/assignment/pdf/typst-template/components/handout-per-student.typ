@@ -2,19 +2,20 @@
 #let handout-per-topic(
   header-data: (:),
   question-data-array: (),
+  start-index: 0,
 ) = {
   let page-length = calc.ceil(question-data-array.len() / 2)
   for grouped-index in range(page-length) {
     let first-question-data = (
       ..question-data-array.at(grouped-index * 2),
-      index: grouped-index * 2 + 1,
+      index: start-index + grouped-index * 2 + 1,
     )
     let second-data = question-data-array.at(
       grouped-index * 2 + 1,
       default: none,
     )
     let second-question-data = if second-data == none { none } else {
-      (..(second-data), index: grouped-index * 2 + 2)
+      (..(second-data), index: start-index + grouped-index * 2 + 2)
     }
 
     assignment-page(
@@ -33,6 +34,8 @@
   book-data: (:),
 ) = {
   let book-title = book-data.title
+  let running-index = 0
+  
   for topic-data in book-data.topics {
     let header-data = (
       id: id,
@@ -44,7 +47,9 @@
     handout-per-topic(
       header-data: header-data,
       question-data-array: topic-data.questions,
+      start-index: running-index,
     )
+    running-index = running-index + topic-data.questions.len()
   }
 }
 
