@@ -104,6 +104,7 @@ assignmentRouter.get("/:assignment_id/pdf", async (req, res) => {
     const { booksFromAssignment, assignment } = await dbAssignmentFindBookForPdf({ hagwon_id, assignment_id })
     const condensed = condenseBookForPdf(booksFromAssignment)
     const pdf = makeAssignmentPdf({
+        id: assignment.id,
         studentName: assignment.student.users.name,
         assigned_at: new Date(),
         bookForPdfArray: condensed,

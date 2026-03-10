@@ -9,12 +9,13 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 type MakeAssignmentPdfProps = {
+    id: bigint
     studentName: string
     bookForPdfArray: ReturnType<typeof condenseBookForPdf>
     assigned_at: Date
 }
-const makeAssignmentPdf = ({ studentName, bookForPdfArray, assigned_at }: MakeAssignmentPdfProps) => {
-    const template = makeTemplate({ studentName, bookForPdfArray, assigned_at })
+const makeAssignmentPdf = ({ id, studentName, bookForPdfArray, assigned_at }: MakeAssignmentPdfProps) => {
+    const template = makeTemplate({ id, studentName, bookForPdfArray, assigned_at })
     console.log({ template })
     const now = Date.now()
     const fileName = `assignment_${now}`

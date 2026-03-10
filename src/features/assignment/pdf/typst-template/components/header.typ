@@ -32,7 +32,9 @@
     #topic-title(header-data.topic-string) \
   ],
   [
-    #assigned-date(header-data.date-string) \
+    #assigned-date([
+      #header-data.date-string / id: #header-data.id
+    ]) \
     #student-name(header-data.name-string)
   ],
 )
