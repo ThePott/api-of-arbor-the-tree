@@ -4,7 +4,7 @@ import { dbFindManySchool } from "../db/schoolDb.js"
 const schoolRouter = Router()
 
 schoolRouter.get("/", async (req, res) => {
-    const name = String(req.query.name)
+    const name = String(req.query.name ?? "")
 
     const result = await dbFindManySchool(name)
     const serializable = result.map((school) => ({

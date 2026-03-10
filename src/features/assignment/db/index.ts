@@ -6,12 +6,12 @@ import { findManyBooksFromAssignment } from "@/src/shared/queries/find-many-book
 
 // NOTE: AssignmentMetaInfo 만드는 데에 사용됨
 type DbAssignmentFindManyAssignmentProps = {
-    user_id: bigint
+    hagwon_id: bigint
     classroom_id: bigint | null
     student_id: bigint
 }
 export const dbAssignmentFindManyAssignment = async ({
-    user_id,
+    hagwon_id,
     classroom_id,
     student_id,
 }: DbAssignmentFindManyAssignmentProps) => {
@@ -20,16 +20,17 @@ export const dbAssignmentFindManyAssignment = async ({
         where: {
             student_id,
             classroom_id,
-            student: { hagwon: { principal: { user_id } } },
+            student: { hagwon_id },
         },
         include: {
             question_attempts: true,
         },
+        orderBy: { created_at: "asc" },
     })
 
     const bookIdsArray = assignmentResult.map(({ book_ids }) => book_ids)
     const bookTitleArrayArrayPromise = bookIdsArray.map((bookIds) =>
-        prismaClient.book.findMany({ where: { id: { in: bookIds }, user_id }, select: { title: true } })
+        prismaClient.book.findMany({ where: { id: { in: bookIds }, hagwon_id }, select: { title: true } })
     )
     const bookTitleArrayArray = await Promise.all(bookTitleArrayArrayPromise)
 
@@ -42,7 +43,7 @@ export const dbAssignmentFindManyAssignment = async ({
 }
 
 type DbAssignmentFindManyCanditateProps = {
-    user_id: bigint
+    hagwon_id: bigint
     classroom_id: bigint | null
     student_id: bigint
 }
@@ -52,19 +53,19 @@ export const dbAssignmentFindManyBookWithReviewNeededAttempts = async (props: Db
 }
 
 type DbAssignmentCreateAssignmentProps = {
-    user_id: bigint
+    hagwon_id: bigint
     classroom_id: bigint | null
     student_id: bigint
     book_ids: bigint[]
 }
 export const dbAssignmentCreateAssignment = async ({
-    user_id,
+    hagwon_id,
     classroom_id,
     student_id,
     book_ids,
 }: DbAssignmentCreateAssignmentProps) => {
     await prismaClient.student.findUniqueOrThrow({
-        where: { id: student_id, hagwon: { principal: { user_id } } },
+        where: { id: student_id, hagwon_id },
     })
 
     const unreviewedAtteptArray = await prismaClient.question_attempt.findMany({
@@ -91,35 +92,41 @@ export const dbAssignmentCreateAssignment = async ({
                 })),
             },
             book_ids,
+            status: "HOMEWORK",
         },
     })
     return result
 }
 
 type DbAssignmentFindForPdfProps = {
-    user_id: bigint
+    hagwon_id: bigint
     assignment_id: bigint
 }
-export const dbAssignmentFindBookForPdf = async ({ user_id, assignment_id }: DbAssignmentFindForPdfProps) => {
+export const dbAssignmentFindBookForPdf = async ({ hagwon_id, assignment_id }: DbAssignmentFindForPdfProps) => {
     // NOTE: book으로 묶을 거니까 처음부터 book을 가져오는 게 낫겠다
-    const result = await findManyBooksFromAssignment({ user_id, assignment_id })
-    return result
+    const booksFromAssignmentPromise = findManyBooksFromAssignment({ hagwon_id, assignment_id })
+    const assignmentPromise = prismaClient.review_assignment.findUniqueOrThrow({
+        where: { id: assignment_id },
+        include: { student: { include: { users: true } } },
+    })
+    const [booksFromAssignment, assignment] = await Promise.all([booksFromAssignmentPromise, assignmentPromise])
+    return { booksFromAssignment, assignment }
 }
 
 type DbAssignedAssignmentUpdateProps = {
-    user_id: bigint
+    hagwon_id: bigint
     assignment_id: bigint
     status: session_status | null
 }
 export const dbAssignedAssignmentUpdate = async ({
-    user_id,
+    hagwon_id,
     assignment_id,
     status,
 }: DbAssignedAssignmentUpdateProps) => {
     const result = await prismaClient.review_assignment.update({
         where: {
             id: assignment_id,
-            student: { hagwon: { principal: { user_id } } },
+            student: { hagwon_id },
         },
         data: { status, assigned_at: status ? new Date() : null },
     })

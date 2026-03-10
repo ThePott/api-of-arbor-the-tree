@@ -7,19 +7,22 @@ import {
     REFRESH_TOKEN_NAME,
 } from "../constants/cookieOptions/index.js"
 import jwt from "jsonwebtoken"
+import type { role } from "@/generated/prisma/enums.js"
 
-type IssueTokensProps = {
+export type Token = {
     userIdInString: string
+    hagwonIdInString: string | null
+    role: role | null
 }
 type IssueTokensReturns = {
     access_token: string
     resCookieParams: [string, string, CookieOptions]
 }
-export const issueTokens = ({ userIdInString }: IssueTokensProps): IssueTokensReturns => {
-    const access_token = jwt.sign({ userIdInString }, ACCESS_TOKEN_SECRET, {
+export const issueTokens = (token: Token): IssueTokensReturns => {
+    const access_token = jwt.sign(token, ACCESS_TOKEN_SECRET, {
         expiresIn: ACCESS_TOKEN_AGE,
     })
-    const refresh_token = jwt.sign({ userIdInString }, REFRESH_TOKEN_SECRET, {
+    const refresh_token = jwt.sign(token, REFRESH_TOKEN_SECRET, {
         expiresIn: REFRESH_TOKEN_AGE,
     })
 
