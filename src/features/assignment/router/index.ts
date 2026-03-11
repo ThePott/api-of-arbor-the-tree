@@ -13,6 +13,7 @@ import type { session_status } from "@/generated/prisma/client.js"
 import makeAssignmentPdf from "../pdf/index.js"
 import { validateBody } from "@/src/utils/validateBody.js"
 import { validatePermission } from "@/src/utils/make-allowed-role-array.js"
+import { ApiError } from "@/src/errors/appError/AppError.js"
 
 const assignmentRouter = Router()
 
@@ -88,7 +89,13 @@ export const condenseBookForPdf = (
 ) => {
     const newBookArray = bookArray.map((book) => {
         const topics = book.topics.map((topic) => {
-            const questions = topic.steps.flatMap(({ questions }) => questions)
+            const questions = topic.steps.flatMap(({ questions }) =>
+                questions.map(({ questionAttempts, ...rest }) => {
+                    const repeat_count = questionAttempts[0]?.repeat_count
+                    if (!repeat_count) throw ApiError.Internal("오답 과제를 pdf로 변환하는 중 오류가 발생했어요")
+                    return { ...rest, repeat_count }
+                })
+            )
             const { steps: _, ...rest } = topic
             return { ...rest, questions }
         })

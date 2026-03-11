@@ -10,7 +10,6 @@ const makeTypstDictionary = (source: unknown): string => {
     const stringPairArray = Object.entries(source).map(([key, value]) => `${key}: ${makeTypstData(value)}`)
     const stringified = stringPairArray.toString()
     const typstDictionary = `(${stringified})`
-    console.log({ dictionary: typstDictionary })
     return typstDictionary
 }
 const makeTypstArray = (source: unknown): string => {
@@ -19,7 +18,6 @@ const makeTypstArray = (source: unknown): string => {
     const stringArray = source.map((el) => makeTypstData(el))
     const stringified = stringArray.toString()
     const typstArray = `(${stringified},)`
-    console.log({ array: typstArray })
     return typstArray
 }
 

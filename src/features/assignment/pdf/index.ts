@@ -16,7 +16,6 @@ type MakeAssignmentPdfProps = {
 }
 const makeAssignmentPdf = ({ id, studentName, bookForPdfArray, assigned_at }: MakeAssignmentPdfProps) => {
     const template = makeTemplate({ id, studentName, bookForPdfArray, assigned_at })
-    console.log({ template })
     const now = Date.now()
     const fileName = `assignment_${now}`
     const typstPath = `${__dirname}/${fileName}.typ`
