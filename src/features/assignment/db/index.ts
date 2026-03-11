@@ -89,6 +89,7 @@ export const dbAssignmentCreateAssignment = async ({
                     question_id: attempt.question_id,
                     classroom_id,
                     parent_attempt_id: attempt.id,
+                    repeat_count: attempt.repeat_count + 1,
                 })),
             },
             book_ids,

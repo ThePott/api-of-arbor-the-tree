@@ -103,6 +103,7 @@ export const dbReviewCheckBulkWrite = async ({
             },
             update: { status },
             create: {
+                repeat_count: 0,
                 student_id,
                 question_id: BigInt(question_id),
                 classroom_id,
