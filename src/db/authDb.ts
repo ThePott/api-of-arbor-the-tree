@@ -156,25 +156,18 @@ export const dbAcceptResume = async ({ resume_id }: DbAcceptResumeProps) => {
 
 export const dbDeleteMe = async (id: number) => prismaClient.app_user.delete({ where: { id } })
 
-export const dbFindManyResume = async (user_id: bigint) => {
-    const user = await prismaClient.app_user.findUnique({
-        where: { id: user_id },
-        include: { principal: { include: { hagwon: true } } },
-    })
-
-    const allowedRoleArray: role[] = ["MAINTAINER", "PRINCIPAL"]
-    if (!user) throw ApiError.NotFound("사용자를 찾을 수 없어요")
-    const allowedCondition = user.role && allowedRoleArray.includes(user.role)
-    if (!allowedCondition) throw ApiError.Forbidden("이 기능을 쓰려면 권한이 필요해요")
-
-    if (user.role === "MAINTAINER") {
+type DbFindManyResumeProps = {
+    role: role
+    hagwon_id: bigint
+}
+export const dbFindManyResume = async ({ role, hagwon_id }: DbFindManyResumeProps) => {
+    if (role === "MAINTAINER") {
         const result = await prismaClient.resume.findMany({ include: { users: true }, orderBy: { applied_at: "desc" } })
         return result
     }
 
-    if (!user.principal || !user.principal.hagwon.name) throw ApiError.Internal("원장 정보에 문제가 있어요")
     const result = await prismaClient.resume.findMany({
-        where: { hagwon_name: user.principal.hagwon.name },
+        where: { id: hagwon_id },
         include: { users: true },
     })
     return result

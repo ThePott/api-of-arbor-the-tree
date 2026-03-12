@@ -242,10 +242,11 @@ authRouter.post("/email/login", async (req, res) => {
     res.status(200).json({ me: serializable, access_token })
 })
 
-authRouter.get("/resume/user/:userId", async (req, res) => {
-    extractAccessToken(req.headers) // TODO: 지금은 access token을 검증하지 않음
-    const user_id = BigInt(req.params.userId)
-    const result = await dbFindManyResume(user_id)
+authRouter.get("/resume", async (req, res) => {
+    const { hagwon_id, role } = extractPermission(req.headers)
+    validatePermission({ minimumRole: "HELPER", currentRole: role })
+    if (!role) throw ApiError.Forbidden("권한이 없습니다")
+    const result = await dbFindManyResume({ hagwon_id, role })
     const serializable = makeSerializable(result)
     res.status(200).json(serializable)
 })
