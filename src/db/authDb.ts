@@ -166,8 +166,10 @@ export const dbFindManyResume = async ({ role, hagwon_id }: DbFindManyResumeProp
         return result
     }
 
+    const hagwon = await prismaClient.hagwon.findUniqueOrThrow({ where: { id: hagwon_id } })
+    if (!hagwon.name) throw ApiError.Internal("학원 이름을 찾는 중 오류가 발생했어요")
     const result = await prismaClient.resume.findMany({
-        where: { id: hagwon_id },
+        where: { hagwon_name: hagwon.name },
         include: { users: true },
     })
     return result
