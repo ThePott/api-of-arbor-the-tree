@@ -1,4 +1,4 @@
-import { decodeAccessToken, extractPermission } from "@/src/utils/decodeAccessToken.js"
+import { extractPermission } from "@/src/utils/decodeAccessToken.js"
 import { Router } from "express"
 import {
     dbAppendStudentToClassroom,

@@ -208,7 +208,7 @@ authRouter.delete("/me/:userId", async (req, res) => {
 
 authRouter.post("/resume/:resumeId/accept", async (req, res) => {
     const { role } = extractPermission(req.headers) // TODO: 지금은 access token을 검증하지 않음
-    validatePermission({ minimumRole: "PRINCIPAL", currentRole: role })
+    validatePermission({ minimumRole: "HELPER", currentRole: role })
     const resume_id = convertToBigIntOrThrow(req.params.resumeId)
     await dbAcceptResume({ resume_id })
 
