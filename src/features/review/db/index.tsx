@@ -194,14 +194,7 @@ export const dbReviewCheckForAssignmentFindMany = async ({
         where: {
             classroom_id,
             student_id,
-            OR: [
-                { completed_at: null },
-                {
-                    completed_at: {
-                        gte: makeStartOfToday(),
-                    },
-                },
-            ],
+            OR: [{ completed_at: null }],
         },
         orderBy: { created_at: "asc" },
     })
