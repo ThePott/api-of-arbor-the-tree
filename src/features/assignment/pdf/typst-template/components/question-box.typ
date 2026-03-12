@@ -18,18 +18,24 @@
   index: 1,
   page: 1,
   name: "",
+  repeat_count: 0,
   solution_page: 0,
 )
 #let question-box(question-data) = {
   grid(
     columns: (auto, auto, 1fr),
-    [#index-text(str(question-data.index))],
+    [
+      #index-text(str(question-data.index))
+    ],
     [
       #h(16pt)
       #text(str(question-data.page))
       쪽
       #text(question-data.name)
       번
+      #h(16pt)
+      R
+      #text(str(question-data.repeat_count))
     ],
     [
       #h(1fr)

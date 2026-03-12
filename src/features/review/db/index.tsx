@@ -103,6 +103,7 @@ export const dbReviewCheckBulkWrite = async ({
             },
             update: { status },
             create: {
+                repeat_count: 0,
                 student_id,
                 question_id: BigInt(question_id),
                 classroom_id,
@@ -193,14 +194,7 @@ export const dbReviewCheckForAssignmentFindMany = async ({
         where: {
             classroom_id,
             student_id,
-            OR: [
-                { completed_at: null },
-                {
-                    completed_at: {
-                        gte: makeStartOfToday(),
-                    },
-                },
-            ],
+            OR: [{ completed_at: null }],
         },
         orderBy: { created_at: "asc" },
     })
