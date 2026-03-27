@@ -26,6 +26,7 @@ export const findManyBooksFromAssignment = async ({ hagwon_id, assignment_id }: 
                                 include: {
                                     questionAttempts: {
                                         where: filterByAssignment({ forWhat: "questionAttempt", assignment_id }),
+                                        include: { child_attempt: true },
                                     },
                                 },
                             },

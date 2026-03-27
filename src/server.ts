@@ -13,6 +13,7 @@ import manageRouter from "./features/manage/route/index.js"
 import progressRouter from "./features/progress/router/index.js"
 import reviewRouter from "./features/review/router/index.js"
 import assignmentRouter from "./features/assignment/router/index.js"
+import testRouter from "./features/test/router/index.js"
 
 const app = express()
 
@@ -34,6 +35,7 @@ app.use("/manage", manageRouter)
 app.use("/progress", progressRouter)
 app.use("/review/assignment", assignmentRouter)
 app.use("/review", reviewRouter)
+app.use("/test", testRouter)
 app.use("/", checkHealthRouter)
 
 app.use(errorRequestHandler)
