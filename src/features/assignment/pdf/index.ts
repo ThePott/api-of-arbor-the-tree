@@ -20,12 +20,20 @@ const makeAssignmentPdf = ({ id, studentName, bookForPdfArray, assigned_at }: Ma
     const fileName = `assignment_${now}`
     const typstPath = `${__dirname}/${fileName}.typ`
     fs.writeFileSync(typstPath, template)
+    console.time("compile to pdf")
     execSync(`typst compile ${typstPath}`)
+    console.timeEnd("compile to pdf")
     const pdfPath = `${__dirname}/${fileName}.pdf`
     const pdf = fs.readFileSync(pdfPath)
     setTimeout(() => {
-        fs.unlink(pdfPath, (error) => console.error(error))
-        fs.unlink(typstPath, (error) => console.error(error))
+        fs.unlink(pdfPath, (error) => {
+            if (!error) return
+            console.error(error)
+        })
+        fs.unlink(typstPath, (error) => {
+            if (!error) return
+            console.error(error)
+        })
     }, 5000)
     return pdf
 }
